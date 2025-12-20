@@ -1,7 +1,7 @@
-package storage_metrics
+package storagemetrics
 
 import (
-	"sys-metrics/pkg/mem_storage"
+	"sys-metrics/pkg/memstorage"
 	"sys-metrics/pkg/metrics"
 	"sys-metrics/pkg/metrics/counter"
 	"sys-metrics/pkg/metrics/gauge"
@@ -21,7 +21,7 @@ func StorageFactory(t string) (any, error) {
 		return nil, metrics.ErrUnknownMetricType
 	}
 }
-func UpdateStorageMetric[T Metric](s *mem_storage.MemStorage[string, T], name string, metric T) error {
+func UpdateStorageMetric[T Metric](s *memstorage.MemStorage[string, T], name string, metric T) error {
 	err := s.Set(name, metric)
 	if err != nil {
 		return err
