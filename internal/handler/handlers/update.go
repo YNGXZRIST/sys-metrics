@@ -21,13 +21,6 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 func write404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 }
-func writeError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusBadRequest)
-	_, err = w.Write([]byte("400 Bad Request: " + err.Error()))
-	if err != nil {
-		return
-	}
-}
 func writeSuccess(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("200 OK"))

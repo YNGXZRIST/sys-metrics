@@ -2,7 +2,6 @@ package memstorage
 
 import (
 	"errors"
-	"sync"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -44,16 +43,4 @@ func (s *MemStorage[K, V]) Delete(key K) error {
 func (s *MemStorage[K, V]) Has(key K) bool {
 	_, ok := s.data[key]
 	return ok
-}
-
-var (
-	instance *MemStorage[string, any]
-	once     sync.Once
-)
-
-func GetInstance() *MemStorage[string, any] {
-	once.Do(func() {
-		instance = NewMemStorage[string, any]()
-	})
-	return instance
 }
