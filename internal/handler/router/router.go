@@ -5,7 +5,7 @@ import (
 	"sys-metrics/internal/handler/handlers"
 )
 
-func SetRouter() *http.ServeMux {
+func GetRouter() *http.ServeMux {
 	r := http.NewServeMux()
 	r.Handle("/update/{type}/{name}/{value}", http.HandlerFunc(handlers.UpdateHandler))
 	return r

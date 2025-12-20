@@ -24,3 +24,4 @@ vendor/
 .idea
 .vscode
 /memo.png
+/metricstest-darwin-arm64

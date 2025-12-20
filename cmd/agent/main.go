@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	e := server.NewServer(server.DefaultHost, server.DefaultPort, router.SetRouter())
+	e := server.NewServer(server.DefaultHost, server.DefaultPort, router.GetRouter())
 	if e != nil {
 		panic(e)
 	}
