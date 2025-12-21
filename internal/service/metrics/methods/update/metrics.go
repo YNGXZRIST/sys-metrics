@@ -2,10 +2,9 @@ package update
 
 import (
 	"strconv"
-	"sys-metrics/internal/repository/metrics/storagemetrics"
+	"sys-metrics/internal/model/metrics"
+	"sys-metrics/internal/service/metrics/storagemetrics"
 	"sys-metrics/pkg/memstorage"
-	"sys-metrics/pkg/metrics/counter"
-	"sys-metrics/pkg/metrics/gauge"
 )
 
 func Update(metricType, name, value string) error {
@@ -14,28 +13,28 @@ func Update(metricType, name, value string) error {
 		return err
 	}
 	switch s := storage.(type) {
-	case *memstorage.MemStorage[string, *counter.Metric]:
+	case *memstorage.MemStorage[string, *metrics.Counter]:
 		parsed, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return err
 		}
-		return updateOrCreate(s, name, func() *counter.Metric {
-			return counter.NewCounter(name)
+		return updateOrCreate(s, name, func() *metrics.Counter {
+			return metrics.NewCounter(name)
 		}, parsed)
 
-	case *memstorage.MemStorage[string, *gauge.Metric]:
+	case *memstorage.MemStorage[string, *metrics.Gauge]:
 		parsed, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
 		}
-		return updateOrCreate(s, name, func() *gauge.Metric {
-			return gauge.NewGauge(name)
+		return updateOrCreate(s, name, func() *metrics.Gauge {
+			return metrics.NewGauge(name)
 		}, parsed)
 	}
 	return nil
 }
 
-func updateOrCreate[T interface{ SetValue(v V) }, V any](
+func updateOrCreate[T interface{ SetValue(v V) V }, V any](
 	s *memstorage.MemStorage[string, T],
 	name string,
 	factory func() T,

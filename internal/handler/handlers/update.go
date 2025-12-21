@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	serviceMetrics "sys-metrics/internal/service/metrics/update"
+	serviceMetrics "sys-metrics/internal/service/metrics/methods/update"
 )
 
 func UpdateHandler(w http.ResponseWriter, r *http.Request) {

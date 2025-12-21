@@ -1,8 +1,8 @@
-package models
+package metrics
 
-const (
-	Counter = "counter"
-	Gauge   = "gauge"
+var (
+	MTypeGauge   = "gauge"
+	MTypeCounter = "counter"
 )
 
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
