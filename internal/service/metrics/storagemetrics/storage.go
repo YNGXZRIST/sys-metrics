@@ -2,7 +2,6 @@ package storagemetrics
 
 import (
 	m "sys-metrics/internal/model/metrics"
-	e "sys-metrics/internal/service/metrics"
 	s "sys-metrics/internal/service/metrics"
 )
 
@@ -17,6 +16,6 @@ func StorageFactory(t string) (any, error) {
 	case "gauge":
 		return s.GaugeStorage, nil
 	default:
-		return nil, e.ErrUnknownMetricType
+		return nil, s.ErrUnknownMetricType
 	}
 }
