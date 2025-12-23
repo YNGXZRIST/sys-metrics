@@ -1,22 +1,31 @@
 package metrics
 
 import (
-	m "sys-metrics/internal/model/metrics"
-	"sys-metrics/pkg/memstorage"
+	"sys-metrics/internal/model/metrics"
 )
 
-var (
-	CounterStorage = memstorage.NewMemStorage[string, *m.Counter]()
-	GaugeStorage   = memstorage.NewMemStorage[string, *m.Gauge]()
-)
+type MetricStorage[V any] interface {
+	Set(key string, value V) error
+	Get(key string) (V, error)
+}
 
-func StorageFactory(t string) (any, error) {
-	switch t {
-	case "counter":
-		return CounterStorage, nil
-	case "gauge":
-		return GaugeStorage, nil
-	default:
-		return nil, ErrUnknownMetricType
-	}
+type Service struct {
+	counters MetricStorage[*metrics.Counter]
+	gauges   MetricStorage[*metrics.Gauge]
+}
+
+var defaultService *Service
+
+func Init(
+	counters MetricStorage[*metrics.Counter],
+	gauges MetricStorage[*metrics.Gauge],
+) {
+	defaultService = &Service{counters: counters, gauges: gauges}
+}
+
+func Counters() MetricStorage[*metrics.Counter] {
+	return defaultService.counters
+}
+func Gauges() MetricStorage[*metrics.Gauge] {
+	return defaultService.gauges
 }

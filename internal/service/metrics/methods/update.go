@@ -1,49 +1,50 @@
 package methods
 
 import (
+	"errors"
 	"strconv"
 	"sys-metrics/internal/model/metrics"
-	s "sys-metrics/internal/service/metrics"
+	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
 )
 
 func Update(metricType, name, value string) error {
-	storage, err := s.StorageFactory(metricType)
-	if err != nil {
-		return err
-	}
-	switch s := storage.(type) {
-	case *memstorage.MemStorage[string, *metrics.Counter]:
+	switch metricType {
+	case "counter":
 		parsed, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return err
 		}
-		return updateOrCreate(s, name, func() *metrics.Counter {
-			return metrics.NewCounter(name)
-		}, parsed)
-
-	case *memstorage.MemStorage[string, *metrics.Gauge]:
+		return updateCounter(name, parsed)
+	case "gauge":
 		parsed, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
 		}
-		return updateOrCreate(s, name, func() *metrics.Gauge {
-			return metrics.NewGauge(name)
-		}, parsed)
+		return updateGauge(name, parsed)
+	default:
+		return svc.ErrUnknownMetricType
 	}
-	return nil
 }
 
-func updateOrCreate[T interface{ SetValue(v V) V }, V any](
-	s *memstorage.MemStorage[string, T],
-	name string,
-	factory func() T,
-	value V,
-) error {
-	metric, err := s.Get(name)
-	if err != nil {
-		metric = factory()
+func updateCounter(name string, value int64) error {
+	storage := svc.Counters()
+	counter, err := storage.Get(name)
+	if errors.Is(err, memstorage.ErrNotFound) {
+		counter = metrics.NewCounter(name)
+	} else {
+		return err
 	}
-	metric.SetValue(value)
-	return s.Set(name, metric)
+	counter.SetValue(value)
+	return storage.Set(name, counter)
+}
+
+func updateGauge(name string, value float64) error {
+	storage := svc.Gauges()
+	gauge, err := storage.Get(name)
+	if err != nil {
+		gauge = metrics.NewGauge(name)
+	}
+	gauge.SetValue(value)
+	return storage.Set(name, gauge)
 }
