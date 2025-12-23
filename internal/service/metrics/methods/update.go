@@ -1,14 +1,14 @@
-package update
+package methods
 
 import (
 	"strconv"
 	"sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/service/metrics/storagemetrics"
+	s "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
 )
 
 func Update(metricType, name, value string) error {
-	storage, err := storagemetrics.StorageFactory(metricType)
+	storage, err := s.StorageFactory(metricType)
 	if err != nil {
 		return err
 	}
