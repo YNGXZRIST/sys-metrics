@@ -32,7 +32,7 @@ func updateCounter(name string, value int64) error {
 	counter, err := storage.Get(name)
 	if errors.Is(err, memstorage.ErrNotFound) {
 		counter = metrics.NewCounter(name)
-	} else {
+	} else if err != nil {
 		return err
 	}
 	counter.SetValue(value)

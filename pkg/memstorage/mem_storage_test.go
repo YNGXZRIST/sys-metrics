@@ -177,10 +177,10 @@ func TestNewMemStorage(t *testing.T) {
 	t.Run("new mem storage", func(t *testing.T) {
 		got := NewMemStorage[string, int]()
 		if got == nil {
-			t.Error("NewMemStorage() returned nil")
+			t.Fatal("NewMemStorage() returned nil")
 		}
 		if got.data == nil {
-			t.Error("NewMemStorage() data map is nil")
+			t.Fatal("NewMemStorage() data map is nil")
 		}
 		if len(got.data) != 0 {
 			t.Errorf("NewMemStorage() data should be empty, got %d elements", len(got.data))

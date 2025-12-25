@@ -38,7 +38,7 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 		return errors.New("empty metric value")
 	}
 	v := r.ConvertMetricValue(metric, value)
-	url := r.BuildUpdateUrl(metric, name, v)
+	url := r.BuildUpdateURL(metric, name, v)
 	r.logger.Println(url)
 	response, err := http.Get(url)
 	if err != nil {
@@ -62,6 +62,6 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	}
 	return s
 }
-func (r *Reporter) BuildUpdateUrl(m, n, v string) string {
+func (r *Reporter) BuildUpdateURL(m, n, v string) string {
 	return r.serverAddr + "/update/" + m + "/" + n + "/" + v
 }

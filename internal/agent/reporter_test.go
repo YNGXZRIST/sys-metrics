@@ -16,7 +16,7 @@ func TestNewReporter(t *testing.T) {
 
 }
 
-func TestReporter_BuildUpdateUrl(t *testing.T) {
+func TestReporter_BuildUpdateURL(t *testing.T) {
 
 	type args struct {
 		m string
@@ -46,8 +46,8 @@ func TestReporter_BuildUpdateUrl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := testReporter.BuildUpdateUrl(tt.args.m, tt.args.n, tt.args.v); got != tt.want {
-				t.Errorf("BuildUpdateUrl() = %v, want %v", got, tt.want)
+			if got := testReporter.BuildUpdateURL(tt.args.m, tt.args.n, tt.args.v); got != tt.want {
+				t.Errorf("BuildUpdateURL() = %v, want %v", got, tt.want)
 			}
 		})
 	}

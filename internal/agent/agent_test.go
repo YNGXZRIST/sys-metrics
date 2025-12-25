@@ -40,8 +40,8 @@ func TestAgent_StartPool(t *testing.T) {
 	if newAgent.collector == nil {
 		t.Fatal("collector is nil")
 	}
-	if newAgent.collector.metrics == nil || len(newAgent.collector.metrics) == 0 {
-		t.Fatal("collector metrics is nil or empty")
+	if len(newAgent.collector.metrics) == 0 {
+		t.Fatal("collector metrics is empty")
 	}
 	if len(newAgent.collector.metrics[Gauge]) == 0 {
 		t.Fatal("metrics Gauge is empty")
