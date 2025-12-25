@@ -36,6 +36,9 @@ func (s *MemStorage[K, V]) Get(key K) (V, error) {
 }
 
 func (s *MemStorage[K, V]) Delete(key K) error {
+	if _, ok := s.data[key]; !ok {
+		return ErrNotFound
+	}
 	delete(s.data, key)
 	return nil
 }

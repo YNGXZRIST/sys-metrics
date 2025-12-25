@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"sync"
 	"sys-metrics/internal/config/agent"
 	"time"
@@ -15,33 +16,35 @@ type Agent struct {
 func NewAgent(cfg *agent.Config) *Agent {
 	return &Agent{cfg, sync.RWMutex{}, NewCollector()}
 }
-func (a *Agent) StartReport() {
+func (a *Agent) StartReport(ctx context.Context) {
 	ticker := time.NewTicker(a.ReportInterval * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-ticker.C:
 			err := a.Report()
 			if err != nil {
 				a.Logger.Println(err)
 				return
 			}
-			break
 		}
 	}
 }
-func (a *Agent) StartPool() {
+func (a *Agent) StartPool(ctx context.Context) {
 	ticker := time.NewTicker(a.PoolInterval * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-ticker.C:
 			a.mu.Lock()
 			a.collector.Update()
 			a.collector.SetPoolCounterMetric()
 			a.collector.SetRandomValueMetric()
 			a.mu.Unlock()
-			break
 		}
 	}
 }
