@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -27,6 +28,15 @@ func (r *Reporter) Send(c Collector) error {
 	return nil
 }
 func (r *Reporter) sendMetricToServer(metric, name string, value float64) error {
+	if metric == "" {
+		return errors.New("empty metric type")
+	}
+	if name == "" {
+		return errors.New("empty metric name")
+	}
+	if value == 0 {
+		return errors.New("empty metric value")
+	}
 	v := r.ConvertMetricValue(metric, value)
 	url := r.BuildUpdateUrl(metric, name, v)
 	r.logger.Println(url)

@@ -86,12 +86,12 @@ func TestCollector_GetPoolCountMetric(t *testing.T) {
 		want    float64
 	}{
 		{
-			name:    "get positive value",
+			name:    "positive value",
 			initial: 12,
 			want:    12,
 		},
 		{
-			name:    "get zero",
+			name:    "zero",
 			initial: 0,
 			want:    0,
 		},

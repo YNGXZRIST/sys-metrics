@@ -27,5 +27,6 @@ func Counters() MetricStorage[*metrics.Counter] {
 	return defaultService.counters
 }
 func Gauges() MetricStorage[*metrics.Gauge] {
+
 	return defaultService.gauges
 }

@@ -2,34 +2,33 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	agent "sys-metrics/internal/agent"
+	"sys-metrics/internal/agent"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
 	"syscall"
+	"time"
 )
 
 func main() {
 
-	serverCfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, log.Default())
-	agentCfg := config.NewConfig(2, 10, serverCfg.ServerAddr(), log.Default())
-	fmt.Println(agentCfg.ServerAddr)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	a := agent.NewAgent(agentCfg)
+	a := initAgent()
+	a.Logger.Printf("Agent initialized. server url: %v", a.ServerAddr)
 	go a.StartReport(ctx)
 	go a.StartPool(ctx)
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-
-	log.Println("Shutting down agent...")
+	a.Logger.Println("Shutting down agent...")
 	cancel()
-
+}
+func initAgent() *agent.Agent {
+	serverCfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, log.Default())
+	agentCfg := config.NewConfig(2*time.Second, 10*time.Second, serverCfg.ServerAddr(), log.Default())
+	a := agent.NewAgent(agentCfg)
+	return a
 }
