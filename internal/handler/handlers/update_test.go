@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"sys-metrics/internal/model/metrics"
@@ -13,21 +12,19 @@ import (
 func Test_writeBadRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 	writeBadRequest(w)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			t.Errorf("failed to close body: %v", err)
-		}
-	}(w.Result().Body)
-	if w.Result().StatusCode != http.StatusBadRequest {
-		t.Fatalf("writeBadRequest error, want %v got %v", http.StatusBadRequest, w.Result().StatusCode)
+	res := w.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("writeBadRequest error, want %v got %v", http.StatusBadRequest, res.StatusCode)
 	}
 }
 func Test_writeSuccess(t *testing.T) {
 	w := httptest.NewRecorder()
 	writeSuccess(w)
-	if w.Result().StatusCode != http.StatusOK {
-		t.Fatalf("writeBadRequest error, want %v got %v", http.StatusOK, w.Result().StatusCode)
+	res := w.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("writeSuccess error, want %v got %v", http.StatusOK, res.StatusCode)
 	}
 }
 
@@ -66,21 +63,18 @@ func TestUpdateHandler(t *testing.T) {
 			counters := memstorage.NewMemStorage[string, *metrics.Counter]()
 			gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
 			svc.Init(counters, gauges)
-			server := httptest.NewServer(http.HandlerFunc(UpdateHandler))
+
 			req := httptest.NewRequest(http.MethodGet, "/update", nil)
-			w := httptest.NewRecorder()
-			defer server.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					t.Errorf("failed to close body: %v", err)
-				}
-			}(w.Result().Body)
 			req.SetPathValue("type", tt.args.metricType)
 			req.SetPathValue("name", tt.args.name)
 			req.SetPathValue("value", tt.args.value)
+
+			w := httptest.NewRecorder()
 			UpdateHandler(w, req)
+
 			res := w.Result()
+			defer res.Body.Close()
+
 			if res.StatusCode != tt.want {
 				t.Errorf("UpdateHandler() = %v, want %v", res.StatusCode, tt.want)
 			}
