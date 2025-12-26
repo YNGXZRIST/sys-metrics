@@ -11,13 +11,14 @@ type Agent struct {
 	*agent.Config
 	mu        sync.RWMutex
 	collector *Collector
+	reporter  *Reporter
 }
 
 func NewAgent(cfg *agent.Config) *Agent {
-	return &Agent{cfg, sync.RWMutex{}, NewCollector()}
+	return &Agent{cfg, sync.RWMutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
 }
 func (a *Agent) StartReport(ctx context.Context) {
-	ticker := time.NewTicker(a.ReportInterval * time.Second)
+	ticker := time.NewTicker(a.ReportInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -51,8 +52,7 @@ func (a *Agent) StartPool(ctx context.Context) {
 func (a *Agent) Report() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	reporter := NewReporter(a.Config.ServerAddr, a.Logger)
-	err := reporter.Send(*a.collector)
+	err := a.reporter.Send(*a.collector)
 	if err != nil {
 		return err
 	}

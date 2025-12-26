@@ -34,9 +34,7 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 	if name == "" {
 		return errors.New("empty metric name")
 	}
-	if value == 0 {
-		return errors.New("empty metric value")
-	}
+
 	v := r.ConvertMetricValue(metric, value)
 	url := r.BuildUpdateURL(metric, name, v)
 	r.logger.Println(url)
