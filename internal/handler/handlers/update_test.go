@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sys-metrics/internal/model/metrics"
@@ -12,6 +13,12 @@ import (
 func Test_writeBadRequest(t *testing.T) {
 	w := httptest.NewRecorder()
 	writeBadRequest(w)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			t.Errorf("failed to close body: %v", err)
+		}
+	}(w.Result().Body)
 	if w.Result().StatusCode != http.StatusBadRequest {
 		t.Fatalf("writeBadRequest error, want %v got %v", http.StatusBadRequest, w.Result().StatusCode)
 	}
@@ -60,9 +67,15 @@ func TestUpdateHandler(t *testing.T) {
 			gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
 			svc.Init(counters, gauges)
 			server := httptest.NewServer(http.HandlerFunc(UpdateHandler))
-			defer server.Close()
 			req := httptest.NewRequest(http.MethodGet, "/update", nil)
 			w := httptest.NewRecorder()
+			defer server.Close()
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					t.Errorf("failed to close body: %v", err)
+				}
+			}(w.Result().Body)
 			req.SetPathValue("type", tt.args.metricType)
 			req.SetPathValue("name", tt.args.name)
 			req.SetPathValue("value", tt.args.value)
