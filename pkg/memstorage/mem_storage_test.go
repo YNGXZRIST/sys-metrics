@@ -138,7 +138,6 @@ func TestMemStorage_Set(t *testing.T) {
 		name    string
 		s       MemStorage[K, V]
 		args    args[K, V]
-		val     V
 		wantErr bool
 		wantVal V
 	}

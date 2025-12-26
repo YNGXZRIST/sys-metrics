@@ -12,13 +12,13 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("value")
 	err := serviceMetrics.Update(metricType, name, value)
 	if err != nil {
-		write404(w)
+		writeBadRequest(w)
 		return
 	}
 	writeSuccess(w)
 
 }
-func write404(w http.ResponseWriter) {
+func writeBadRequest(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 func writeSuccess(w http.ResponseWriter) {
