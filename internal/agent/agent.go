@@ -18,6 +18,10 @@ func NewAgent(cfg *agent.Config) *Agent {
 	return &Agent{cfg, sync.RWMutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
 }
 func (a *Agent) StartReport(ctx context.Context) {
+	err := a.Report()
+	if err != nil {
+		a.Logger.Println(err)
+	}
 	ticker := time.NewTicker(a.ReportInterval)
 	defer ticker.Stop()
 	for {
@@ -34,7 +38,7 @@ func (a *Agent) StartReport(ctx context.Context) {
 	}
 }
 func (a *Agent) StartPool(ctx context.Context) {
-	ticker := time.NewTicker(a.PoolInterval * time.Second)
+	ticker := time.NewTicker(a.PoolInterval)
 	defer ticker.Stop()
 	for {
 		select {
