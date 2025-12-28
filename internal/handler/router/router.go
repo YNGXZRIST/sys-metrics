@@ -1,12 +1,15 @@
 package router
 
 import (
-	"net/http"
 	"sys-metrics/internal/handler/handlers"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func GetRouter() *http.ServeMux {
-	r := http.NewServeMux()
-	r.Handle("/update/{type}/{name}/{value}", http.HandlerFunc(handlers.UpdateHandler))
+func GetRouter() *chi.Mux {
+	r := chi.NewRouter()
+	r.Get("/", handlers.Index)
+	r.Get("/update/{type}/{name}/{value}", handlers.UpdateHandler)
+	r.Get("/value/{type}/{name}", handlers.ValueHandler)
 	return r
 }

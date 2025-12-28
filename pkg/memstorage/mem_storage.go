@@ -11,6 +11,7 @@ type Storage[K comparable, V any] interface {
 	Get(key K) (V, error)
 	Delete(key K) error
 	Has(key K) bool
+	All() map[K]V
 }
 
 type MemStorage[K comparable, V any] struct {
@@ -33,6 +34,9 @@ func (s *MemStorage[K, V]) Get(key K) (V, error) {
 		return zero, ErrNotFound
 	}
 	return v, nil
+}
+func (s *MemStorage[K, V]) All() map[K]V {
+	return s.data
 }
 
 func (s *MemStorage[K, V]) Delete(key K) error {

@@ -16,5 +16,4 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responsewriter.WriteSuccess(w)
-
 }

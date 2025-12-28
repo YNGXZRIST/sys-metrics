@@ -186,3 +186,31 @@ func TestNewMemStorage(t *testing.T) {
 		}
 	})
 }
+
+func TestMemStorage_All(t *testing.T) {
+	type testCase[K comparable, V any] struct {
+		name string
+		s    MemStorage[K, V]
+		want map[K]V
+	}
+	tests := []testCase[string, int]{
+		{
+			name: "all",
+			s: MemStorage[string, int]{
+				data: map[string]int{
+					"test_counter": 100,
+				},
+			},
+			want: map[string]int{
+				"test_counter": 100,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.All(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("All() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

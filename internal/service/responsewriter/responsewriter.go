@@ -15,3 +15,6 @@ func WriteSuccess(w http.ResponseWriter) {
 		fmt.Println(err)
 	}
 }
+func WriteServerError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+}
