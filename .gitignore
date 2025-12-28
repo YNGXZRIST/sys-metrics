@@ -25,3 +25,4 @@ vendor/
 .vscode
 /memo.png
 /metricstest-darwin-arm64
+/bin/statictest
