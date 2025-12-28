@@ -1,0 +1,17 @@
+package responsewriter
+
+import (
+	"fmt"
+	"net/http"
+)
+
+func WriteBadRequest(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+func WriteSuccess(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("200 OK"))
+	if err != nil {
+		fmt.Println(err)
+	}
+}

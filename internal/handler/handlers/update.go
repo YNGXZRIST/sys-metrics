@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	serviceMetrics "sys-metrics/internal/service/metrics/methods"
+	"sys-metrics/internal/service/responsewriter"
 )
 
 func UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -12,19 +12,9 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("value")
 	err := serviceMetrics.Update(metricType, name, value)
 	if err != nil {
-		writeBadRequest(w)
+		responsewriter.WriteBadRequest(w)
 		return
 	}
-	writeSuccess(w)
+	responsewriter.WriteSuccess(w)
 
-}
-func writeBadRequest(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadRequest)
-}
-func writeSuccess(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("200 OK"))
-	if err != nil {
-		fmt.Println(err)
-	}
 }

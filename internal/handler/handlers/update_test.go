@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sys-metrics/internal/model/metrics"
@@ -8,25 +10,6 @@ import (
 	"sys-metrics/pkg/memstorage"
 	"testing"
 )
-
-func Test_writeBadRequest(t *testing.T) {
-	w := httptest.NewRecorder()
-	writeBadRequest(w)
-	res := w.Result()
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusBadRequest {
-		t.Fatalf("writeBadRequest error, want %v got %v", http.StatusBadRequest, res.StatusCode)
-	}
-}
-func Test_writeSuccess(t *testing.T) {
-	w := httptest.NewRecorder()
-	writeSuccess(w)
-	res := w.Result()
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("writeSuccess error, want %v got %v", http.StatusOK, res.StatusCode)
-	}
-}
 
 func TestUpdateHandler(t *testing.T) {
 	type args struct {
@@ -73,7 +56,12 @@ func TestUpdateHandler(t *testing.T) {
 			UpdateHandler(w, req)
 
 			res := w.Result()
-			defer res.Body.Close()
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					fmt.Println(err)
+				}
+			}(res.Body)
 
 			if res.StatusCode != tt.want {
 				t.Errorf("UpdateHandler() = %v, want %v", res.StatusCode, tt.want)
