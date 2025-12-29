@@ -56,6 +56,7 @@ func TestUpdateHandler(t *testing.T) {
 			UpdateHandler(w, req)
 
 			res := w.Result()
+			res.Body.Close()
 			defer func(Body io.ReadCloser) {
 				err := Body.Close()
 				if err != nil {
