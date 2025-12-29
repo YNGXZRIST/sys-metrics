@@ -21,7 +21,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 		v, err := svm.Counters().Get(name)
 		if err != nil {
 			fmt.Println(err)
-			responsewriter.WriteServerError(w)
+			responsewriter.WriteNotFound(w)
 			return
 		}
 		responsewriter.WriteSuccessStatus(w)
@@ -31,7 +31,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 		v, err := svm.Gauges().Get(name)
 		if err != nil {
 			fmt.Println(err)
-			responsewriter.WriteServerError(w)
+			responsewriter.WriteNotFound(w)
 			return
 		}
 		responsewriter.WriteSuccessStatus(w)

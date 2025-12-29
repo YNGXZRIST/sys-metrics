@@ -66,7 +66,7 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 		{
 			name: "empty",
 			args: args{},
-			want: "0.00",
+			want: "0",
 		},
 		{
 			name: Gauge,

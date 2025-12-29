@@ -44,3 +44,13 @@ func TestWriteSuccessStatus(t *testing.T) {
 		t.Fatalf("writeSuccessStatus error, want %v got %v", http.StatusOK, res.StatusCode)
 	}
 }
+
+func TestWriteNotFound(t *testing.T) {
+	w := httptest.NewRecorder()
+	WriteNotFound(w)
+	res := w.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("WriteNotFound error, want %v got %v", http.StatusNotFound, res.StatusCode)
+	}
+}

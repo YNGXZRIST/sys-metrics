@@ -28,7 +28,7 @@ func TestValueHandler(t *testing.T) {
 				metricType: metrics.MTypeGauge,
 				name:       "Alloc",
 			},
-			wantValue:  "123.456000",
+			wantValue:  "123.456",
 			wantStatus: http.StatusOK,
 		},
 		{
