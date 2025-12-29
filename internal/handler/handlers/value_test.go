@@ -56,7 +56,7 @@ func TestValueHandler(t *testing.T) {
 				name:       "Unknown",
 			},
 			wantValue:  "",
-			wantStatus: http.StatusInternalServerError,
+			wantStatus: http.StatusNotFound,
 		},
 	}
 	for _, tt := range tests {
