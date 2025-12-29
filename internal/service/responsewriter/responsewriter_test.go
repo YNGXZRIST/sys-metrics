@@ -56,6 +56,7 @@ func TestWriteSuccessStatus(t *testing.T) {
 	w := httptest.NewRecorder()
 	WriteSuccessStatus(w)
 	res := w.Result()
+	res.Body.Close()
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
