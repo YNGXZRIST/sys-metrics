@@ -82,6 +82,7 @@ func TestValueHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			ValueHandler(w, req)
 			res := w.Result()
+			res.Body.Close()
 			defer func(Body io.ReadCloser) {
 				err := Body.Close()
 				if err != nil {
