@@ -31,25 +31,25 @@ func TestRoutes(t *testing.T) {
 	}{
 		{
 			name:       "update gauge success",
-			method:     http.MethodGet,
+			method:     http.MethodPost,
 			path:       "/update/gauge/test/123.45",
 			wantStatus: http.StatusOK,
 		},
 		{
 			name:       "update counter success",
-			method:     http.MethodGet,
+			method:     http.MethodPost,
 			path:       "/update/counter/test/100",
 			wantStatus: http.StatusOK,
 		},
 		{
 			name:       "update invalid type",
-			method:     http.MethodGet,
+			method:     http.MethodPost,
 			path:       "/update/invalid/test/100",
 			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:       "update invalid counter value",
-			method:     http.MethodGet,
+			method:     http.MethodPost,
 			path:       "/update/counter/test/not_a_number",
 			wantStatus: http.StatusBadRequest,
 		},
