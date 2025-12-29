@@ -8,6 +8,9 @@ import (
 func WriteBadRequest(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 }
+func WriteSuccessStatus(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+}
 func WriteSuccess(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("200 OK"))

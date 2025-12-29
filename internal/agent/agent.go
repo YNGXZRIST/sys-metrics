@@ -27,6 +27,8 @@ func (a *Agent) StartReport(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			return
+
 		case <-ticker.C:
 			err := a.Report()
 			if err != nil {

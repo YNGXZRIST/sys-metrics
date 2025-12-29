@@ -52,7 +52,7 @@ func TestAgent_StartPool(t *testing.T) {
 }
 
 func TestAgent_StartReport(t *testing.T) {
-	cfg := agent.NewConfig(1, 1, testServer.URL, log.Default())
+	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, log.Default())
 	newAgent := NewAgent(cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

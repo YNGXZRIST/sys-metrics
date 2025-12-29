@@ -11,12 +11,22 @@ import (
 )
 
 func main() {
+	initStorage()
+}
+func initStorage() {
 	counters := memstorage.NewMemStorage[string, *model.Counter]()
 	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
 	svc.Init(counters, gauges)
+	err := initServer()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+func initServer() error {
 	cfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, log.Default())
 	err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter())
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }

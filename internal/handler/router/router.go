@@ -8,7 +8,7 @@ import (
 
 func GetRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/", handlers.Index)
+	r.Get("/", handlers.IndexHandler)
 	r.Get("/update/{type}/{name}/{value}", handlers.UpdateHandler)
 	r.Get("/value/{type}/{name}", handlers.ValueHandler)
 	return r
