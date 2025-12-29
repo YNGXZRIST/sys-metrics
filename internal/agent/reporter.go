@@ -56,7 +56,7 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	if m == "counter" {
 		s = strconv.FormatInt(int64(v), 10)
 	} else {
-		s = strconv.FormatFloat(v, 'f', 2, 64)
+		s = strconv.FormatFloat(v, 'f', -1, 64)
 	}
 	return s
 }

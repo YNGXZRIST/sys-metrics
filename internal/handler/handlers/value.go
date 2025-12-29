@@ -35,7 +35,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		responsewriter.WriteSuccessStatus(w)
-		w.Write([]byte(strconv.FormatFloat(*v.Value, 'f', 6, 64)))
+		w.Write([]byte(strconv.FormatFloat(*v.Value, 'f', -1, 64)))
 		return
 	default:
 		responsewriter.WriteBadRequest(w)
