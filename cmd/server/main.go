@@ -12,15 +12,15 @@ import (
 
 func main() {
 	initStorage()
+	err := initServer()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 func initStorage() {
 	counters := memstorage.NewMemStorage[string, *model.Counter]()
 	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
 	svc.Init(counters, gauges)
-	err := initServer()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 func initServer() error {
 	cfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, log.Default())
