@@ -53,23 +53,16 @@ func TestWriteServerError(t *testing.T) {
 }
 
 func TestWriteSuccessStatus(t *testing.T) {
-	type args struct {
-		w http.ResponseWriter
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{
-			name: "success",
-			args: args{
-				w: httptest.NewRecorder(),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			WriteSuccessStatus(tt.args.w)
-		})
+	w := httptest.NewRecorder()
+	WriteSuccessStatus(w)
+	res := w.Result()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(res.Body)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("writeSuccessStatus error, want %v got %v", http.StatusOK, res.StatusCode)
 	}
 }
