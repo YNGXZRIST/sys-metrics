@@ -39,12 +39,12 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 	v := r.ConvertMetricValue(metric, value)
 	url := r.BuildUpdateURL(metric, name, v)
 	r.logger.Println(url)
-	response, err := http.Get(url)
+	response, err := http.Post(url, "text/plain", nil)
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 	_, err = io.ReadAll(response.Body)
-	response.Body.Close()
 	if err != nil {
 		return err
 	}
