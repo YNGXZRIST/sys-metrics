@@ -2,9 +2,11 @@ package memstorage
 
 import (
 	"errors"
+	"sync"
 )
 
 var ErrNotFound = errors.New("not found")
+var mu = sync.RWMutex{}
 
 type Storage[K comparable, V any] interface {
 	Set(key K, value V) error
@@ -23,7 +25,9 @@ func NewMemStorage[K comparable, V any]() *MemStorage[K, V] {
 }
 
 func (s *MemStorage[K, V]) Set(key K, value V) error {
+	mu.Lock()
 	s.data[key] = value
+	mu.Unlock()
 	return nil
 }
 
@@ -43,7 +47,9 @@ func (s *MemStorage[K, V]) Delete(key K) error {
 	if _, ok := s.data[key]; !ok {
 		return ErrNotFound
 	}
+	mu.Lock()
 	delete(s.data, key)
+	mu.Unlock()
 	return nil
 }
 
