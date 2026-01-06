@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestGauge_SetValue(t *testing.T) {
 		{
 			name: "SetValue",
 			fields: fields{
-				Metrics: Metrics{ID: "test", MType: MTypeGauge},
+				Metrics: Metrics{ID: "test", MType: common.Gauge},
 			},
 			args: args{
 				v: 1.0,
@@ -51,7 +52,7 @@ func TestNewGauge(t *testing.T) {
 	if m == nil {
 		t.Fatal("NewGauge() returned nil")
 	}
-	if got := m.Metrics.MType; got != MTypeGauge {
-		t.Fatalf("NewGauge() = %v, want %v", got, MTypeGauge)
+	if got := m.Metrics.MType; got != common.Gauge {
+		t.Fatalf("NewGauge() = %v, want %v", got, common.Gauge)
 	}
 }

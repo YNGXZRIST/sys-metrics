@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestCounter_SetValue(t *testing.T) {
 		{
 			name: "SetValue",
 			fields: fields{
-				Metrics: Metrics{ID: "test", MType: MTypeCounter},
+				Metrics: Metrics{ID: "test", MType: common.Counter},
 			},
 			args: args{
 				v: 1,
@@ -51,7 +52,7 @@ func TestNewCounter(t *testing.T) {
 	if m == nil {
 		t.Fatal("NewCounter() returned nil")
 	}
-	if got := m.Metrics.MType; got != MTypeCounter {
-		t.Fatalf("NewCounter() = %v, want %v", got, MTypeGauge)
+	if got := m.Metrics.MType; got != common.Counter {
+		t.Fatalf("NewCounter() = %v, want %v", got, common.Counter)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
 	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
@@ -25,7 +26,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name: "success",
 			args: args{
-				metricType: "gauge",
+				metricType: common.Gauge,
 				name:       "sys-metrics",
 				value:      "1",
 			},

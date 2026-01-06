@@ -1,5 +1,7 @@
 package metrics
 
+import "sys-metrics/internal/common"
+
 type Counter struct {
 	Metrics
 }
@@ -15,5 +17,5 @@ func (c *Counter) SetValue(v int64) int64 {
 
 func NewCounter(name string) *Counter {
 	delta := int64(0)
-	return &Counter{Metrics{ID: name, MType: MTypeCounter, Delta: &delta}}
+	return &Counter{Metrics{ID: name, MType: common.Counter, Delta: &delta}}
 }

@@ -1,5 +1,7 @@
 package metrics
 
+import "sys-metrics/internal/common"
+
 type Gauge struct {
 	Metrics
 }
@@ -10,5 +12,5 @@ func (g *Gauge) SetValue(v float64) float64 {
 }
 
 func NewGauge(name string) *Gauge {
-	return &Gauge{Metrics{ID: name, MType: MTypeGauge}}
+	return &Gauge{Metrics{ID: name, MType: common.Gauge}}
 }

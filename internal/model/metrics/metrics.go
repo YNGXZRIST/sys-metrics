@@ -1,10 +1,5 @@
 package metrics
 
-var (
-	MTypeGauge   = "gauge"
-	MTypeCounter = "counter"
-)
-
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
 // Органичиваясь плоской моделью.
 // Delta и Value объявлены через указатели,

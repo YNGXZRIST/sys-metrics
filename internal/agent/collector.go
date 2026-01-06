@@ -4,11 +4,10 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"sys-metrics/internal/common"
 )
 
 const (
-	Gauge       = "gauge"
-	Counter     = "counter"
 	PollCount   = "PollCount"
 	RandomValue = "RandomValue"
 
@@ -63,8 +62,8 @@ type Collector struct {
 
 func NewCollector() *Collector {
 	m := make(map[string]map[string]float64)
-	m[Gauge] = make(map[string]float64, 27)
-	m[Counter] = make(map[string]float64, 2)
+	m[common.Gauge] = make(map[string]float64, 27)
+	m[common.Counter] = make(map[string]float64, 2)
 	return &Collector{
 		metrics: m,
 	}
@@ -97,34 +96,34 @@ func (c *Collector) extractFieldValue(v reflect.Value, name string) (float64, bo
 }
 
 func (c *Collector) SetGauge(name string, value float64) {
-	c.metrics[Gauge][name] = value
+	c.metrics[common.Gauge][name] = value
 }
 
 func (c *Collector) GetGauge(name string) (float64, bool) {
-	v, ok := c.metrics[Gauge][name]
+	v, ok := c.metrics[common.Gauge][name]
 	return v, ok
 }
 
 func (c *Collector) SetCounter(name string, value float64) {
-	c.metrics[Counter][name] = value
+	c.metrics[common.Counter][name] = value
 }
 
 func (c *Collector) GetCounter(name string) (float64, bool) {
-	v, ok := c.metrics[Counter][name]
+	v, ok := c.metrics[common.Counter][name]
 	return v, ok
 }
 func (c *Collector) SetPollCounterMetric() {
-	c.metrics[Counter][PollCount]++
+	c.metrics[common.Counter][PollCount]++
 }
 func (c *Collector) ResetPollMetric() {
-	c.metrics[Counter][PollCount] = 0
+	c.metrics[common.Counter][PollCount] = 0
 }
 func (c *Collector) GetPollCountMetric() float64 {
-	return c.metrics[Counter][PollCount]
+	return c.metrics[common.Counter][PollCount]
 }
 func (c *Collector) SetRandomValueMetric() {
-	c.metrics[Gauge][RandomValue] = rand.Float64()
+	c.metrics[common.Gauge][RandomValue] = rand.Float64()
 }
 func (c *Collector) GetRandomValueMetric() float64 {
-	return c.metrics[Gauge][RandomValue]
+	return c.metrics[common.Gauge][RandomValue]
 }

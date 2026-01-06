@@ -2,6 +2,7 @@ package agent
 
 import (
 	"runtime"
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -181,10 +182,10 @@ func TestNewCollector(t *testing.T) {
 	if c.metrics == nil {
 		t.Fatal("NewCollector() metrics is nil")
 	}
-	if _, ok := c.metrics[Gauge]; !ok {
+	if _, ok := c.metrics[common.Gauge]; !ok {
 		t.Error("NewCollector() missing Gauge map")
 	}
-	if _, ok := c.metrics[Counter]; !ok {
+	if _, ok := c.metrics[common.Counter]; !ok {
 		t.Error("NewCollector() missing Counter map")
 	}
 }

@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"log"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/agent"
 	"testing"
 	"time"
@@ -43,10 +44,10 @@ func TestAgent_StartPoll(t *testing.T) {
 	if len(newAgent.collector.metrics) == 0 {
 		t.Fatal("collector metrics is empty")
 	}
-	if len(newAgent.collector.metrics[Gauge]) == 0 {
+	if len(newAgent.collector.metrics[common.Gauge]) == 0 {
 		t.Fatal("metrics Gauge is empty")
 	}
-	if len(newAgent.collector.metrics[Counter]) == 0 {
+	if len(newAgent.collector.metrics[common.Counter]) == 0 {
 		t.Fatal("metrics Counter is empty")
 	}
 }

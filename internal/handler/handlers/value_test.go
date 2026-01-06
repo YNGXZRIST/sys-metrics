@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
 	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
@@ -25,7 +26,7 @@ func TestValueHandler(t *testing.T) {
 		{
 			name: "gauge success",
 			args: args{
-				metricType: metrics.MTypeGauge,
+				metricType: common.Gauge,
 				name:       "Alloc",
 			},
 			wantValue:  "123.456",
@@ -34,7 +35,7 @@ func TestValueHandler(t *testing.T) {
 		{
 			name: "counter success",
 			args: args{
-				metricType: metrics.MTypeCounter,
+				metricType: common.Counter,
 				name:       "PollCount",
 			},
 			wantValue:  "42",
@@ -52,7 +53,7 @@ func TestValueHandler(t *testing.T) {
 		{
 			name: "metric not found",
 			args: args{
-				metricType: metrics.MTypeGauge,
+				metricType: common.Gauge,
 				name:       "Unknown",
 			},
 			wantValue:  "",
@@ -66,12 +67,12 @@ func TestValueHandler(t *testing.T) {
 			svc.Init(counters, gauges)
 
 			gaugeVal := 123.456
-			err := gauges.Set("Alloc", &metrics.Gauge{Metrics: metrics.Metrics{ID: "Alloc", MType: metrics.MTypeGauge, Value: &gaugeVal}})
+			err := gauges.Set("Alloc", &metrics.Gauge{Metrics: metrics.Metrics{ID: "Alloc", MType: common.Gauge, Value: &gaugeVal}})
 			if err != nil {
 				t.Errorf("gauges.Set(Alloc): expected %v, got %v", nil, err)
 			}
 			counterVal := int64(42)
-			err = counters.Set("PollCount", &metrics.Counter{Metrics: metrics.Metrics{ID: "Pollcount", MType: metrics.MTypeCounter, Delta: &counterVal}})
+			err = counters.Set("PollCount", &metrics.Counter{Metrics: metrics.Metrics{ID: "Pollcount", MType: common.Counter, Delta: &counterVal}})
 			if err != nil {
 				t.Errorf("counters.Set(PollCount): expected %v, got %v", nil, err)
 			}

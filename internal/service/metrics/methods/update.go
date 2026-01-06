@@ -3,6 +3,7 @@ package methods
 import (
 	"errors"
 	"strconv"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
 	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
@@ -10,13 +11,13 @@ import (
 
 func Update(metricType, name, value string) error {
 	switch metricType {
-	case "counter":
+	case common.Counter:
 		parsed, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
 			return err
 		}
 		return updateCounter(name, parsed)
-	case "gauge":
+	case common.Gauge:
 		parsed, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err

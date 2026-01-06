@@ -2,6 +2,7 @@ package agent
 
 import (
 	"log"
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -36,11 +37,11 @@ func TestReporter_BuildUpdateURL(t *testing.T) {
 		{
 			name: "not empty",
 			args: args{
-				m: Gauge,
+				m: common.Gauge,
 				n: "random",
 				v: "10",
 			},
-			want: testServer.URL + "/update/" + Gauge + "/random/10",
+			want: testServer.URL + "/update/" + common.Gauge + "/random/10",
 		},
 	}
 
@@ -69,17 +70,17 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 			want: "0",
 		},
 		{
-			name: Gauge,
+			name: common.Gauge,
 			args: args{
-				m: Gauge,
+				m: common.Gauge,
 				v: 10.43,
 			},
 			want: "10.43",
 		},
 		{
-			name: Counter,
+			name: common.Counter,
 			args: args{
-				m: Counter,
+				m: common.Counter,
 				v: 12.43,
 			},
 			want: "12",
@@ -109,10 +110,10 @@ func TestReporter_Send(t *testing.T) {
 			args: args{
 				c: Collector{
 					map[string]map[string]float64{
-						Gauge: {
+						common.Gauge: {
 							"random": 12.43,
 						},
-						Counter: {
+						common.Counter: {
 							"random": 12.43,
 						},
 					},
@@ -124,7 +125,7 @@ func TestReporter_Send(t *testing.T) {
 			args: args{
 				c: Collector{
 					map[string]map[string]float64{
-						Gauge: {
+						common.Gauge: {
 							"": 0,
 						},
 					},
@@ -162,8 +163,8 @@ func TestReporter_sendMetricToServer(t *testing.T) {
 		{
 			name: "not empty",
 			args: args{
-				metric: Gauge,
-				name:   Gauge,
+				metric: common.Gauge,
+				name:   common.Gauge,
 				value:  10.43,
 			},
 			wantErr: false,

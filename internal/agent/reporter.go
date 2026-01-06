@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sys-metrics/internal/common"
 )
 
 type Reporter struct {
@@ -53,7 +54,7 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 }
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	var s string
-	if m == Counter {
+	if m == common.Counter {
 		s = strconv.FormatInt(int64(v), 10)
 	} else {
 		s = strconv.FormatFloat(v, 'f', -1, 64)
