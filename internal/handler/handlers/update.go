@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 	"strings"
+	collector "sys-metrics/internal/agent"
 	serviceMetrics "sys-metrics/internal/service/metrics/methods"
 	"sys-metrics/internal/service/responsewriter"
-	"sys-metrics/pkg/stringsparser"
 )
 
 func UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +13,7 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	value := r.PathValue("value")
 	metricType = strings.ToLower(metricType)
-	name = stringsparser.Capitalize(name)
+	name = collector.GetMetricType(name)
 	err := serviceMetrics.Update(metricType, name, value)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)

@@ -45,7 +45,7 @@ func TestValueHandler(t *testing.T) {
 			name: "unknown metric type",
 			args: args{
 				metricType: "unset",
-				name:       "Alloc",
+				name:       common.Alloc,
 			},
 			wantValue:  "",
 			wantStatus: http.StatusBadRequest,
@@ -67,14 +67,14 @@ func TestValueHandler(t *testing.T) {
 			svc.Init(counters, gauges)
 
 			gaugeVal := 123.456
-			err := gauges.Set("Alloc", &metrics.Gauge{Metrics: metrics.Metrics{ID: "Alloc", MType: common.Gauge, Value: &gaugeVal}})
+			err := gauges.Set(common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
 			if err != nil {
-				t.Errorf("gauges.Set(Alloc): expected %v, got %v", nil, err)
+				t.Errorf("gauges.Set(%s): expected %v, got %v", common.Alloc, nil, err)
 			}
 			counterVal := int64(42)
-			err = counters.Set("PollCount", &metrics.Counter{Metrics: metrics.Metrics{ID: "Pollcount", MType: common.Counter, Delta: &counterVal}})
+			err = counters.Set(common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
 			if err != nil {
-				t.Errorf("counters.Set(PollCount): expected %v, got %v", nil, err)
+				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
 
 			req := httptest.NewRequest(http.MethodGet, "/value", nil)

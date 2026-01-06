@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
 	svm "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
-	"sys-metrics/pkg/stringsparser"
 )
 
 func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := r.PathValue("type")
 	name := r.PathValue("name")
 	metricType = strings.ToLower(metricType)
-	name = stringsparser.Capitalize(name)
+	name = collector.GetMetricType(name)
 	switch metricType {
 	case common.Counter:
 		v, err := svm.Counters().Get(name)

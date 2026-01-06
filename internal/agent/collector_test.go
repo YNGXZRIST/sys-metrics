@@ -31,7 +31,7 @@ func TestCollector_ResetPollMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(PollCount, tt.initial)
+			c.SetCounter(common.PollCount, tt.initial)
 			c.ResetPollMetric()
 			if got := c.GetPollCountMetric(); got != tt.want {
 				t.Errorf("ResetPollMetric() got = %v, want %v", got, tt.want)
@@ -69,7 +69,7 @@ func TestCollector_SetPollCounterMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(PollCount, tt.initial)
+			c.SetCounter(common.PollCount, tt.initial)
 			for i := 0; i < tt.increments; i++ {
 				c.SetPollCounterMetric()
 			}
@@ -100,7 +100,7 @@ func TestCollector_GetPollCountMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(PollCount, tt.initial)
+			c.SetCounter(common.PollCount, tt.initial)
 			if got := c.GetPollCountMetric(); got != tt.want {
 				t.Errorf("GetPollCountMetric() got = %v, want %v", got, tt.want)
 			}
@@ -129,31 +129,31 @@ func TestUpdateFromStats(t *testing.T) {
 		{
 			name:      "Alloc metric",
 			stats:     &runtime.MemStats{Alloc: 1024},
-			checkName: Alloc,
+			checkName: common.Alloc,
 			want:      1024,
 		},
 		{
 			name:      "HeapAlloc metric",
 			stats:     &runtime.MemStats{HeapAlloc: 2048},
-			checkName: HeapAlloc,
+			checkName: common.HeapAlloc,
 			want:      2048,
 		},
 		{
 			name:      "TotalAlloc metric",
 			stats:     &runtime.MemStats{TotalAlloc: 4096},
-			checkName: TotalAlloc,
+			checkName: common.TotalAlloc,
 			want:      4096,
 		},
 		{
 			name:      "Sys metric",
 			stats:     &runtime.MemStats{Sys: 8192},
-			checkName: Sys,
+			checkName: common.Sys,
 			want:      8192,
 		},
 		{
 			name:      "zero value",
 			stats:     &runtime.MemStats{Alloc: 0},
-			checkName: Alloc,
+			checkName: common.Alloc,
 			want:      0,
 		},
 	}
@@ -282,10 +282,39 @@ func TestCollector_GetCounter_NotFound(t *testing.T) {
 func TestCollector_Update(t *testing.T) {
 	c := NewCollector()
 	c.Update()
-	metricsToCheck := []string{Alloc, HeapAlloc, Sys, TotalAlloc}
+	metricsToCheck := []string{common.Alloc, common.HeapAlloc, common.Sys, common.TotalAlloc}
 	for _, name := range metricsToCheck {
 		if _, ok := c.GetGauge(name); !ok {
 			t.Errorf("Update() did not set gauge %s", name)
 		}
+	}
+}
+
+func TestGetMetricType(t *testing.T) {
+	type args struct {
+		metric string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: common.PollCount,
+			args: args{metric: common.PollCount},
+			want: common.PollCount,
+		},
+		{
+			name: "not isset map",
+			args: args{metric: "unknownmetric"},
+			want: "Unknownmetric",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetMetricType(tt.args.metric); got != tt.want {
+				t.Errorf("GetMetricType() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -4,56 +4,45 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"strings"
 	"sys-metrics/internal/common"
-)
-
-const (
-	PollCount   = "PollCount"
-	RandomValue = "RandomValue"
-
-	Alloc         = "Alloc"
-	BuckHashSys   = "BuckHashSys"
-	Frees         = "Frees"
-	GCCPUFraction = "GCCPUFraction"
-	GCSys         = "GCSys"
-	HeapAlloc     = "HeapAlloc"
-	HeapIdle      = "HeapIdle"
-	HeapInuse     = "HeapInuse"
-	HeapObjects   = "HeapObjects"
-	HeapReleased  = "HeapReleased"
-	HeapSys       = "HeapSys"
-	LastGC        = "LastGC"
-	Lookups       = "Lookups"
-	MCacheInuse   = "MCacheInuse"
-	MCacheSys     = "MCacheSys"
-	MSpanInuse    = "MSpanInuse"
-	MSpanSys      = "MSpanSys"
-	Mallocs       = "Mallocs"
-	NextGC        = "NextGC"
-	NumForcedGC   = "NumForcedGC"
-	NumGC         = "NumGC"
-	OtherSys      = "OtherSys"
-	PauseTotalNs  = "PauseTotalNs"
-	StackInuse    = "StackInuse"
-	StackSys      = "StackSys"
-	Sys           = "Sys"
-	TotalAlloc    = "TotalAlloc"
+	"sys-metrics/pkg/stringsparser"
 )
 
 var runtimeMetricsTypes = []string{
-	Alloc, BuckHashSys, Frees,
-	GCCPUFraction, GCSys,
-	HeapAlloc, HeapIdle,
-	HeapInuse, HeapObjects,
-	HeapReleased, HeapSys,
-	LastGC, Lookups,
-	MCacheInuse, MCacheSys,
-	MSpanInuse, MSpanSys,
-	Mallocs, NextGC,
-	NumForcedGC, NumGC,
-	OtherSys, PauseTotalNs,
-	StackInuse, StackSys,
-	Sys, TotalAlloc,
+	common.Alloc, common.BuckHashSys, common.Frees,
+	common.GCCPUFraction, common.GCSys,
+	common.HeapAlloc, common.HeapIdle,
+	common.HeapInuse, common.HeapObjects,
+	common.HeapReleased, common.HeapSys,
+	common.LastGC, common.Lookups,
+	common.MCacheInuse, common.MCacheSys,
+	common.MSpanInuse, common.MSpanSys,
+	common.Mallocs, common.NextGC,
+	common.NumForcedGC, common.NumGC,
+	common.OtherSys, common.PauseTotalNs,
+	common.StackInuse, common.StackSys,
+	common.Sys, common.TotalAlloc,
+}
+var runtimeMetricsMap = map[string]string{
+	strings.ToLower(common.PollCount):     common.PollCount,
+	strings.ToLower(common.RandomValue):   common.RandomValue,
+	strings.ToLower(common.Alloc):         common.Alloc,
+	strings.ToLower(common.BuckHashSys):   common.BuckHashSys,
+	strings.ToLower(common.Frees):         common.Frees,
+	strings.ToLower(common.GCCPUFraction): common.GCCPUFraction,
+	strings.ToLower(common.GCSys):         common.GCSys,
+	strings.ToLower(common.HeapAlloc):     common.HeapAlloc,
+	strings.ToLower(common.HeapIdle):      common.HeapIdle,
+	strings.ToLower(common.HeapInuse):     common.HeapInuse,
+	strings.ToLower(common.HeapObjects):   common.HeapObjects,
+	strings.ToLower(common.HeapReleased):  common.HeapReleased,
+	strings.ToLower(common.HeapSys):       common.HeapSys,
+	strings.ToLower(common.LastGC):        common.LastGC,
+	strings.ToLower(common.Lookups):       common.Lookups,
+	strings.ToLower(common.MCacheInuse):   common.MCacheInuse,
+	strings.ToLower(common.MCacheSys):     common.MCacheSys,
+	strings.ToLower(common.MSpanInuse):    common.MSpanInuse,
 }
 
 type Collector struct {
@@ -113,17 +102,25 @@ func (c *Collector) GetCounter(name string) (float64, bool) {
 	return v, ok
 }
 func (c *Collector) SetPollCounterMetric() {
-	c.metrics[common.Counter][PollCount]++
+	c.metrics[common.Counter][common.PollCount]++
 }
 func (c *Collector) ResetPollMetric() {
-	c.metrics[common.Counter][PollCount] = 0
+	c.metrics[common.Counter][common.PollCount] = 0
 }
 func (c *Collector) GetPollCountMetric() float64 {
-	return c.metrics[common.Counter][PollCount]
+	return c.metrics[common.Counter][common.PollCount]
 }
 func (c *Collector) SetRandomValueMetric() {
-	c.metrics[common.Gauge][RandomValue] = rand.Float64()
+	c.metrics[common.Gauge][common.RandomValue] = rand.Float64()
 }
 func (c *Collector) GetRandomValueMetric() float64 {
-	return c.metrics[common.Gauge][RandomValue]
+	return c.metrics[common.Gauge][common.RandomValue]
+}
+func GetMetricType(metric string) string {
+	lowerMetric := strings.ToLower(metric)
+	metricType, ok := runtimeMetricsMap[lowerMetric]
+	if !ok {
+		metricType = stringsparser.Capitalize(lowerMetric)
+	}
+	return metricType
 }
