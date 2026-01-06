@@ -22,7 +22,7 @@ func main() {
 	a := initAgent(opt)
 	a.Logger.Printf("Agent initialized. server url: %v", a.ServerAddr)
 	go a.StartReport(ctx)
-	go a.StartPool(ctx)
+	go a.StartPoll(ctx)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
@@ -31,7 +31,7 @@ func main() {
 }
 func initAgent(opt *Options) *agent.Agent {
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.host, opt.port, log.Default())
-	agentCfg := config.NewConfig(opt.poolInterval, opt.reportInterval, serverCfg.ServerAddr(), log.Default())
+	agentCfg := config.NewConfig(opt.pollInterval, opt.reportInterval, serverCfg.ServerAddr(), log.Default())
 	a := agent.NewAgent(agentCfg)
 	return a
 }

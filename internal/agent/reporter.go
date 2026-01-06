@@ -53,7 +53,7 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 }
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	var s string
-	if m == "counter" {
+	if m == Counter {
 		s = strconv.FormatInt(int64(v), 10)
 	} else {
 		s = strconv.FormatFloat(v, 'f', -1, 64)

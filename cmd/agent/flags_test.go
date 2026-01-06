@@ -30,7 +30,7 @@ func Test_parseArgs(t *testing.T) {
 				host:           "127.0.0.1",
 				port:           "1234",
 				reportInterval: 4 * time.Second,
-				poolInterval:   5 * time.Second,
+				pollInterval:   5 * time.Second,
 			},
 		},
 		{
@@ -43,7 +43,7 @@ func Test_parseArgs(t *testing.T) {
 				host:           "localhost",
 				port:           "8080",
 				reportInterval: 10 * time.Second,
-				poolInterval:   2 * time.Second,
+				pollInterval:   2 * time.Second,
 			},
 		},
 	}

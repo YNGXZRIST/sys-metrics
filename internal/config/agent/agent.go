@@ -6,15 +6,15 @@ import (
 )
 
 type Config struct {
-	PoolInterval   time.Duration
+	PollInterval   time.Duration
 	ReportInterval time.Duration
 	ServerAddr     string
 	Logger         *log.Logger
 }
 
-func NewConfig(poolInterval, reportInterval time.Duration, serverAddr string, logger *log.Logger) *Config {
+func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *log.Logger) *Config {
 	return &Config{
-		PoolInterval:   poolInterval,
+		PollInterval:   pollInterval,
 		ReportInterval: reportInterval,
 		ServerAddr:     serverAddr,
 		Logger:         logger,

@@ -37,8 +37,8 @@ func (a *Agent) StartReport(ctx context.Context) {
 		}
 	}
 }
-func (a *Agent) StartPool(ctx context.Context) {
-	ticker := time.NewTicker(a.PoolInterval)
+func (a *Agent) StartPoll(ctx context.Context) {
+	ticker := time.NewTicker(a.PollInterval)
 	defer ticker.Stop()
 	for {
 		select {
@@ -47,7 +47,7 @@ func (a *Agent) StartPool(ctx context.Context) {
 		case <-ticker.C:
 			a.mu.Lock()
 			a.collector.Update()
-			a.collector.SetPoolCounterMetric()
+			a.collector.SetPollCounterMetric()
 			a.collector.SetRandomValueMetric()
 			a.mu.Unlock()
 		}
@@ -60,6 +60,6 @@ func (a *Agent) Report() error {
 	if err != nil {
 		return err
 	}
-	a.collector.ResetPoolMetric()
+	a.collector.ResetPollMetric()
 	return nil
 }

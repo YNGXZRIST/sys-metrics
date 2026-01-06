@@ -9,7 +9,7 @@ import (
 const (
 	Gauge       = "gauge"
 	Counter     = "counter"
-	Poolcount   = "PollCount"
+	PollCount   = "PollCount"
 	RandomValue = "RandomValue"
 
 	Alloc         = "Alloc"
@@ -113,14 +113,14 @@ func (c *Collector) GetCounter(name string) (float64, bool) {
 	v, ok := c.metrics[Counter][name]
 	return v, ok
 }
-func (c *Collector) SetPoolCounterMetric() {
-	c.metrics[Counter][Poolcount]++
+func (c *Collector) SetPollCounterMetric() {
+	c.metrics[Counter][PollCount]++
 }
-func (c *Collector) ResetPoolMetric() {
-	c.metrics[Counter][Poolcount] = 0
+func (c *Collector) ResetPollMetric() {
+	c.metrics[Counter][PollCount] = 0
 }
-func (c *Collector) GetPoolCountMetric() float64 {
-	return c.metrics[Counter][Poolcount]
+func (c *Collector) GetPollCountMetric() float64 {
+	return c.metrics[Counter][PollCount]
 }
 func (c *Collector) SetRandomValueMetric() {
 	c.metrics[Gauge][RandomValue] = rand.Float64()

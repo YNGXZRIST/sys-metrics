@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestCollector_ResetPoolMetric(t *testing.T) {
+func TestCollector_ResetPollMetric(t *testing.T) {
 	tests := []struct {
 		name    string
 		initial float64
@@ -30,16 +30,16 @@ func TestCollector_ResetPoolMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(Poolcount, tt.initial)
-			c.ResetPoolMetric()
-			if got := c.GetPoolCountMetric(); got != tt.want {
-				t.Errorf("ResetPoolMetric() got = %v, want %v", got, tt.want)
+			c.SetCounter(PollCount, tt.initial)
+			c.ResetPollMetric()
+			if got := c.GetPollCountMetric(); got != tt.want {
+				t.Errorf("ResetPollMetric() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCollector_SetPoolCounterMetric(t *testing.T) {
+func TestCollector_SetPollCounterMetric(t *testing.T) {
 	tests := []struct {
 		name       string
 		initial    float64
@@ -68,18 +68,18 @@ func TestCollector_SetPoolCounterMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(Poolcount, tt.initial)
+			c.SetCounter(PollCount, tt.initial)
 			for i := 0; i < tt.increments; i++ {
-				c.SetPoolCounterMetric()
+				c.SetPollCounterMetric()
 			}
-			if got := c.GetPoolCountMetric(); got != tt.want {
-				t.Errorf("SetPoolCounterMetric() got = %v, want %v", got, tt.want)
+			if got := c.GetPollCountMetric(); got != tt.want {
+				t.Errorf("SetPollCounterMetric() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestCollector_GetPoolCountMetric(t *testing.T) {
+func TestCollector_GetPollCountMetric(t *testing.T) {
 	tests := []struct {
 		name    string
 		initial float64
@@ -99,9 +99,9 @@ func TestCollector_GetPoolCountMetric(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetCounter(Poolcount, tt.initial)
-			if got := c.GetPoolCountMetric(); got != tt.want {
-				t.Errorf("GetPoolCountMetric() got = %v, want %v", got, tt.want)
+			c.SetCounter(PollCount, tt.initial)
+			if got := c.GetPollCountMetric(); got != tt.want {
+				t.Errorf("GetPollCountMetric() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

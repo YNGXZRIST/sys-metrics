@@ -71,9 +71,9 @@ func TestValueHandler(t *testing.T) {
 				t.Errorf("gauges.Set(Alloc): expected %v, got %v", nil, err)
 			}
 			counterVal := int64(42)
-			err = counters.Set("Pollcount", &metrics.Counter{Metrics: metrics.Metrics{ID: "Pollcount", MType: metrics.MTypeCounter, Delta: &counterVal}})
+			err = counters.Set("PollCount", &metrics.Counter{Metrics: metrics.Metrics{ID: "Pollcount", MType: metrics.MTypeCounter, Delta: &counterVal}})
 			if err != nil {
-				t.Errorf("counters.Set(Pollcount): expected %v, got %v", nil, err)
+				t.Errorf("counters.Set(PollCount): expected %v, got %v", nil, err)
 			}
 
 			req := httptest.NewRequest(http.MethodGet, "/value", nil)

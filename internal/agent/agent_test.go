@@ -18,7 +18,7 @@ func TestAgent_Report(t *testing.T) {
 	}
 }
 
-func TestAgent_StartPool(t *testing.T) {
+func TestAgent_StartPoll(t *testing.T) {
 	cfg := agent.NewConfig(1, 2, testServer.URL, log.Default())
 	newAgent := NewAgent(cfg)
 
@@ -27,7 +27,7 @@ func TestAgent_StartPool(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		newAgent.StartPool(ctx)
+		newAgent.StartPoll(ctx)
 		close(done)
 	}()
 	time.Sleep(1500 * time.Millisecond)
@@ -35,7 +35,7 @@ func TestAgent_StartPool(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(3 * time.Second):
-		t.Fatal("StartPool not ended by context")
+		t.Fatal("StartPoll not ended by context")
 	}
 	if newAgent.collector == nil {
 		t.Fatal("collector is nil")
