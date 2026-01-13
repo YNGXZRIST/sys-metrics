@@ -6,7 +6,6 @@ import (
 )
 
 var ErrNotFound = errors.New("not found")
-var mu = sync.RWMutex{}
 
 type Storage[K comparable, V any] interface {
 	Set(key K, value V) error
@@ -18,21 +17,23 @@ type Storage[K comparable, V any] interface {
 
 type MemStorage[K comparable, V any] struct {
 	data map[K]V
+	mu   sync.RWMutex
 }
 
 func NewMemStorage[K comparable, V any]() *MemStorage[K, V] {
-	return &MemStorage[K, V]{data: make(map[K]V)}
+	return &MemStorage[K, V]{data: make(map[K]V), mu: sync.RWMutex{}}
 }
 
 func (s *MemStorage[K, V]) Set(key K, value V) error {
-	defer mu.Unlock()
-	mu.Lock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.data[key] = value
-	mu.Unlock()
 	return nil
 }
 
 func (s *MemStorage[K, V]) Get(key K) (V, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	v, ok := s.data[key]
 	if !ok {
 		var zero V
@@ -41,21 +42,28 @@ func (s *MemStorage[K, V]) Get(key K) (V, error) {
 	return v, nil
 }
 func (s *MemStorage[K, V]) All() map[K]V {
-	return s.data
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	r := make(map[K]V, len(s.data))
+	for k, v := range s.data {
+		r[k] = v
+	}
+	return r
 }
 
 func (s *MemStorage[K, V]) Delete(key K) error {
-	defer mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, ok := s.data[key]; !ok {
 		return ErrNotFound
 	}
-	mu.Lock()
 	delete(s.data, key)
-	mu.Unlock()
 	return nil
 }
 
 func (s *MemStorage[K, V]) Has(key K) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, ok := s.data[key]
 	return ok
 }
