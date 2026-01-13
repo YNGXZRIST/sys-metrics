@@ -1,9 +1,4 @@
-package models
-
-const (
-	Counter = "counter"
-	Gauge   = "gauge"
-)
+package metrics
 
 // NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
 // Органичиваясь плоской моделью.
