@@ -25,6 +25,7 @@ func NewMemStorage[K comparable, V any]() *MemStorage[K, V] {
 }
 
 func (s *MemStorage[K, V]) Set(key K, value V) error {
+	defer mu.Unlock()
 	mu.Lock()
 	s.data[key] = value
 	mu.Unlock()
@@ -44,6 +45,7 @@ func (s *MemStorage[K, V]) All() map[K]V {
 }
 
 func (s *MemStorage[K, V]) Delete(key K) error {
+	defer mu.Unlock()
 	if _, ok := s.data[key]; !ok {
 		return ErrNotFound
 	}
