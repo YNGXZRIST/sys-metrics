@@ -9,7 +9,7 @@ NC=\033[0m # No Color
 # Пути к бинарникам
 SERVER_BINARY=cmd/server/server
 AGENT_BINARY=cmd/agent/agent
-METRICSTEST=./metricstest
+METRICSTEST=metricstest
 
 help: ## Показать справку
 	@echo "$(GREEN)Доступные команды:$(NC)"
@@ -49,15 +49,14 @@ download-metricstest: ## Скачать автотесты с GitHub
 
 # Автотесты по итерациям
 check-metricstest:
-	@if [ ! -f "$(METRICSTEST)" ]; then \
-		echo "$(RED)❌ metricstest не найден!$(NC)"; \
+	@if ! command -v metricstest >/dev/null 2>&1; then \
+		echo "$(RED)❌ metricstest не найден в PATH!$(NC)"; \
 		echo "$(YELLOW)Скачайте его командой:$(NC)"; \
 		echo "  make download-metricstest"; \
 		echo "$(YELLOW)Или вручную с:$(NC)"; \
 		echo "  https://github.com/Yandex-Practicum/go-autotests/releases"; \
 		exit 1; \
 	fi
-	@chmod +x $(METRICSTEST)
 
 autotest: check-metricstest ## Запустить автотесты (все инкременты)
 	@echo "$(GREEN)Running autotests...$(NC)"
