@@ -9,14 +9,14 @@ import (
 func TestMemStorage_Delete(t *testing.T) {
 	type testCase[K comparable, V any] struct {
 		name    string
-		s       MemStorage[K, V]
+		s       *MemStorage[K, V]
 		key     K
 		wantErr error
 	}
 	tests := []testCase[string, int]{
 		{
 			name: "isset key",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -26,7 +26,7 @@ func TestMemStorage_Delete(t *testing.T) {
 		},
 		{
 			name: "not isset key",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -47,7 +47,7 @@ func TestMemStorage_Delete(t *testing.T) {
 func TestMemStorage_Get(t *testing.T) {
 	type testCase[K comparable, V any] struct {
 		name    string
-		s       MemStorage[K, V]
+		s       *MemStorage[K, V]
 		key     K
 		want    V
 		wantErr error
@@ -55,7 +55,7 @@ func TestMemStorage_Get(t *testing.T) {
 	tests := []testCase[string, int]{
 		{
 			name: "isset value",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -66,7 +66,7 @@ func TestMemStorage_Get(t *testing.T) {
 		},
 		{
 			name: "not isset value",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -94,14 +94,14 @@ func TestMemStorage_Has(t *testing.T) {
 
 	type testCase[K string, V int] struct {
 		name string
-		s    MemStorage[K, V]
+		s    *MemStorage[K, V]
 		key  K
 		want bool
 	}
 	tests := []testCase[string, int]{
 		{
 			name: "isset key",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -111,7 +111,7 @@ func TestMemStorage_Has(t *testing.T) {
 		},
 		{
 			name: "not isset key",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -136,7 +136,7 @@ func TestMemStorage_Set(t *testing.T) {
 	}
 	type testCase[K comparable, V any] struct {
 		name    string
-		s       MemStorage[K, V]
+		s       *MemStorage[K, V]
 		args    args[K, V]
 		wantErr bool
 		wantVal V
@@ -144,7 +144,7 @@ func TestMemStorage_Set(t *testing.T) {
 	tests := []testCase[string, int]{
 		{
 			name: "set isset key",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
@@ -190,13 +190,13 @@ func TestNewMemStorage(t *testing.T) {
 func TestMemStorage_All(t *testing.T) {
 	type testCase[K comparable, V any] struct {
 		name string
-		s    MemStorage[K, V]
+		s    *MemStorage[K, V]
 		want map[K]V
 	}
 	tests := []testCase[string, int]{
 		{
 			name: "all",
-			s: MemStorage[string, int]{
+			s: &MemStorage[string, int]{
 				data: map[string]int{
 					"test_counter": 100,
 				},
