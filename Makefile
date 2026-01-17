@@ -11,7 +11,7 @@ SERVER_BINARY=cmd/server/server
 AGENT_BINARY=cmd/agent/agent
 METRICSTEST=./metricstest
 
-help: ## Показать эту справку
+help: ## Показать справку
 	@echo "$(GREEN)Доступные команды:$(NC)"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 
