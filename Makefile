@@ -1,4 +1,4 @@
-.PHONY: help build test lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 download-metricstest
+.PHONY: help build test lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 download-metricstest
 
 # Цвета для вывода
 GREEN=\033[0;32m
@@ -92,6 +92,15 @@ iter4: build check-metricstest ## Автотесты итерации 4
 		-server-port=8080 \
 		-source-path=.
 	@echo "$(GREEN)✅ Iteration 4 passed!$(NC)"
+
+iter5: build check-metricstest ## Автотесты итерации 5
+	@echo "$(GREEN)Running iteration 5 tests...$(NC)"
+	$(METRICSTEST) -test.v -test.run='^TestIteration5$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=8080 \
+		-source-path=.
+	@echo "$(GREEN)✅ Iteration 5 passed!$(NC)"
 
 
 fmt: ## Форматировать код

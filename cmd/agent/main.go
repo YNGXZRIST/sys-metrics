@@ -15,7 +15,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	opt, err := parseArgs(os.Args[1:])
+	opt, err := newOption(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,8 +30,8 @@ func main() {
 	cancel()
 }
 func initAgent(opt *Options) *agent.Agent {
-	serverCfg := server.NewConfig(server.SchemeHTTP, opt.host, opt.port, log.Default())
-	agentCfg := config.NewConfig(opt.pollInterval, opt.reportInterval, serverCfg.ServerAddr(), log.Default())
+	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, log.Default())
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), log.Default())
 	a := agent.NewAgent(agentCfg)
 	return a
 }
