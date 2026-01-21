@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"reflect"
+	"sys-metrics/internal/config"
 	"testing"
 	"time"
 )
@@ -66,7 +67,7 @@ func Test_parseArgs(t *testing.T) {
 	}
 }
 
-func TestOptions_rebuildHostAndPort(t *testing.T) {
+func TestOptions_ParseAndSetHostPort(t *testing.T) {
 	type fields struct {
 		ServerAddress  string
 		Host           string
@@ -107,8 +108,8 @@ func TestOptions_rebuildHostAndPort(t *testing.T) {
 				PollInterval:   tt.fields.PollInterval,
 				ReportInterval: tt.fields.ReportInterval,
 			}
-			if err := opt.rebuildHostAndPort(); (err != nil) != tt.wantErr {
-				t.Errorf("rebuildHostAndPort() error = %v, wantErr %v", err, tt.wantErr)
+			if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); (err != nil) != tt.wantErr {
+				t.Errorf("ParseAndSetHostPort() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 		})

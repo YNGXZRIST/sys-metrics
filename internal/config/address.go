@@ -11,6 +11,10 @@ type ServerAddress struct {
 	Port string
 }
 
+type HostPortSetter interface {
+	SetHostPort(host, port string)
+}
+
 func ParseServerAddress(address string) (*ServerAddress, error) {
 	split := strings.SplitN(address, ":", 2)
 	if len(split) != 2 {
@@ -21,4 +25,13 @@ func ParseServerAddress(address string) (*ServerAddress, error) {
 		Host: split[0],
 		Port: split[1],
 	}, nil
+}
+
+func ParseAndSetHostPort(address string, setter HostPortSetter) error {
+	addr, err := ParseServerAddress(address)
+	if err != nil {
+		return err
+	}
+	setter.SetHostPort(addr.Host, addr.Port)
+	return nil
 }

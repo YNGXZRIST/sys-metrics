@@ -20,6 +20,11 @@ type Options struct {
 	ReportSec      int `env:"REPORT_INTERVAL"`
 }
 
+func (opt *Options) SetHostPort(host, port string) {
+	opt.Host = host
+	opt.Port = port
+}
+
 func parseArgs(args []string) (*Options, error) {
 	flags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	opt := new(Options)
@@ -30,12 +35,9 @@ func parseArgs(args []string) (*Options, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Устанавливаем Duration из секунд, полученных из флагов
 	opt.PollInterval = time.Duration(opt.PollSec) * time.Second
 	opt.ReportInterval = time.Duration(opt.ReportSec) * time.Second
-
-	err = opt.rebuildHostAndPort()
+	err = config.ParseAndSetHostPort(opt.ServerAddress, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +56,7 @@ func (opt *Options) parseEnv() error {
 		opt.ReportInterval = time.Duration(opt.ReportSec) * time.Second
 	}
 	if opt.ServerAddress != "" {
-		err = opt.rebuildHostAndPort()
+		err = config.ParseAndSetHostPort(opt.ServerAddress, opt)
 		if err != nil {
 			return err
 		}
@@ -72,13 +74,4 @@ func newOption(args []string) (*Options, error) {
 		return nil, err
 	}
 	return opt, nil
-}
-func (opt *Options) rebuildHostAndPort() error {
-	addr, err := config.ParseServerAddress(opt.ServerAddress)
-	if err != nil {
-		return err
-	}
-	opt.Host = addr.Host
-	opt.Port = addr.Port
-	return nil
 }

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	opt, err := parseArgs(os.Args[1:])
+	opt, err := newOption(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func initStorage() {
 	svc.Init(counters, gauges)
 }
 func initServer(opt *Options) error {
-	cfg := server.NewConfig(server.SchemeHTTP, opt.host, opt.port, log.Default())
+	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, log.Default())
 	err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter())
 	if err != nil {
 		return err
