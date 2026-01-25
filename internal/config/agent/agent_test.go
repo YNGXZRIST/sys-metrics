@@ -1,10 +1,11 @@
 package agent
 
 import (
-	"log"
 	"reflect"
 	"testing"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNewConfig(t *testing.T) {
 		pollInterval   time.Duration
 		reportInterval time.Duration
 		serverAddr     string
-		logger         *log.Logger
+		logger         *zap.Logger
 	}
 	tests := []struct {
 		name string
@@ -25,13 +26,13 @@ func TestNewConfig(t *testing.T) {
 				pollInterval:   10 * time.Millisecond,
 				reportInterval: 10 * time.Millisecond,
 				serverAddr:     "localhost",
-				logger:         log.Default(),
+				logger:         zap.NewExample(),
 			},
 			want: &Config{
 				PollInterval:   10 * time.Millisecond,
 				ReportInterval: 10 * time.Millisecond,
 				ServerAddr:     "localhost",
-				Logger:         log.Default(),
+				Logger:         zap.NewExample(),
 			},
 		},
 	}

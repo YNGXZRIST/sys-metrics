@@ -1,19 +1,21 @@
 package server
 
-import "log"
+import (
+	"go.uber.org/zap"
+)
 
 type Config struct {
 	scheme string
 	host   string
 	port   string
-	logger *log.Logger
+	logger *zap.Logger
 }
 
 const DefaultPort = "8080"
 const DefaultHost = "localhost"
 const SchemeHTTP = "http"
 
-func NewConfig(s, h, p string, logger *log.Logger) *Config {
+func NewConfig(s, h, p string, logger *zap.Logger) *Config {
 	return &Config{s, h, p, logger}
 }
 func (c *Config) ServerAddr() string {

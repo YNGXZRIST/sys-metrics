@@ -3,18 +3,19 @@ package agent
 import (
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"sys-metrics/internal/common"
+
+	"go.uber.org/zap"
 )
 
 type Reporter struct {
 	serverAddr string
-	logger     *log.Logger
+	logger     *zap.Logger
 }
 
-func NewReporter(serverAddr string, logger *log.Logger) *Reporter {
+func NewReporter(serverAddr string, logger *zap.Logger) *Reporter {
 	return &Reporter{serverAddr, logger}
 }
 func (r *Reporter) Send(c Collector) error {
@@ -38,7 +39,7 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 
 	v := r.ConvertMetricValue(metric, value)
 	url := r.BuildUpdateURL(metric, name, v)
-	r.logger.Println(url)
+	r.logger.Info(url)
 	response, err := http.Post(url, "text/plain", nil)
 	if err != nil {
 		return err
@@ -48,8 +49,8 @@ func (r *Reporter) sendMetricToServer(metric, name string, value float64) error 
 	if err != nil {
 		return err
 	}
-	r.logger.Println(response.Status)
-	r.logger.Println(response.StatusCode)
+	r.logger.Info(response.Status)
+	r.logger.Info(strconv.Itoa(response.StatusCode))
 	return nil
 }
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {

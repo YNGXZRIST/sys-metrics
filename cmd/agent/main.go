@@ -10,6 +10,8 @@ import (
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
 	"syscall"
+
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -24,13 +26,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Logger.Printf("Agent initialized. server url: %v", a.ServerAddr)
+	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
 	go a.StartReport(ctx)
 	go a.StartPoll(ctx)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	a.Logger.Println("Shutting down agent...")
+	a.Logger.Info("Shutting down agent...")
 	cancel()
 }
 func initAgent(opt *Options) (*agent.Agent, error) {

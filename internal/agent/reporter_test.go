@@ -1,13 +1,14 @@
 package agent
 
 import (
-	"log"
 	"sys-metrics/internal/common"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestNewReporter(t *testing.T) {
-	reporter := NewReporter(testServer.URL, log.Default())
+	reporter := NewReporter(testServer.URL, zap.NewExample())
 	if reporter == nil {
 		t.Fatal("NewReporter() returned nil")
 	}

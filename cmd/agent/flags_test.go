@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"reflect"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ func Test_parseArgs(t *testing.T) {
 					"-a=127.0.0.1:1234",
 					"-r=4",
 					"-p=5",
+					"-m=development",
 				},
 			},
 			want: &Options{
@@ -35,6 +37,7 @@ func Test_parseArgs(t *testing.T) {
 				PollInterval:   5 * time.Second,
 				ReportSec:      4,
 				PollSec:        5,
+				Mode:           common.TypeModeDevelopment,
 			},
 		},
 		{
@@ -50,6 +53,7 @@ func Test_parseArgs(t *testing.T) {
 				PollInterval:   2 * time.Second,
 				ReportSec:      10,
 				PollSec:        2,
+				Mode:           common.TypeModeDefault,
 			},
 		},
 	}
@@ -133,6 +137,7 @@ func Test_newOption(t *testing.T) {
 					"-a=localhost:9090",
 					"-r=15",
 					"-p=5",
+					"-m=development",
 				},
 			},
 			want: &Options{
@@ -143,6 +148,7 @@ func Test_newOption(t *testing.T) {
 				PollInterval:   5 * time.Second,
 				ReportSec:      15,
 				PollSec:        5,
+				Mode:           common.TypeModeDevelopment,
 			},
 		},
 		{

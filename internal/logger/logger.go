@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Initialize(mode string) (*log.Logger, error) {
+func Initialize(mode string) (*zap.Logger, error) {
 	var logger *zap.Logger
 	var err error
 	if mode == common.TypeModeProduction {
@@ -27,5 +27,5 @@ func Initialize(mode string) (*log.Logger, error) {
 			log.Printf("failed to sync logger: %v", err)
 		}
 	}(logger)
-	return zap.NewStdLog(logger), nil
+	return logger, nil
 }

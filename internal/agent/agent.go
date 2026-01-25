@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sys-metrics/internal/config/agent"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Agent struct {
@@ -20,7 +22,7 @@ func NewAgent(cfg *agent.Config) *Agent {
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()
 	if err != nil {
-		a.Logger.Println(err)
+		a.Logger.Error("report error", zap.Error(err))
 	}
 	ticker := time.NewTicker(a.ReportInterval)
 	defer ticker.Stop()
@@ -32,7 +34,7 @@ func (a *Agent) StartReport(ctx context.Context) {
 		case <-ticker.C:
 			err := a.Report()
 			if err != nil {
-				a.Logger.Println(err)
+				a.Logger.Error("report error", zap.Error(err))
 			}
 		}
 	}

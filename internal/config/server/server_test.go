@@ -1,9 +1,10 @@
 package server
 
 import (
-	"log"
 	"reflect"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestConfig_InternalAddr(t *testing.T) {
@@ -11,7 +12,7 @@ func TestConfig_InternalAddr(t *testing.T) {
 		scheme string
 		host   string
 		port   string
-		logger *log.Logger
+		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -24,7 +25,7 @@ func TestConfig_InternalAddr(t *testing.T) {
 				scheme: "http",
 				host:   "localhost",
 				port:   "8080",
-				logger: log.Default(),
+				logger: zap.NewExample(),
 			},
 			want: "localhost:8080",
 		},
@@ -49,7 +50,7 @@ func TestConfig_ServerAddr(t *testing.T) {
 		scheme string
 		host   string
 		port   string
-		logger *log.Logger
+		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -62,7 +63,7 @@ func TestConfig_ServerAddr(t *testing.T) {
 				scheme: SchemeHTTP,
 				host:   DefaultHost,
 				port:   DefaultPort,
-				logger: log.Default(),
+				logger: zap.NewNop(),
 			},
 			want: "http://localhost:8080",
 		},
@@ -87,7 +88,7 @@ func TestNewConfig(t *testing.T) {
 		s      string
 		h      string
 		p      string
-		logger *log.Logger
+		logger *zap.Logger
 	}
 	tests := []struct {
 		name string
@@ -100,13 +101,13 @@ func TestNewConfig(t *testing.T) {
 				s:      SchemeHTTP,
 				h:      DefaultHost,
 				p:      DefaultPort,
-				logger: log.Default(),
+				logger: zap.NewExample(),
 			},
 			want: &Config{
 				scheme: SchemeHTTP,
 				host:   DefaultHost,
 				port:   DefaultPort,
-				logger: log.Default(),
+				logger: zap.NewExample(),
 			},
 		},
 	}
