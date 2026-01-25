@@ -8,6 +8,7 @@ import (
 	"sys-metrics/internal/agent"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
+	lgr "sys-metrics/internal/logger"
 	"syscall"
 )
 
@@ -19,7 +20,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a := initAgent(opt)
+	a, err := initAgent(opt)
+	if err != nil {
+		log.Fatal(err)
+	}
 	a.Logger.Printf("Agent initialized. server url: %v", a.ServerAddr)
 	go a.StartReport(ctx)
 	go a.StartPoll(ctx)
@@ -29,9 +33,13 @@ func main() {
 	a.Logger.Println("Shutting down agent...")
 	cancel()
 }
-func initAgent(opt *Options) *agent.Agent {
-	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, log.Default())
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), log.Default())
+func initAgent(opt *Options) (*agent.Agent, error) {
+	logger, err := lgr.Initialize(opt.Mode)
+	if err != nil {
+		return nil, err
+	}
+	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger)
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)
 	a := agent.NewAgent(agentCfg)
-	return a
+	return a, nil
 }

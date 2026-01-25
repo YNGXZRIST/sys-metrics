@@ -37,3 +37,8 @@ const (
 	Sys           = "Sys"
 	TotalAlloc    = "TotalAlloc"
 )
+const (
+	TypeModeDevelopment = "development"
+	TypeModeProduction  = "production"
+	TypeModeDefault
+)

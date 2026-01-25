@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
 	"sys-metrics/internal/config/server"
 	"time"
@@ -16,8 +17,9 @@ type Options struct {
 	Port           string
 	PollInterval   time.Duration
 	ReportInterval time.Duration
-	PollSec        int `env:"POLL_INTERVAL"`
-	ReportSec      int `env:"REPORT_INTERVAL"`
+	PollSec        int    `env:"POLL_INTERVAL"`
+	ReportSec      int    `env:"REPORT_INTERVAL"`
+	Mode           string `env:"MODE"`
 }
 
 func (opt *Options) SetHostPort(host, port string) {
@@ -31,6 +33,7 @@ func parseArgs(args []string) (*Options, error) {
 	flags.StringVar(&opt.ServerAddress, "a", fmt.Sprintf("%v:%v", server.DefaultHost, server.DefaultPort), "Address of agent server")
 	flags.IntVar(&opt.ReportSec, "r", 10, "Reporting interval in seconds")
 	flags.IntVar(&opt.PollSec, "p", 2, "Poll interval in seconds")
+	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Agent mode. Possible values: production, development")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
@@ -70,6 +73,10 @@ func newOption(args []string) (*Options, error) {
 		return nil, err
 	}
 	err = opt.parseEnv()
+	if err != nil {
+		return nil, err
+	}
+	err = config.ValidateMode(opt.Mode)
 	if err != nil {
 		return nil, err
 	}

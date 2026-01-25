@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"slices"
 	"strings"
+	"sys-metrics/internal/common"
 )
 
 type ServerAddress struct {
@@ -33,5 +35,13 @@ func ParseAndSetHostPort(address string, setter HostPortSetter) error {
 		return err
 	}
 	setter.SetHostPort(addr.Host, addr.Port)
+	return nil
+}
+func ValidateMode(mode string) error {
+	validModes := []string{common.TypeModeDevelopment, common.TypeModeProduction}
+	containsTen := slices.Contains(validModes, mode)
+	if !containsTen {
+		return fmt.Errorf("invalid mode: %s,valide types: %v", mode, validModes)
+	}
 	return nil
 }

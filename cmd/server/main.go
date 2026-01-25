@@ -6,6 +6,7 @@ import (
 	"os"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/handler/router"
+	lgr "sys-metrics/internal/logger"
 	model "sys-metrics/internal/model/metrics"
 	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
@@ -28,7 +29,11 @@ func initStorage() {
 	svc.Init(counters, gauges)
 }
 func initServer(opt *Options) error {
-	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, log.Default())
+	logger, initialize := lgr.Initialize(opt.Mode)
+	if initialize != nil {
+		return initialize
+	}
+	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger)
 	err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter())
 	if err != nil {
 		return err
