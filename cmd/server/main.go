@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/handler/router"
 	lgr "sys-metrics/internal/logger"
@@ -30,7 +31,7 @@ func initStorage() {
 	svc.Init(counters, gauges)
 }
 func initServer(opt *Options) error {
-	logger, initialize := lgr.Initialize(opt.Mode)
+	logger, initialize := lgr.Initialize(opt.Mode, common.TypeServer)
 	if initialize != nil {
 		return initialize
 	}

@@ -42,3 +42,7 @@ const (
 	TypeModeProduction  = "production"
 	TypeModeDefault
 )
+const (
+	TypeAgent  = "agent"
+	TypeServer = "server"
+)

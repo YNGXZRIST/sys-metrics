@@ -1,7 +1,6 @@
 package server
 
 import (
-	"reflect"
 	"testing"
 
 	"go.uber.org/zap"
@@ -93,7 +92,6 @@ func TestNewConfig(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *Config
 	}{
 		{
 			name: "default",
@@ -103,18 +101,22 @@ func TestNewConfig(t *testing.T) {
 				p:      DefaultPort,
 				logger: zap.NewExample(),
 			},
-			want: &Config{
-				scheme: SchemeHTTP,
-				host:   DefaultHost,
-				port:   DefaultPort,
-				logger: zap.NewExample(),
-			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewConfig() = %v, want %v", got, tt.want)
+			got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger)
+			if got.scheme != tt.args.s {
+				t.Errorf("NewConfig().scheme = %v, want %v", got.scheme, tt.args.s)
+			}
+			if got.host != tt.args.h {
+				t.Errorf("NewConfig().host = %v, want %v", got.host, tt.args.h)
+			}
+			if got.port != tt.args.p {
+				t.Errorf("NewConfig().port = %v, want %v", got.port, tt.args.p)
+			}
+			if got.logger == nil {
+				t.Errorf("NewConfig().logger is nil, want non-nil logger")
 			}
 		})
 	}

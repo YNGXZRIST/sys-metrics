@@ -2,30 +2,47 @@ package logger
 
 import (
 	"errors"
-	"log"
 	"sys-metrics/internal/common"
+	"sys-metrics/pkg/filesystem"
 
 	"go.uber.org/zap"
 )
 
-func Initialize(mode string) (*zap.Logger, error) {
+const logDir = "logs/"
+
+func Initialize(mode, cmdType string) (*zap.Logger, error) {
 	var logger *zap.Logger
 	var err error
 	if mode == common.TypeModeProduction {
-		logger, err = zap.NewProduction()
+		logger, err = createProductionLogger(cmdType)
 	} else if mode == common.TypeModeDevelopment {
-		logger, err = zap.NewDevelopment()
+		logger, err = createDevelopmentLogger()
 	} else {
 		err = errors.New("invalid mode")
 	}
 	if err != nil {
 		return nil, err
 	}
-	defer func(logger *zap.Logger) {
-		err := logger.Sync()
-		if err != nil {
-			log.Printf("failed to sync logger: %v", err)
-		}
-	}(logger)
+	defer logger.Sync()
+
 	return logger, nil
+}
+func createProductionLogger(cmdType string) (*zap.Logger, error) {
+	logger, err := zap.NewProduction()
+	if err != nil {
+		return nil, err
+	}
+	err = filesystem.CreateDirIfNotExists(logDir)
+	if err != nil {
+		return nil, err
+	}
+	config := zap.NewProductionConfig()
+	config.OutputPaths = []string{logDir + cmdType + "_info.log", "stdout"}
+	config.ErrorOutputPaths = []string{logDir + cmdType + "_errors.log", "stderr"}
+	logger, err = config.Build()
+	return logger, err
+}
+func createDevelopmentLogger() (*zap.Logger, error) {
+	logger, err := zap.NewDevelopment()
+	return logger, err
 }

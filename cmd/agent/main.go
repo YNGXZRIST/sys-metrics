@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sys-metrics/internal/agent"
+	"sys-metrics/internal/common"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
@@ -36,7 +37,7 @@ func main() {
 	cancel()
 }
 func initAgent(opt *Options) (*agent.Agent, error) {
-	logger, err := lgr.Initialize(opt.Mode)
+	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
 		return nil, err
 	}

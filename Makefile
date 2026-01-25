@@ -107,6 +107,14 @@ iter5: build check-metricstest ## Автотесты итерации 5
 	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 5 passed!$(NC)"
 
+iter6: build check-metricstest ## Автотесты итерации 6
+	@echo "$(GREEN)Running iteration 6 tests...$(NC)"
+	$(METRICSTEST) -test.v -test.run='^TestIteration6$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=8080 \
+		-source-path=.
+	@echo "$(GREEN)✅ Iteration 6 passed!$(NC)"
 
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
