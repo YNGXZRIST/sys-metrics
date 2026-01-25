@@ -28,18 +28,14 @@ func Initialize(mode, cmdType string) (*zap.Logger, error) {
 	return logger, nil
 }
 func createProductionLogger(cmdType string) (*zap.Logger, error) {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		return nil, err
-	}
-	err = filesystem.CreateDirIfNotExists(logDir)
+	err := filesystem.CreateDirIfNotExists(logDir)
 	if err != nil {
 		return nil, err
 	}
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{logDir + cmdType + "_info.log", "stdout"}
 	config.ErrorOutputPaths = []string{logDir + cmdType + "_errors.log", "stderr"}
-	logger, err = config.Build()
+	logger, err := config.Build()
 	return logger, err
 }
 func createDevelopmentLogger() (*zap.Logger, error) {
