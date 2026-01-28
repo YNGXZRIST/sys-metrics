@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"fmt"
@@ -41,4 +41,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
+}
+func ValueJsonHandler(w http.ResponseWriter, r *http.Request) {
+
 }

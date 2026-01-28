@@ -1,4 +1,4 @@
-package handlers
+package handler
 
 import (
 	"net/http"
@@ -16,6 +16,7 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	name = collector.GetMetricType(name)
 	err := serviceMetrics.Update(metricType, name, value)
 	if err != nil {
+
 		responsewriter.WriteBadRequest(w)
 		return
 	}
