@@ -27,6 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer a.Logger.Sync()
 	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
 	go a.StartReport(ctx)
 	go a.StartPoll(ctx)

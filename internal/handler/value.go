@@ -1,14 +1,25 @@
 package handler
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/logger"
+	models "sys-metrics/internal/model/metrics"
 	svm "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
+	"sys-metrics/pkg/memstorage"
+
+	"go.uber.org/zap"
+)
+
+var (
+	ErrUnknownMetricType = fmt.Errorf("unknown metric type")
 )
 
 func ValueHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,32 +27,79 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 	metricType = strings.ToLower(metricType)
 	name = collector.GetMetricType(name)
+	v, err := getMetricFromStorage(metricType, name)
+	if err != nil {
+		writeServerValueError(w, err)
+		return
+	}
+	responsewriter.WriteSuccessStatus(w)
+	var writtenValue string
+	switch v.MType {
+	case common.Counter:
+		writtenValue = strconv.FormatInt(*v.Delta, 10)
+	case common.Gauge:
+		writtenValue = strconv.FormatFloat(*v.Value, 'f', -1, 64)
+	default:
+		responsewriter.WriteBadRequest(w)
+		return
+
+	}
+	_, err = w.Write([]byte(writtenValue))
+	if err != nil {
+		logger.Log.Warn("Failed to write response", zap.Error(err))
+		return
+	}
+}
+
+func ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
+	var req models.Metrics
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&req); err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	v, err := getMetricFromStorage(req.MType, req.ID)
+	if err != nil {
+		writeServerValueError(w, err)
+		return
+	}
+	responsewriter.WriteSuccessStatus(w)
+	enc := json.NewEncoder(w)
+	if err := enc.Encode(v); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func getMetricFromStorage(metricType, name string) (models.Metrics, error) {
 	switch metricType {
 	case common.Counter:
 		v, err := svm.Counters().Get(name)
 		if err != nil {
-			fmt.Println(err)
-			responsewriter.WriteNotFound(w)
-			return
+			return models.Metrics{}, memstorage.ErrNotFound
 		}
-		responsewriter.WriteSuccessStatus(w)
-		w.Write([]byte(strconv.FormatInt(*v.Delta, 10)))
-		return
+		return v.Metrics, nil
 	case common.Gauge:
 		v, err := svm.Gauges().Get(name)
 		if err != nil {
-			fmt.Println(err)
-			responsewriter.WriteNotFound(w)
-			return
+			return models.Metrics{}, memstorage.ErrNotFound
 		}
-		responsewriter.WriteSuccessStatus(w)
-		w.Write([]byte(strconv.FormatFloat(*v.Value, 'f', -1, 64)))
-		return
+		return v.Metrics, nil
 	default:
+		return models.Metrics{}, ErrUnknownMetricType
+	}
+}
+func writeServerValueError(w http.ResponseWriter, err error) {
+	if errors.Is(err, memstorage.ErrNotFound) {
+		responsewriter.WriteNotFound(w)
+		return
+	}
+	if errors.Is(err, ErrUnknownMetricType) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-}
-func ValueJsonHandler(w http.ResponseWriter, r *http.Request) {
-
+	logger.Log.Error("ValueHandler: internal server error", zap.Error(err))
+	responsewriter.WriteServerError(w)
 }

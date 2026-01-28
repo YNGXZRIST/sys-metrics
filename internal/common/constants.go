@@ -46,3 +46,7 @@ const (
 	TypeAgent  = "agent"
 	TypeServer = "server"
 )
+const (
+	ContentTypeHeader = "Content-Type"
+	ApplicationJSON   = "application/json"
+)

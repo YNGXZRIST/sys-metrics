@@ -10,22 +10,22 @@ import (
 
 const logDir = "logs/"
 
+var Log *zap.Logger = zap.NewNop()
+
 func Initialize(mode, cmdType string) (*zap.Logger, error) {
-	var logger *zap.Logger
 	var err error
 	if mode == common.TypeModeProduction {
-		logger, err = createProductionLogger(cmdType)
+		Log, err = createProductionLogger(cmdType)
 	} else if mode == common.TypeModeDevelopment {
-		logger, err = createDevelopmentLogger()
+		Log, err = createDevelopmentLogger()
 	} else {
 		err = errors.New("invalid mode")
 	}
 	if err != nil {
 		return nil, err
 	}
-	defer logger.Sync()
 
-	return logger, nil
+	return Log, nil
 }
 func createProductionLogger(cmdType string) (*zap.Logger, error) {
 	err := filesystem.CreateDirIfNotExists(logDir)

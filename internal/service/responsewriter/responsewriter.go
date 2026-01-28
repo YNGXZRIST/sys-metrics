@@ -8,6 +8,9 @@ import (
 func WriteBadRequest(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusBadRequest)
 }
+func WriteUnsupportedMediaType(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusUnsupportedMediaType)
+}
 func WriteSuccessStatus(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 }

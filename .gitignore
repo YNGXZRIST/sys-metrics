@@ -28,3 +28,4 @@ vendor/
 /bin/statictest
 /cmd/agent/logs/
 /cmd/server/logs/
+/logs/
