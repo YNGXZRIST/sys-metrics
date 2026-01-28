@@ -20,35 +20,19 @@ func TestNewReporter(t *testing.T) {
 
 func TestReporter_BuildUpdateURL(t *testing.T) {
 
-	type args struct {
-		m string
-		n string
-		v string
-	}
 	tests := []struct {
 		name string
-		args args
 		want string
 	}{
 		{
 			name: "empty",
-			args: args{},
-			want: testServer.URL + "/update///",
-		},
-		{
-			name: "not empty",
-			args: args{
-				m: common.Gauge,
-				n: "random",
-				v: "10",
-			},
-			want: testServer.URL + "/update/" + common.Gauge + "/random/10",
+			want: testServer.URL + "/update",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := testReporter.BuildUpdateURL(tt.args.m, tt.args.n, tt.args.v); got != tt.want {
+			if got := testReporter.BuildUpdateURL(); got != tt.want {
 				t.Errorf("BuildUpdateURL() = %v, want %v", got, tt.want)
 			}
 		})

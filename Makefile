@@ -1,4 +1,4 @@
-.PHONY: help build test lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 download-metricstest
+.PHONY: help build test lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 download-metricstest
 
 # Цвета для вывода
 GREEN=\033[0;32m
@@ -115,6 +115,19 @@ iter6: build check-metricstest ## Автотесты итерации 6
 		-server-port=8080 \
 		-source-path=.
 	@echo "$(GREEN)✅ Iteration 6 passed!$(NC)"
+
+iter7: build check-metricstest ## Автотесты итерации 7
+	@echo "$(GREEN)Running iteration 7 tests...$(NC)"
+	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
+		ADDRESS="localhost:$$SERVER_PORT"; \
+		TEMP_FILE=$$(mktemp); \
+		echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	$(METRICSTEST) -test.v -test.run='^TestIteration7$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=$$SERVER_PORT \
+		-source-path=.
+	@echo "$(GREEN)✅ Iteration 7 passed!$(NC)"
 
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"

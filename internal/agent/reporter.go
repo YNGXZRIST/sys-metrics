@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -10,6 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type Request struct {
+	ID    string `json:"id"`
+	MType string `json:"type"`
+	Value string `json:"value"`
+}
+type Response struct {
+	Code   int
+	Result string
+}
 type Reporter struct {
 	serverAddr string
 	logger     *zap.Logger
@@ -29,27 +40,37 @@ func (r *Reporter) Send(c Collector) error {
 	}
 	return nil
 }
-func (r *Reporter) sendMetricToServer(metric, name string, value float64) error {
-	if metric == "" {
+func (r *Reporter) sendMetricToServer(mType, name string, value float64) error {
+	if mType == "" {
 		return errors.New("empty metric type")
 	}
 	if name == "" {
 		return errors.New("empty metric name")
 	}
-
-	v := r.ConvertMetricValue(metric, value)
-	url := r.BuildUpdateURL(metric, name, v)
+	v := r.ConvertMetricValue(mType, value)
+	req := &Request{
+		ID:    name,
+		MType: mType,
+		Value: v,
+	}
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+	writer := bytes.NewReader(jsonData)
+	url := r.BuildUpdateURL()
 	r.logger.Info(url)
-	response, err := http.Post(url, "text/plain", nil)
+	r.logger.Info("request:" + string(jsonData))
+	response, err := http.Post(url, common.ApplicationJSON, writer)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
-	_, err = io.ReadAll(response.Body)
+	res, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
-	r.logger.Info(response.Status)
+	r.logger.Info("response: " + response.Status + "\n" + string(res))
 	r.logger.Info(strconv.Itoa(response.StatusCode))
 	return nil
 }
@@ -62,6 +83,6 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	}
 	return s
 }
-func (r *Reporter) BuildUpdateURL(m, n, v string) string {
-	return r.serverAddr + "/update/" + m + "/" + n + "/" + v
+func (r *Reporter) BuildUpdateURL() string {
+	return r.serverAddr + "/update"
 }

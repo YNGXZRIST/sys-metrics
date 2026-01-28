@@ -25,7 +25,7 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type RequestBody struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
@@ -39,12 +39,12 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := serviceMetrics.Update(req.Type, req.Id, req.Value)
+	err := serviceMetrics.Update(req.Type, req.ID, req.Value)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	metric, err := getMetricFromStorage(req.Type, req.Id)
+	metric, err := getMetricFromStorage(req.Type, req.ID)
 	if err != nil {
 		responsewriter.WriteServerError(w)
 		return
