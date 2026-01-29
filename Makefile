@@ -119,14 +119,15 @@ iter6: build check-metricstest ## Автотесты итерации 6
 iter7: build check-metricstest ## Автотесты итерации 7
 	@echo "$(GREEN)Running iteration 7 tests...$(NC)"
 	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
-		ADDRESS="localhost:$$SERVER_PORT"; \
-		TEMP_FILE=$$(mktemp); \
-		echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	ADDRESS="localhost:$$SERVER_PORT"; \
+	TEMP_FILE=$$(mktemp); \
+	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
 	$(METRICSTEST) -test.v -test.run='^TestIteration7$$' \
 		-agent-binary-path=$(AGENT_BINARY) \
 		-binary-path=$(SERVER_BINARY) \
 		-server-port=$$SERVER_PORT \
-		-source-path=.
+		-source-path=.; \
+	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 7 passed!$(NC)"
 
 fmt: ## Форматировать код

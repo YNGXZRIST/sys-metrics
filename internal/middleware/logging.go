@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"time"
 
@@ -32,6 +34,22 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 func WithLogging(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sugar := logger.Sugar()
+			if r.Method == http.MethodPost {
+				var buf bytes.Buffer
+				tee := io.TeeReader(r.Body, &buf)
+				body, err := io.ReadAll(tee)
+				if err != nil {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				sugar.Infoln(
+					"uri", r.RequestURI,
+					"method", r.Method,
+					"request body", string(body),
+				)
+				r.Body = io.NopCloser(&buf)
+			}
 			start := time.Now()
 			responseData := &responseData{
 				status: 0,
@@ -43,7 +61,6 @@ func WithLogging(logger *zap.Logger) func(http.Handler) http.Handler {
 			}
 			h.ServeHTTP(&lw, r)
 			duration := time.Since(start)
-			sugar := logger.Sugar()
 			sugar.Infoln(
 				"uri", r.RequestURI,
 				"method", r.Method,

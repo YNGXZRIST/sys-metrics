@@ -3,38 +3,31 @@ package agent
 import (
 	"runtime"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/model/metrics"
 	"testing"
 )
 
 func TestCollector_ResetPollMetric(t *testing.T) {
 	tests := []struct {
 		name    string
-		initial float64
-		want    float64
+		initial int64
+		want    int64
 	}{
-		{
-			name:    "reset from positive value",
-			initial: 12,
-			want:    0,
-		},
-		{
-			name:    "reset from zero",
-			initial: 0,
-			want:    0,
-		},
-		{
-			name:    "reset from large value",
-			initial: 999999,
-			want:    0,
-		},
+		{"reset from positive value", 12, 0},
+		{"reset from zero", 0, 0},
+		{"reset from large value", 999999, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
 			c.SetCounter(common.PollCount, tt.initial)
 			c.ResetPollMetric()
-			if got := c.GetPollCountMetric(); got != tt.want {
-				t.Errorf("ResetPollMetric() got = %v, want %v", got, tt.want)
+			counter, ok := c.Counters[common.PollCount]
+			if !ok || counter == nil || counter.Delta == nil {
+				t.Fatalf("PollCount counter not found or nil after reset")
+			}
+			if *counter.Delta != tt.want {
+				t.Errorf("ResetPollMetric() got = %v, want %v", *counter.Delta, tt.want)
 			}
 		})
 	}
@@ -43,28 +36,13 @@ func TestCollector_ResetPollMetric(t *testing.T) {
 func TestCollector_SetPollCounterMetric(t *testing.T) {
 	tests := []struct {
 		name       string
-		initial    float64
+		initial    int64
 		increments int
-		want       float64
+		want       int64
 	}{
-		{
-			name:       "increment from zero",
-			initial:    0,
-			increments: 1,
-			want:       1,
-		},
-		{
-			name:       "increment from positive",
-			initial:    12,
-			increments: 1,
-			want:       13,
-		},
-		{
-			name:       "multiple increments",
-			initial:    0,
-			increments: 5,
-			want:       5,
-		},
+		{"increment from zero", 0, 1, 1},
+		{"increment from positive", 12, 1, 13},
+		{"multiple increments", 0, 5, 5},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -73,8 +51,12 @@ func TestCollector_SetPollCounterMetric(t *testing.T) {
 			for i := 0; i < tt.increments; i++ {
 				c.SetPollCounterMetric()
 			}
-			if got := c.GetPollCountMetric(); got != tt.want {
-				t.Errorf("SetPollCounterMetric() got = %v, want %v", got, tt.want)
+			counter, ok := c.Counters[common.PollCount]
+			if !ok || counter == nil || counter.Delta == nil {
+				t.Fatalf("PollCount counter not found or nil after increment")
+			}
+			if *counter.Delta != tt.want {
+				t.Errorf("SetPollCounterMetric() got = %v, want %v", *counter.Delta, tt.want)
 			}
 		})
 	}
@@ -83,39 +65,24 @@ func TestCollector_SetPollCounterMetric(t *testing.T) {
 func TestCollector_GetPollCountMetric(t *testing.T) {
 	tests := []struct {
 		name    string
-		initial float64
-		want    float64
+		initial int64
+		want    int64
 	}{
-		{
-			name:    "positive value",
-			initial: 12,
-			want:    12,
-		},
-		{
-			name:    "zero",
-			initial: 0,
-			want:    0,
-		},
+		{"positive value", 12, 12},
+		{"zero", 0, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
 			c.SetCounter(common.PollCount, tt.initial)
-			if got := c.GetPollCountMetric(); got != tt.want {
-				t.Errorf("GetPollCountMetric() got = %v, want %v", got, tt.want)
+			counter, ok := c.Counters[common.PollCount]
+			if !ok || counter == nil || counter.Delta == nil {
+				t.Fatalf("PollCount counter not found or nil in GetPollCountMetric")
+			}
+			if *counter.Delta != tt.want {
+				t.Errorf("GetPollCountMetric() got = %v, want %v", *counter.Delta, tt.want)
 			}
 		})
-	}
-}
-
-func TestCollector_SetRandomValueMetric(t *testing.T) {
-	c := NewCollector()
-	for i := 0; i < 10; i++ {
-		c.SetRandomValueMetric()
-		got := c.GetRandomValueMetric()
-		if got < 0 || got >= 1 {
-			t.Errorf("SetRandomValueMetric() got = %v, want value in range [0, 1)", got)
-		}
 	}
 }
 
@@ -126,48 +93,22 @@ func TestUpdateFromStats(t *testing.T) {
 		checkName string
 		want      float64
 	}{
-		{
-			name:      "Alloc metric",
-			stats:     &runtime.MemStats{Alloc: 1024},
-			checkName: common.Alloc,
-			want:      1024,
-		},
-		{
-			name:      "HeapAlloc metric",
-			stats:     &runtime.MemStats{HeapAlloc: 2048},
-			checkName: common.HeapAlloc,
-			want:      2048,
-		},
-		{
-			name:      "TotalAlloc metric",
-			stats:     &runtime.MemStats{TotalAlloc: 4096},
-			checkName: common.TotalAlloc,
-			want:      4096,
-		},
-		{
-			name:      "Sys metric",
-			stats:     &runtime.MemStats{Sys: 8192},
-			checkName: common.Sys,
-			want:      8192,
-		},
-		{
-			name:      "zero value",
-			stats:     &runtime.MemStats{Alloc: 0},
-			checkName: common.Alloc,
-			want:      0,
-		},
+		{"Alloc metric", &runtime.MemStats{Alloc: 1024}, common.Alloc, 1024},
+		{"HeapAlloc metric", &runtime.MemStats{HeapAlloc: 2048}, common.HeapAlloc, 2048},
+		{"TotalAlloc metric", &runtime.MemStats{TotalAlloc: 4096}, common.TotalAlloc, 4096},
+		{"Sys metric", &runtime.MemStats{Sys: 8192}, common.Sys, 8192},
+		{"zero value", &runtime.MemStats{Alloc: 0}, common.Alloc, 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
 			c.UpdateFromStats(tt.stats)
-
-			v, ok := c.GetGauge(tt.checkName)
-			if !ok {
-				t.Errorf("GetGauge(%s) returned ok=false, want true", tt.checkName)
+			gauge, ok := c.Gauges[tt.checkName]
+			if !ok || gauge == nil || gauge.Value == nil {
+				t.Fatalf("Gauge %s not found or nil after UpdateFromStats", tt.checkName)
 			}
-			if v != tt.want {
-				t.Errorf("GetGauge(%s) = %v, want %v", tt.checkName, v, tt.want)
+			if *gauge.Value != tt.want {
+				t.Errorf("GetGauge(%s) = %v, want %v", tt.checkName, *gauge.Value, tt.want)
 			}
 		})
 	}
@@ -175,18 +116,14 @@ func TestUpdateFromStats(t *testing.T) {
 
 func TestNewCollector(t *testing.T) {
 	c := NewCollector()
-
 	if c == nil {
 		t.Fatal("NewCollector() returned nil")
 	}
-	if c.metrics == nil {
-		t.Fatal("NewCollector() metrics is nil")
+	if c.Gauges == nil {
+		t.Fatal("NewCollector() Gauges is nil")
 	}
-	if _, ok := c.metrics[common.Gauge]; !ok {
-		t.Error("NewCollector() missing Gauge map")
-	}
-	if _, ok := c.metrics[common.Counter]; !ok {
-		t.Error("NewCollector() missing Counter map")
+	if c.Counters == nil {
+		t.Fatal("NewCollector() Counters is nil")
 	}
 }
 
@@ -196,33 +133,22 @@ func TestCollector_SetGauge(t *testing.T) {
 		key   string
 		value float64
 	}{
-		{
-			name:  "set positive value",
-			key:   "test_metric",
-			value: 123.45,
-		},
-		{
-			name:  "set zero",
-			key:   "zero_metric",
-			value: 0,
-		},
-		{
-			name:  "set negative value",
-			key:   "negative_metric",
-			value: -100.5,
-		},
+		{"set positive value", "test_metric", 123.45},
+		{"set zero", "zero_metric", 0},
+		{"set negative value", "negative_metric", -100.5},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
-			c.SetGauge(tt.key, tt.value)
-
-			got, ok := c.GetGauge(tt.key)
-			if !ok {
-				t.Errorf("GetGauge(%s) returned ok=false", tt.key)
+			g := metrics.NewGauge(tt.key)
+			g.SetValue(tt.value)
+			c.Gauges[tt.key] = g
+			gauge, ok := c.Gauges[tt.key]
+			if !ok || gauge == nil || gauge.Value == nil {
+				t.Fatalf("Gauge %s not found or nil after SetGauge", tt.key)
 			}
-			if got != tt.value {
-				t.Errorf("GetGauge(%s) = %v, want %v", tt.key, got, tt.value)
+			if *gauge.Value != tt.value {
+				t.Errorf("GetGauge(%s) = %v, want %v", tt.key, *gauge.Value, tt.value)
 			}
 		})
 	}
@@ -230,10 +156,9 @@ func TestCollector_SetGauge(t *testing.T) {
 
 func TestCollector_GetGauge_NotFound(t *testing.T) {
 	c := NewCollector()
-
-	_, ok := c.GetGauge("nonexistent")
-	if ok {
-		t.Error("GetGauge(nonexistent) returned ok=true, want false")
+	gauge, ok := c.Gauges["nonexistent"]
+	if ok && gauge != nil && gauge.Value != nil {
+		t.Error("GetGauge(nonexistent) returned value, want nil")
 	}
 }
 
@@ -241,30 +166,21 @@ func TestCollector_SetCounter(t *testing.T) {
 	tests := []struct {
 		name  string
 		key   string
-		value float64
+		value int64
 	}{
-		{
-			name:  "set positive value",
-			key:   "test_counter",
-			value: 100,
-		},
-		{
-			name:  "set zero",
-			key:   "zero_counter",
-			value: 0,
-		},
+		{"set positive value", "test_counter", 100},
+		{"set zero", "zero_counter", 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCollector()
 			c.SetCounter(tt.key, tt.value)
-
-			got, ok := c.GetCounter(tt.key)
-			if !ok {
-				t.Errorf("GetCounter(%s) returned ok=false", tt.key)
+			counter, ok := c.Counters[tt.key]
+			if !ok || counter == nil || counter.Delta == nil {
+				t.Fatalf("Counter %s not found or nil after SetCounter", tt.key)
 			}
-			if got != tt.value {
-				t.Errorf("GetCounter(%s) = %v, want %v", tt.key, got, tt.value)
+			if *counter.Delta != tt.value {
+				t.Errorf("GetCounter(%s) = %v, want %v", tt.key, *counter.Delta, tt.value)
 			}
 		})
 	}
@@ -272,10 +188,9 @@ func TestCollector_SetCounter(t *testing.T) {
 
 func TestCollector_GetCounter_NotFound(t *testing.T) {
 	c := NewCollector()
-
-	_, ok := c.GetCounter("nonexistent")
-	if ok {
-		t.Error("GetCounter(nonexistent) returned ok=true, want false")
+	counter, ok := c.Counters["nonexistent"]
+	if ok && counter != nil && counter.Delta != nil {
+		t.Error("GetCounter(nonexistent) returned value, want nil")
 	}
 }
 
@@ -284,7 +199,8 @@ func TestCollector_Update(t *testing.T) {
 	c.Update()
 	metricsToCheck := []string{common.Alloc, common.HeapAlloc, common.Sys, common.TotalAlloc}
 	for _, name := range metricsToCheck {
-		if _, ok := c.GetGauge(name); !ok {
+		gauge, ok := c.Gauges[name]
+		if !ok || gauge == nil || gauge.Value == nil {
 			t.Errorf("Update() did not set gauge %s", name)
 		}
 	}
@@ -299,16 +215,8 @@ func TestGetMetricType(t *testing.T) {
 		args args
 		want string
 	}{
-		{
-			name: common.PollCount,
-			args: args{metric: common.PollCount},
-			want: common.PollCount,
-		},
-		{
-			name: "not isset map",
-			args: args{metric: "unknownmetric"},
-			want: "Unknownmetric",
-		},
+		{"PollCount", args{metric: common.PollCount}, common.PollCount},
+		{"not isset map", args{metric: "unknownmetric"}, "Unknownmetric"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

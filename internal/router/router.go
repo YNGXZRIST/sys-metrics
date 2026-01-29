@@ -10,10 +10,12 @@ import (
 func GetRouter() *chi.Mux {
 	r := chi.NewRouter()
 	r.Get("/", handler.IndexHandler)
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.ContentTypeJSON)
-		r.Post("/value", handler.ValueHandlerJSON)
-		r.Post("/update", handler.UpdateHandlerJSON)
+	r.Group(func(gr chi.Router) {
+		gr.Use(middleware.ContentTypeJSON)
+		gr.Post("/value", handler.ValueHandlerJSON)
+		gr.Post("/update", handler.UpdateHandlerJSON)
+		gr.Post("/value/", handler.ValueHandlerJSON)
+		gr.Post("/update/", handler.UpdateHandlerJSON)
 	})
 	r.Post("/update/{type}/{name}/{value}", handler.UpdateHandler)
 	r.Get("/value/{type}/{name}", handler.ValueHandler)

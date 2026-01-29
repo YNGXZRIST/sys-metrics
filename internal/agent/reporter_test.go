@@ -2,6 +2,7 @@ package agent
 
 import (
 	"sys-metrics/internal/common"
+	models "sys-metrics/internal/model/metrics"
 	"testing"
 
 	"go.uber.org/zap"
@@ -82,47 +83,40 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 }
 
 func TestReporter_Send(t *testing.T) {
-	type args struct {
-		c Collector
-	}
 	tests := []struct {
 		name    string
-		args    args
+		setup   func() *Collector
 		wantErr bool
 	}{
 		{
 			name: "success",
-			args: args{
-				c: Collector{
-					map[string]map[string]float64{
-						common.Gauge: {
-							"random": 12.43,
-						},
-						common.Counter: {
-							"random": 12.43,
-						},
-					},
-				},
+			setup: func() *Collector {
+				c := NewCollector()
+				g := models.NewGauge("random")
+				g.SetValue(12.43)
+				c.Gauges["random"] = g
+				counter := models.NewCounter("random")
+				counter.SetValue(12)
+				c.Counters["random"] = counter
+				return c
 			},
 		},
 		{
 			name: "error",
-			args: args{
-				c: Collector{
-					map[string]map[string]float64{
-						common.Gauge: {
-							"": 0,
-						},
-					},
-				},
+			setup: func() *Collector {
+				c := NewCollector()
+				g := models.NewGauge("")
+				g.SetValue(0)
+				c.Gauges[""] = g
+				return c
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			if err := testReporter.Send(tt.args.c); (err != nil) != tt.wantErr {
+			collector := tt.setup()
+			if err := testReporter.Send(collector); (err != nil) != tt.wantErr {
 				t.Errorf("Send() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -130,34 +124,29 @@ func TestReporter_Send(t *testing.T) {
 }
 
 func TestReporter_sendMetricToServer(t *testing.T) {
-	type args struct {
-		metric string
-		name   string
-		value  float64
-	}
 	tests := []struct {
 		name    string
-		args    args
+		metric  *models.Metrics
 		wantErr bool
 	}{
 		{
 			name:    "empty",
-			args:    args{},
-			wantErr: true,
+			metric:  &models.Metrics{},
+			wantErr: false,
 		},
 		{
 			name: "not empty",
-			args: args{
-				metric: common.Gauge,
-				name:   common.Gauge,
-				value:  10.43,
+			metric: &models.Metrics{
+				ID:    common.Gauge,
+				MType: common.Gauge,
+				Value: func() *float64 { v := 10.43; return &v }(),
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := testReporter.sendMetricToServer(tt.args.metric, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := testReporter.sendMetricToServer(*tt.metric); (err != nil) != tt.wantErr {
 				t.Errorf("sendMetricToServer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

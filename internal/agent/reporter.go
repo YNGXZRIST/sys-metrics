@@ -3,11 +3,11 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strconv"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/model/metrics"
 
 	"go.uber.org/zap"
 )
@@ -29,31 +29,23 @@ type Reporter struct {
 func NewReporter(serverAddr string, logger *zap.Logger) *Reporter {
 	return &Reporter{serverAddr, logger}
 }
-func (r *Reporter) Send(c Collector) error {
-	for t, metrics := range c.metrics {
-		for m, v := range metrics {
-			err := r.sendMetricToServer(t, m, v)
-			if err != nil {
-				return err
-			}
+func (r *Reporter) Send(c *Collector) error {
+	for _, m := range c.Gauges {
+		err := r.sendMetricToServer(m.Metrics)
+		if err != nil {
+			return err
+		}
+	}
+	for _, m := range c.Counters {
+		err := r.sendMetricToServer(m.Metrics)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
-func (r *Reporter) sendMetricToServer(mType, name string, value float64) error {
-	if mType == "" {
-		return errors.New("empty metric type")
-	}
-	if name == "" {
-		return errors.New("empty metric name")
-	}
-	v := r.ConvertMetricValue(mType, value)
-	req := &Request{
-		ID:    name,
-		MType: mType,
-		Value: v,
-	}
-	jsonData, err := json.Marshal(req)
+func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
+	jsonData, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}

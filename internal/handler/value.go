@@ -54,9 +54,8 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 func ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
-	if err := dec.Decode(&req); err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
+	if err := dec.Decode(&req); err != nil || req.ID == "" || req.MType == "" {
+		responsewriter.WriteNotFound(w)
 		return
 	}
 	v, err := getMetricFromStorage(req.MType, req.ID)

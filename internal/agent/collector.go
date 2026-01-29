@@ -5,7 +5,9 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/stringsparser"
 )
 
@@ -46,15 +48,15 @@ var runtimeMetricsMap = map[string]string{
 }
 
 type Collector struct {
-	metrics map[string]map[string]float64
+	Gauges   map[string]*metrics.Gauge
+	Counters map[string]*metrics.Counter
+	mu       sync.RWMutex
 }
 
 func NewCollector() *Collector {
-	m := make(map[string]map[string]float64)
-	m[common.Gauge] = make(map[string]float64, 27)
-	m[common.Counter] = make(map[string]float64, 2)
 	return &Collector{
-		metrics: m,
+		Gauges:   make(map[string]*metrics.Gauge, 27),
+		Counters: make(map[string]*metrics.Counter, 2),
 	}
 }
 func (c *Collector) Update() {
@@ -64,14 +66,37 @@ func (c *Collector) Update() {
 }
 
 func (c *Collector) UpdateFromStats(s *runtime.MemStats) {
-	v := reflect.ValueOf(*s)
+	valueOf := reflect.ValueOf(*s)
 	for _, name := range runtimeMetricsTypes {
-		if value, ok := c.extractFieldValue(v, name); ok {
-			c.SetGauge(name, value)
+		v, ok := c.extractFieldValue(valueOf, name)
+		if !ok {
+			continue
 		}
+		c.updateOrCreateGauge(name, v)
 	}
 }
-
+func (c *Collector) updateOrCreateGauge(name string, value float64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.Gauges[name]; ok {
+		c.Gauges[name].SetValue(value)
+		return
+	}
+	gauge := metrics.NewGauge(name)
+	gauge.SetValue(value)
+	c.Gauges[name] = gauge
+}
+func (c *Collector) updateOrCreateCounter(name string, value int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.Counters[name]; ok {
+		c.Counters[name].SetValue(value)
+		return
+	}
+	counter := metrics.NewCounter(name)
+	counter.SetValue(value)
+	c.Counters[name] = counter
+}
 func (c *Collector) extractFieldValue(v reflect.Value, name string) (float64, bool) {
 	f := v.FieldByName(name)
 	switch f.Kind() {
@@ -84,37 +109,49 @@ func (c *Collector) extractFieldValue(v reflect.Value, name string) (float64, bo
 	}
 }
 
-func (c *Collector) SetGauge(name string, value float64) {
-	c.metrics[common.Gauge][name] = value
+func (c *Collector) GetGauge(name string) (*metrics.Gauge, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	v, ok := c.Gauges[name]
+	if !ok || v == nil {
+		return metrics.NewGauge(name), false
+	}
+	return v, true
 }
 
-func (c *Collector) GetGauge(name string) (float64, bool) {
-	v, ok := c.metrics[common.Gauge][name]
-	return v, ok
+func (c *Collector) SetCounter(name string, value int64) {
+	c.updateOrCreateCounter(name, value)
 }
 
-func (c *Collector) SetCounter(name string, value float64) {
-	c.metrics[common.Counter][name] = value
-}
-
-func (c *Collector) GetCounter(name string) (float64, bool) {
-	v, ok := c.metrics[common.Counter][name]
-	return v, ok
+func (c *Collector) GetCounter(name string) (*metrics.Counter, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	v, ok := c.Counters[name]
+	if !ok || v == nil {
+		return metrics.NewCounter(name), false
+	}
+	return v, true
 }
 func (c *Collector) SetPollCounterMetric() {
-	c.metrics[common.Counter][common.PollCount]++
+	c.updateOrCreateCounter(common.PollCount, 1)
 }
 func (c *Collector) ResetPollMetric() {
-	c.metrics[common.Counter][common.PollCount] = 0
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if v, ok := c.Counters[common.PollCount]; ok && v != nil {
+		v.Reset()
+	}
 }
-func (c *Collector) GetPollCountMetric() float64 {
-	return c.metrics[common.Counter][common.PollCount]
+func (c *Collector) GetPollCountMetric() *metrics.Counter {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if v, ok := c.Counters[common.PollCount]; ok && v != nil {
+		return v
+	}
+	return metrics.NewCounter(common.PollCount)
 }
 func (c *Collector) SetRandomValueMetric() {
-	c.metrics[common.Gauge][common.RandomValue] = rand.Float64()
-}
-func (c *Collector) GetRandomValueMetric() float64 {
-	return c.metrics[common.Gauge][common.RandomValue]
+	c.updateOrCreateGauge(common.RandomValue, rand.Float64())
 }
 func GetMetricType(metric string) string {
 	lowerMetric := strings.ToLower(metric)

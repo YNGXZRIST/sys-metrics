@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	collector "sys-metrics/internal/agent"
+	"sys-metrics/internal/common"
+	"sys-metrics/internal/logger"
+	models "sys-metrics/internal/model/metrics"
 	serviceMetrics "sys-metrics/internal/service/metrics/methods"
 	"sys-metrics/internal/service/responsewriter"
 )
@@ -25,26 +29,48 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type RequestBody struct {
-	ID    string `json:"id"`
-	Type  string `json:"type"`
-	Value string `json:"value"`
+	ID    string          `json:"id"`
+	Type  string          `json:"type"`
+	Value json.RawMessage `json:"value"`
 }
 
 func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
-	var req RequestBody
+	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		fmt.Println(err)
+		logger.Log.Info("UpdateHandlerJSON got decode error: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	err := serviceMetrics.Update(req.Type, req.ID, req.Value)
+	logger.Log.Info(fmt.Sprintf("UpdateHandlerJSON got request: %+v", req))
+	var valueStr string
+	switch req.MType {
+	case common.Gauge:
+		var val float64
+		if req.Value == nil {
+			val = 0.0
+		} else {
+			val = *req.Value
+		}
+		valueStr = strconv.FormatFloat(val, 'f', -1, 64)
+	case common.Counter:
+		var delta int64
+		if req.Delta == nil {
+			delta = 0
+		} else {
+			delta = *req.Delta
+		}
+		valueStr = strconv.FormatInt(delta, 10)
+	default:
+		responsewriter.WriteBadRequest(w)
+		return
+	}
+	err := serviceMetrics.Update(req.MType, req.ID, valueStr)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	metric, err := getMetricFromStorage(req.Type, req.ID)
+	metric, err := getMetricFromStorage(req.MType, req.ID)
 	if err != nil {
 		responsewriter.WriteServerError(w)
 		return

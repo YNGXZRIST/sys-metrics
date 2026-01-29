@@ -76,40 +76,35 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func TestUpdateHandlerJSON(t *testing.T) {
-	type args struct {
-		ID    string `json:"id"`
-		Type  string `json:"type"`
-		Value string `json:"value"`
-	}
 	tests := []struct {
 		name       string
-		args       args
+		args       metrics.Metrics
 		wantStatus int
 	}{
 		{
 			name: "success gauge",
-			args: args{
+			args: metrics.Metrics{
 				ID:    "sys-metrics",
-				Type:  common.Gauge,
-				Value: "123.45",
+				MType: common.Gauge,
+				Value: func() *float64 { v, _ := strconv.ParseFloat("123.45", 64); return &v }(),
 			},
 			wantStatus: http.StatusOK,
 		},
 		{
 			name: "success counter",
-			args: args{
+			args: metrics.Metrics{
 				ID:    "sys-metrics",
-				Type:  common.Counter,
-				Value: "100",
+				MType: common.Counter,
+				Delta: func() *int64 { v, _ := strconv.ParseInt("100", 10, 64); return &v }(),
 			},
 			wantStatus: http.StatusOK,
 		},
 		{
 			name: "unknown type",
-			args: args{
+			args: metrics.Metrics{
 				ID:    "sys-metrics",
-				Type:  "test",
-				Value: "100",
+				MType: "test",
+				Delta: func() *int64 { v, _ := strconv.ParseInt("100", 10, 64); return &v }(),
 			},
 			wantStatus: http.StatusBadRequest,
 		},
@@ -137,32 +132,32 @@ func TestUpdateHandlerJSON(t *testing.T) {
 			}(res.Body)
 
 			if res.StatusCode != tt.wantStatus {
-				t.Errorf("UpdateHandlerJSON() status = %v, want %v", res.StatusCode, http.StatusOK)
+				t.Errorf("UpdateHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)
 			}
-			if tt.args.Type == common.Gauge {
+			if tt.args.MType == common.Gauge {
 				gauge, err := gauges.Get(tt.args.ID)
 				if err != nil {
 					t.Fatalf("gauges.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}
-				expectedValue, err := strconv.ParseFloat(tt.args.Value, 64)
-				if err != nil {
-					t.Fatalf("strconv.ParseFloat(%s): expected %v, got %v", tt.args.Value, nil, err)
+				if gauge.Value == nil {
+					t.Fatalf("gauge.Value is nil")
 				}
-				if *gauge.Value != expectedValue {
-					t.Errorf("gauge value = %v, want %v", *gauge.Value, expectedValue)
+				if *gauge.Value != *tt.args.Value {
+					t.Errorf("gauge value = %v, want %v", *gauge.Value, *tt.args.Value)
 				}
 			}
-			if tt.args.Type == common.Counter {
+			if tt.args.MType == common.Counter {
 				counter, err := counters.Get(tt.args.ID)
 				if err != nil {
 					t.Fatalf("counters.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}
-				expectedValue := tt.args.Value
-				if fmt.Sprintf("%d", *counter.Delta) != expectedValue {
-					t.Errorf("counter value = %v, want %v", *counter.Delta, expectedValue)
+				if counter.Delta == nil {
+					t.Fatalf("counter.Delta is nil")
+				}
+				if *counter.Delta != *tt.args.Delta {
+					t.Errorf("counter value = %v, want %v", *counter.Delta, *tt.args.Delta)
 				}
 			}
-
 		})
 	}
 }
