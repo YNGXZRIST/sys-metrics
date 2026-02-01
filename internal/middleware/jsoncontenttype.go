@@ -13,7 +13,7 @@ func ContentTypeJSON(next http.Handler) http.Handler {
 			responsewriter.WriteUnsupportedMediaType(w)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(common.ContentTypeHeader, common.ApplicationJSON)
 		next.ServeHTTP(w, r)
 
 	})

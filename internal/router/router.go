@@ -5,10 +5,13 @@ import (
 	"sys-metrics/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
-func GetRouter() *chi.Mux {
+func GetRouter(logger *zap.Logger) *chi.Mux {
 	r := chi.NewRouter()
+	r.Use(middleware.GzipMiddleware)
+	r.Use(middleware.WithLogging(logger))
 	r.Get("/", handler.IndexHandler)
 	r.Group(func(gr chi.Router) {
 		gr.Use(middleware.ContentTypeJSON)

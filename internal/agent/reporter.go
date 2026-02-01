@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
+	"sys-metrics/pkg/httpcompressor"
 
 	"go.uber.org/zap"
 )
@@ -53,10 +54,18 @@ func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	url := r.BuildUpdateURL()
 	r.logger.Info(url)
 	r.logger.Info("request:" + string(jsonData))
-	response, err := http.Post(url, common.ApplicationJSON, writer)
+	req, err := http.NewRequest(http.MethodPost, url, writer)
 	if err != nil {
 		return err
 	}
+	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
+	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
+	client := &http.Client{}
+	response, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	r.logger.Info("response encoding: " + response.Header.Get(httpcompressor.ContentEncodingHeader))
 	defer response.Body.Close()
 	res, err := io.ReadAll(response.Body)
 	if err != nil {

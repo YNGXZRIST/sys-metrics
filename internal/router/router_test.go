@@ -7,10 +7,13 @@ import (
 	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestGetRouter(t *testing.T) {
-	router := GetRouter()
+	logger, _ := zap.NewDevelopment()
+	router := GetRouter(logger)
 	if router == nil {
 		t.Fatal("GetRouter() returned nil")
 	}
@@ -21,7 +24,8 @@ func TestRoutes(t *testing.T) {
 	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
 	svc.Init(counters, gauges)
 
-	router := GetRouter()
+	logger, _ := zap.NewDevelopment()
+	router := GetRouter(logger)
 
 	tests := []struct {
 		name       string

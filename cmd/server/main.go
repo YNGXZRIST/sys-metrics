@@ -7,7 +7,6 @@ import (
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
-	"sys-metrics/internal/middleware"
 	model "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/router"
 	svc "sys-metrics/internal/service/metrics"
@@ -38,7 +37,7 @@ func initServer(opt *Options) error {
 	defer logger.Sync()
 
 	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger)
-	err = http.ListenAndServe(cfg.InternalAddr(), middleware.WithLogging(logger)(router.GetRouter()))
+	err = http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger))
 	if err != nil {
 		return err
 	}

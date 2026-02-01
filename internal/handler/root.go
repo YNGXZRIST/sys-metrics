@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"sys-metrics/internal"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
 	svm "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
@@ -30,6 +31,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		Gauge:   svm.Gauges().All(),
 		Counter: svm.Counters().All(),
 	}
+	w.Header().Set(common.ContentTypeHeader, common.TextHTMLUTF8)
 	if err := tmpl.Execute(w, data); err != nil {
 		responsewriter.WriteServerError(w)
 		return
