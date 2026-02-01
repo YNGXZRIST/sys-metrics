@@ -14,9 +14,7 @@ type CompressReader struct {
 }
 
 func newCompressReader(r io.ReadCloser, compressor CompressorReader) (*CompressReader, error) {
-	if err := compressor.Reset(r); err != nil {
-		return nil, err
-	}
+
 	return &CompressReader{
 		r:          r,
 		compressor: compressor,
