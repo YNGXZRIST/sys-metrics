@@ -30,3 +30,7 @@ func Counters() MetricStorage[*metrics.Counter] {
 func Gauges() MetricStorage[*metrics.Gauge] {
 	return defaultService.gauges
 }
+func RestoreFromFile(path string) error {
+
+	return nil
+}

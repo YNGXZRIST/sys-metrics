@@ -16,7 +16,7 @@ func Initialize(mode, cmdType string) (*zap.Logger, error) {
 	var err error
 	if mode == common.TypeModeProduction {
 		Log, err = createProductionLogger(cmdType)
-	} else if mode == common.TypeModeDevelopment {
+	} else if mode == common.TypeModeDevelopment || mode == common.TypeModeTest {
 		Log, err = createDevelopmentLogger()
 	} else {
 		err = errors.New("invalid mode")

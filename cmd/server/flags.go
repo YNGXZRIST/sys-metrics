@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
+	"time"
 
 	"github.com/caarlos0/env/v6"
 )
 
 type Options struct {
-	ServerAddress string `env:"ADDRESS"`
-	Host          string
-	Port          string
-	Mode          string `env:"MODE"`
+	ServerAddress     *string `env:"ADDRESS"`
+	Host              string
+	Port              string
+	Mode              string `env:"MODE"`
+	StoreIntervalSec  *int   `env:"STORE_INTERVAL" default:"300"`
+	StoreInterval     time.Duration
+	BackupStoragePath string `env:"STORE_FILE" envDefault:"./backups"`
+	Restore           bool   `env:"RESTORE" envDefault:"true"`
 }
 
 func (opt *Options) SetHostPort(host, port string) {
@@ -24,13 +29,20 @@ func (opt *Options) SetHostPort(host, port string) {
 func parseArgs(args []string) (*Options, error) {
 	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 	opt := new(Options)
-	flags.StringVar(&opt.ServerAddress, "a", "localhost:8080", "Address of the server")
+	var intervalSec int
+	var serverAddr string
+	flags.StringVar(&serverAddr, "a", "localhost:8080", "Address of the server")
+	opt.ServerAddress = &serverAddr
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Server mode. Possible values: production, development")
+	flags.IntVar(&intervalSec, "i", 300, "Storage interval in seconds")
+	opt.StoreInterval = time.Duration(intervalSec) * time.Second
+	flags.StringVar(&opt.BackupStoragePath, "f", "./backups", "Backup storage path")
+	flags.BoolVar(&opt.Restore, "restore", true, "Restore backups")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
 	}
-	err = config.ParseAndSetHostPort(opt.ServerAddress, opt)
+	err = config.ParseAndSetHostPort(serverAddr, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +53,11 @@ func (opt *Options) parseEnv() error {
 	if err != nil {
 		return fmt.Errorf("error parsing env: %w", err)
 	}
-	if opt.ServerAddress != "" {
-		err = config.ParseAndSetHostPort(opt.ServerAddress, opt)
+	if opt.StoreIntervalSec != nil {
+		opt.StoreInterval = time.Duration(*opt.StoreIntervalSec) * time.Second
+	}
+	if opt.ServerAddress != nil {
+		err = config.ParseAndSetHostPort(*opt.ServerAddress, opt)
 		if err != nil {
 			return err
 		}

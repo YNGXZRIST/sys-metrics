@@ -8,9 +8,10 @@ import (
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/logger"
 	models "sys-metrics/internal/model/metrics"
-	serviceMetrics "sys-metrics/internal/service/metrics/methods"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
 )
 
@@ -20,7 +21,8 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("value")
 	metricType = strings.ToLower(metricType)
 	name = collector.GetMetricType(name)
-	err := serviceMetrics.Update(metricType, name, value)
+	isNeedBackup := getIsNeedBackupFromContext(r)
+	err := serviceMetrics.Update(metricType, name, value, isNeedBackup)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
@@ -28,15 +30,10 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	responsewriter.WriteSuccess(w)
 }
 
-type RequestBody struct {
-	ID    string          `json:"id"`
-	Type  string          `json:"type"`
-	Value json.RawMessage `json:"value"`
-}
-
 func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
+	isNeedBackup := getIsNeedBackupFromContext(r)
 	if err := dec.Decode(&req); err != nil {
 		logger.Log.Info("UpdateHandlerJSON got decode error: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -65,7 +62,7 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	err := serviceMetrics.Update(req.MType, req.ID, valueStr)
+	err := serviceMetrics.Update(req.MType, req.ID, valueStr, isNeedBackup)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
@@ -82,4 +79,11 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+}
+func getIsNeedBackupFromContext(r *http.Request) bool {
+	isNeedBackup := false
+	if cfg, ok := r.Context().Value("config").(*server.Config); ok && cfg != nil {
+		isNeedBackup = cfg.BackupConfig.Interval == 0
+	}
+	return isNeedBackup
 }

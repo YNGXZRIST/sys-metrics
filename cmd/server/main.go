@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sys-metrics/internal/backup"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
@@ -35,9 +36,12 @@ func initServer(opt *Options) error {
 		return err
 	}
 	defer logger.Sync()
-
-	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger)
-	err = http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger))
+	backupConfig, err := backup.NewBackupConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
+	err = http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, cfg))
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,7 @@
-package methods
+package metrics
 
 import (
 	model "sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/service/metrics"
 	"sys-metrics/pkg/memstorage"
 	"testing"
 )
@@ -35,10 +34,10 @@ func TestUpdate(t *testing.T) {
 	}
 	var counters = memstorage.NewMemStorage[string, *model.Counter]()
 	var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-	svc.Init(counters, gauges)
+	Init(counters, gauges)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Update(tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := Update(tt.args.metricType, tt.args.name, tt.args.value, false); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -68,8 +67,8 @@ func Test_updateCounter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var counters = memstorage.NewMemStorage[string, *model.Counter]()
 			var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-			svc.Init(counters, gauges)
-			if err := updateCounter(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			Init(counters, gauges)
+			if err := updateCounter(tt.args.name, tt.args.value, false); (err != nil) != tt.wantErr {
 				t.Errorf("updateCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			val, err := counters.Get(tt.args.name)
@@ -106,8 +105,8 @@ func Test_updateGauge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var counters = memstorage.NewMemStorage[string, *model.Counter]()
 			var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-			svc.Init(counters, gauges)
-			if err := updateGauge(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			Init(counters, gauges)
+			if err := updateGauge(tt.args.name, tt.args.value, false); (err != nil) != tt.wantErr {
 				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			val, err := gauges.Get(tt.args.name)

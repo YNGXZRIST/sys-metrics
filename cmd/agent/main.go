@@ -42,7 +42,7 @@ func initAgent(opt *Options) (*agent.Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger)
+	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
 	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)
 	a := agent.NewAgent(agentCfg)
 	return a, nil

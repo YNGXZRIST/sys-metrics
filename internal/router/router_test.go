@@ -13,7 +13,7 @@ import (
 
 func TestGetRouter(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	router := GetRouter(logger)
+	router := GetRouter(logger, nil)
 	if router == nil {
 		t.Fatal("GetRouter() returned nil")
 	}
@@ -25,7 +25,7 @@ func TestRoutes(t *testing.T) {
 	svc.Init(counters, gauges)
 
 	logger, _ := zap.NewDevelopment()
-	router := GetRouter(logger)
+	router := GetRouter(logger, nil)
 
 	tests := []struct {
 		name       string

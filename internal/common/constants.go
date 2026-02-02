@@ -41,10 +41,12 @@ const (
 	TypeModeDevelopment = "development"
 	TypeModeProduction  = "production"
 	TypeModeDefault
+	TypeModeTest = "test"
 )
 const (
-	TypeAgent  = "agent"
-	TypeServer = "server"
+	TypeAgent   = "agent"
+	TypeServer  = "server"
+	TypeBackups = "backups"
 )
 const (
 	ContentTypeHeader = "Content-Type"

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"sys-metrics/internal/backup"
 	"testing"
 
 	"go.uber.org/zap"
@@ -84,10 +85,11 @@ func TestConfig_ServerAddr(t *testing.T) {
 
 func TestNewConfig(t *testing.T) {
 	type args struct {
-		s      string
-		h      string
-		p      string
-		logger *zap.Logger
+		s            string
+		h            string
+		p            string
+		logger       *zap.Logger
+		backupConfig *backup.BackupConfig
 	}
 	tests := []struct {
 		name string
@@ -96,16 +98,17 @@ func TestNewConfig(t *testing.T) {
 		{
 			name: "default",
 			args: args{
-				s:      SchemeHTTP,
-				h:      DefaultHost,
-				p:      DefaultPort,
-				logger: zap.NewExample(),
+				s:            SchemeHTTP,
+				h:            DefaultHost,
+				p:            DefaultPort,
+				logger:       zap.NewExample(),
+				backupConfig: &backup.BackupConfig{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger)
+			got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger, tt.args.backupConfig)
 			if got.scheme != tt.args.s {
 				t.Errorf("NewConfig().scheme = %v, want %v", got.scheme, tt.args.s)
 			}

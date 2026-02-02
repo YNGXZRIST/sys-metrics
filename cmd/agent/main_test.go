@@ -10,7 +10,7 @@ import (
 )
 
 func Test_initAgent(t *testing.T) {
-	serverCfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, zap.NewExample())
+	serverCfg := server.NewConfig(server.SchemeHTTP, server.DefaultHost, server.DefaultPort, zap.NewExample(), nil)
 	agentCfg := config.NewConfig(2, 10, serverCfg.ServerAddr(), zap.NewExample())
 	a := agent.NewAgent(agentCfg)
 	if a == nil {

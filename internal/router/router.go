@@ -1,6 +1,7 @@
 package router
 
 import (
+	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/handler"
 	"sys-metrics/internal/middleware"
 
@@ -8,9 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func GetRouter(logger *zap.Logger) *chi.Mux {
+func GetRouter(logger *zap.Logger, cfg *server.Config) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.GzipMiddleware)
+	r.Use(middleware.WithConfig(cfg))
 	r.Use(middleware.WithLogging(logger))
 	r.Get("/", handler.IndexHandler)
 	r.Group(func(gr chi.Router) {
