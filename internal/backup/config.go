@@ -72,7 +72,20 @@ func NewBackupConfig(mode string, storagePath string, interval time.Duration, en
 		Reader:      reader,
 	}, nil
 }
+func (bc *BackupConfig) IsSyncBackup() bool {
+	return bc.Interval == 0*time.Second
+}
 
-func (bc *BackupConfig) initBackupRoutine() {
-
+func (bc *BackupConfig) Close() error {
+	var errs error
+	if err := bc.Writer.Close(); err != nil {
+		errs = err
+	}
+	if err := bc.Reader.Close(); err != nil {
+		if errs != nil {
+			return errs
+		}
+		errs = err
+	}
+	return errs
 }

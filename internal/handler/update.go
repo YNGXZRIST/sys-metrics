@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	collector "sys-metrics/internal/agent"
+	"sys-metrics/internal/backup"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/logger"
@@ -17,15 +18,23 @@ import (
 
 func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := r.PathValue("type")
-	name := r.PathValue("name")
+	id := r.PathValue("name")
 	value := r.PathValue("value")
 	metricType = strings.ToLower(metricType)
-	name = collector.GetMetricType(name)
-	isNeedBackup := getIsNeedBackupFromContext(r)
-	err := serviceMetrics.Update(metricType, name, value, isNeedBackup)
+	id = collector.GetMetricType(id)
+	err := serviceMetrics.Update(metricType, id, value)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
+	}
+	backupConfig := getBackupConfigFromContext(r)
+	if backupConfig != nil && backupConfig.IsSyncBackup() {
+		metric, err := getMetricFromStorage(metricType, id)
+		err = backupConfig.UpsertMetricToBackup(&metric)
+		if err != nil {
+			responsewriter.WriteBadRequest(w)
+			return
+		}
 	}
 	responsewriter.WriteSuccess(w)
 }
@@ -33,7 +42,6 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
-	isNeedBackup := getIsNeedBackupFromContext(r)
 	if err := dec.Decode(&req); err != nil {
 		logger.Log.Info("UpdateHandlerJSON got decode error: " + err.Error())
 		w.WriteHeader(http.StatusBadRequest)
@@ -62,7 +70,7 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	err := serviceMetrics.Update(req.MType, req.ID, valueStr, isNeedBackup)
+	err := serviceMetrics.Update(req.MType, req.ID, valueStr)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
@@ -72,6 +80,14 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteServerError(w)
 		return
 	}
+	backupConfig := getBackupConfigFromContext(r)
+	if backupConfig != nil && backupConfig.IsSyncBackup() {
+		err = backupConfig.UpsertMetricToBackup(&metric)
+		if err != nil {
+			responsewriter.WriteBadRequest(w)
+			return
+		}
+	}
 	responsewriter.WriteSuccessStatus(w)
 	enc := json.NewEncoder(w)
 	if err := enc.Encode(metric); err != nil {
@@ -80,10 +96,9 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func getIsNeedBackupFromContext(r *http.Request) bool {
-	isNeedBackup := false
+func getBackupConfigFromContext(r *http.Request) *backup.BackupConfig {
 	if cfg, ok := r.Context().Value("config").(*server.Config); ok && cfg != nil {
-		isNeedBackup = cfg.BackupConfig.Interval == 0
+		return cfg.BackupConfig
 	}
-	return isNeedBackup
+	return nil
 }
