@@ -30,6 +30,10 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	backupConfig := getBackupConfigFromContext(r)
 	if backupConfig != nil && backupConfig.IsSyncBackup() {
 		metric, err := getMetricFromStorage(metricType, id)
+		if err != nil {
+			responsewriter.WriteBadRequest(w)
+			return
+		}
 		err = backupConfig.UpsertMetricToBackup(&metric)
 		if err != nil {
 			responsewriter.WriteBadRequest(w)

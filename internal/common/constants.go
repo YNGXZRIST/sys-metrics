@@ -53,3 +53,9 @@ const (
 	ApplicationJSON   = "application/json"
 	TextHTMLUTF8      = "text/html; charset=utf-8"
 )
+
+type ContextKey string
+
+const (
+	ConfigContextKey ContextKey = "config"
+)

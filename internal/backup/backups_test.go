@@ -29,7 +29,9 @@ func TestBackupConfig_initBackupRoutine(t *testing.T) {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}
 			err = os.WriteFile(config.getBackupFilename(), tt.fields.fileContent, 0644)
-
+			if err != nil {
+				t.Fatalf("Failed to create test backup file: %v", err)
+			}
 		})
 	}
 }
