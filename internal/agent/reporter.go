@@ -23,12 +23,14 @@ type Response struct {
 	Result string
 }
 type Reporter struct {
+	httpClient *http.Client
 	serverAddr string
 	logger     *zap.Logger
 }
 
 func NewReporter(serverAddr string, logger *zap.Logger) *Reporter {
-	return &Reporter{serverAddr, logger}
+	httpClient := &http.Client{}
+	return &Reporter{httpClient, serverAddr, logger}
 }
 func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
@@ -60,8 +62,7 @@ func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	}
 	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
-	client := &http.Client{}
-	response, err := client.Do(req)
+	response, err := r.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
