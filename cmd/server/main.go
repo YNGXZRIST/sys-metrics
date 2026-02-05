@@ -20,7 +20,7 @@ import (
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	opt, err := newOption(os.Args[1:])
+	opt, err := server.NewOption(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func initStorage() {
 	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
 	svc.Init(counters, gauges)
 }
-func initServer(opt *Options, ctx context.Context) error {
+func initServer(opt *server.Options, ctx context.Context) error {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
 	if err != nil {
 		return err

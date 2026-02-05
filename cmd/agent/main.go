@@ -19,7 +19,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	opt, err := newOption(os.Args[1:])
+	opt, err := config.NewOption(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +37,7 @@ func main() {
 	a.Logger.Info("Shutting down agent...")
 	cancel()
 }
-func initAgent(opt *Options) (*agent.Agent, error) {
+func initAgent(opt *config.Options) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
 		return nil, err
