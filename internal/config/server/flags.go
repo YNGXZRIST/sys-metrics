@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"flag"
@@ -7,7 +7,7 @@ import (
 	"sys-metrics/internal/config"
 	"time"
 
-	"github.com/caarlos0/env/v6"
+	"github.com/caarlos0/env/v11"
 )
 
 type Options struct {
@@ -65,7 +65,7 @@ func (opt *Options) parseEnv() error {
 
 	return nil
 }
-func newOption(args []string) (*Options, error) {
+func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {
 		return nil, err
