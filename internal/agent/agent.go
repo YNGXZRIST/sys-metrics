@@ -11,13 +11,13 @@ import (
 
 type Agent struct {
 	*agent.Config
-	mu        sync.RWMutex
+	mu        sync.Mutex
 	collector *Collector
 	reporter  *Reporter
 }
 
 func NewAgent(cfg *agent.Config) *Agent {
-	return &Agent{cfg, sync.RWMutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
+	return &Agent{cfg, sync.Mutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
 }
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()

@@ -17,11 +17,11 @@ type Storage[K comparable, V any] interface {
 
 type MemStorage[K comparable, V any] struct {
 	data map[K]V
-	mu   sync.RWMutex
+	mu   sync.Mutex
 }
 
 func NewMemStorage[K comparable, V any]() *MemStorage[K, V] {
-	return &MemStorage[K, V]{data: make(map[K]V), mu: sync.RWMutex{}}
+	return &MemStorage[K, V]{data: make(map[K]V), mu: sync.Mutex{}}
 }
 
 func (s *MemStorage[K, V]) Set(key K, value V) error {
@@ -32,8 +32,8 @@ func (s *MemStorage[K, V]) Set(key K, value V) error {
 }
 
 func (s *MemStorage[K, V]) Get(key K) (V, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	v, ok := s.data[key]
 	if !ok {
 		var zero V
@@ -42,8 +42,8 @@ func (s *MemStorage[K, V]) Get(key K) (V, error) {
 	return v, nil
 }
 func (s *MemStorage[K, V]) All() map[K]V {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	r := make(map[K]V, len(s.data))
 	for k, v := range s.data {
 		r[k] = v
@@ -62,8 +62,8 @@ func (s *MemStorage[K, V]) Delete(key K) error {
 }
 
 func (s *MemStorage[K, V]) Has(key K) bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, ok := s.data[key]
 	return ok
 }

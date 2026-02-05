@@ -50,7 +50,7 @@ var runtimeMetricsMap = map[string]string{
 type Collector struct {
 	Gauges   map[string]*metrics.Gauge
 	Counters map[string]*metrics.Counter
-	mu       sync.RWMutex
+	mu       sync.Mutex
 }
 
 func NewCollector() *Collector {
@@ -110,8 +110,8 @@ func (c *Collector) extractFieldValue(v reflect.Value, name string) (float64, bo
 }
 
 func (c *Collector) GetGauge(name string) (*metrics.Gauge, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	v, ok := c.Gauges[name]
 	if !ok || v == nil {
 		return metrics.NewGauge(name), false
@@ -124,8 +124,8 @@ func (c *Collector) SetCounter(name string, value int64) {
 }
 
 func (c *Collector) GetCounter(name string) (*metrics.Counter, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	v, ok := c.Counters[name]
 	if !ok || v == nil {
 		return metrics.NewCounter(name), false
@@ -143,8 +143,8 @@ func (c *Collector) ResetPollMetric() {
 	}
 }
 func (c *Collector) GetPollCountMetric() *metrics.Counter {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if v, ok := c.Counters[common.PollCount]; ok && v != nil {
 		return v
 	}
