@@ -6,7 +6,6 @@ import (
 	"path"
 	"sys-metrics/internal/common"
 	lgr "sys-metrics/internal/logger"
-	"sys-metrics/pkg/filesystem"
 	"time"
 
 	"go.uber.org/zap"
@@ -48,8 +47,7 @@ func NewConfig(mode string, storagePath string, interval time.Duration, enabled 
 	} else {
 		filePath = path.Join(storagePath, DefaultFileName)
 	}
-
-	err = filesystem.CreateDirIfNotExists(storagePath)
+	err = os.MkdirAll(storagePath, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}

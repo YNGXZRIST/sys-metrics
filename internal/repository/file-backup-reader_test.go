@@ -3,7 +3,6 @@ package repository
 import (
 	"os"
 	"sys-metrics/internal/common"
-	"sys-metrics/pkg/filesystem"
 	"testing"
 	"time"
 )
@@ -39,7 +38,7 @@ func TestNewBackupReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if !tt.wantErr {
 				dir := "./test"
-				err := filesystem.CreateDirIfNotExists(dir)
+				err := os.MkdirAll(dir, os.ModePerm)
 				if err != nil {
 					t.Fatalf("Failed to create dir: %v", err)
 				}
