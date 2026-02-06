@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +11,8 @@ import (
 	models "sys-metrics/internal/model/metrics"
 	serviceMetrics "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
+
+	"go.uber.org/zap"
 )
 
 func UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +22,9 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType = strings.ToLower(metricType)
 	id = collector.GetMetricType(id)
 	err := serviceMetrics.Update(metricType, id, value)
+	logger := context.LoggerFromContext(r.Context())
 	if err != nil {
+		logger.Warn("UpdateHandler got error", zap.Error(err))
 		responsewriter.WriteBadRequest(w)
 		return
 	}
@@ -33,11 +36,11 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	logger := context.LoggerFromContext(r.Context())
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
-		logger.Info("UpdateHandlerJSON got decode error: " + err.Error())
+		logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	logger.Info(fmt.Sprintf("UpdateHandlerJSON got request: %+v", req))
+	logger.Info("UpdateHandlerJSON", zap.Any("req", req))
 	var valueStr string
 	switch req.MType {
 	case common.Gauge:

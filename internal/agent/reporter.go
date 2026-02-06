@@ -55,8 +55,7 @@ func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	}
 	writer := bytes.NewReader(jsonData)
 	url := r.BuildUpdateURL()
-	r.logger.Info(url)
-	r.logger.Info("request:" + string(jsonData))
+	r.logger.Info("Request", zap.String("url", url), zap.String("json", string(jsonData)))
 	req, err := http.NewRequest(http.MethodPost, url, writer)
 	if err != nil {
 		return fmt.Errorf("error create request: %w", err)
@@ -67,14 +66,13 @@ func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	if err != nil {
 		return fmt.Errorf("error do request: %w", err)
 	}
-	r.logger.Info("response encoding: " + response.Header.Get(httpcompressor.ContentEncodingHeader))
+	r.logger.Info("Response status", zap.Int("status", response.StatusCode), zap.String("encoding", response.Header.Get(httpcompressor.ContentEncodingHeader)))
 	defer response.Body.Close()
 	res, err := io.ReadAll(response.Body)
 	if err != nil {
 		return fmt.Errorf("error read response: %w", err)
 	}
-	r.logger.Info("response: " + response.Status + "\n" + string(res))
-	r.logger.Info(strconv.Itoa(response.StatusCode))
+	r.logger.Info("Response ", zap.Int("status", response.StatusCode), zap.String("body", string(res)))
 	return nil
 }
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {

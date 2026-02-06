@@ -1,12 +1,17 @@
 package httpcompressor
 
 import (
+	"io"
 	"net/http"
 )
 
 const ContentEncodingHeader = "Content-Encoding"
 const AcceptEncodingHeader = "Accept-Encoding"
 
+type Compressor interface {
+	io.WriteCloser
+	Reset(w io.Writer)
+}
 type CompressWriter struct {
 	w           http.ResponseWriter
 	compressor  Compressor

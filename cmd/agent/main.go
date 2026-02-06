@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -40,7 +41,7 @@ func main() {
 func initAgent(opt *config.Options) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not initialize logger: %w", err)
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
 	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)

@@ -2,8 +2,9 @@ package logger
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"sys-metrics/internal/common"
-	"sys-metrics/pkg/filesystem"
 
 	"go.uber.org/zap"
 )
@@ -27,9 +28,9 @@ func Initialize(mode, cmdType string) (*zap.Logger, error) {
 	return log, nil
 }
 func createProductionLogger(cmdType string) (*zap.Logger, error) {
-	err := filesystem.CreateDirIfNotExists(logDir)
+	err := os.MkdirAll(logDir, os.ModePerm)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not create log directory: %w", err)
 	}
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{logDir + cmdType + "_info.log", "stdout"}
@@ -39,5 +40,8 @@ func createProductionLogger(cmdType string) (*zap.Logger, error) {
 }
 func createDevelopmentLogger() (*zap.Logger, error) {
 	logger, err := zap.NewDevelopment()
-	return logger, err
+	if err != nil {
+		return nil, fmt.Errorf("could not create development logger: %w", err)
+	}
+	return logger, nil
 }
