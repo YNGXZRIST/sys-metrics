@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/service/metrics"
-	"sys-metrics/pkg/memstorage"
+	svc "sys-metrics/internal/repository"
+	"sys-metrics/pkg/storage"
 	"testing"
 )
 
@@ -47,8 +47,8 @@ func TestUpdateHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-			gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
+			counters := storage.NewMemStorage[string, *metrics.Counter]()
+			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
 			svc.Init(counters, gauges)
 
 			req := httptest.NewRequest(http.MethodGet, "/update", nil)
@@ -111,8 +111,8 @@ func TestUpdateHandlerJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-			gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
+			counters := storage.NewMemStorage[string, *metrics.Counter]()
+			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
 			svc.Init(counters, gauges)
 			payload, err := json.Marshal(tt.args)
 			if err != nil {

@@ -1,4 +1,4 @@
-package backup
+package repository
 
 import (
 	"os"
@@ -24,7 +24,7 @@ func TestBackupConfig_initBackupRoutine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Second*10, true)
+			config, err := NewConfig(common.TypeModeTest, "./test", time.Second*10, true)
 			if err != nil {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}

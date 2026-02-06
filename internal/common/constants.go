@@ -54,8 +54,9 @@ const (
 	TextHTMLUTF8      = "text/html; charset=utf-8"
 )
 
-type ContextKey string
+type contextKey string
 
 const (
-	ConfigContextKey ContextKey = "config"
+	ConfigContextKey contextKey = "config"
+	ContextLoggerKey contextKey = "logger"
 )

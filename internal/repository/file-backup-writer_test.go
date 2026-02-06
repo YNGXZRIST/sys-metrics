@@ -1,4 +1,4 @@
-package backup
+package repository
 
 import (
 	"os"
@@ -62,7 +62,7 @@ func Test_newBackupWriter(t *testing.T) {
 				defer os.Remove(tt.args.filename)
 			}
 
-			got, err := newBackupWriter(tt.args.filename)
+			got, err := NewBackupWriter(tt.args.filename)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newBackupWriter() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -103,7 +103,7 @@ func TestWriter_Close(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Second*10, true)
+			config, err := NewConfig(common.TypeModeTest, "./test", time.Second*10, true)
 			if err != nil {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}
@@ -114,7 +114,7 @@ func TestWriter_Close(t *testing.T) {
 				MType: "gauge",
 				Value: func() *float64 { v := 42.0; return &v }(),
 			}
-			err = config.Writer.WriteMetricToBackup(testMetric)
+			err = config.MetricsHandler.Write(testMetric)
 			if err != nil {
 				t.Fatalf("Failed to write metric: %v", err)
 			}

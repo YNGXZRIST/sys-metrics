@@ -1,14 +1,12 @@
-package backup
+package repository
 
 import (
 	"os"
-	"sys-metrics/internal/common"
 	"sys-metrics/pkg/filesystem"
 	"testing"
-	"time"
 )
 
-func TestNewBackupReader(t *testing.T) {
+func Test_newBackupReader(t *testing.T) {
 	type args struct {
 		filename string
 	}
@@ -50,7 +48,7 @@ func TestNewBackupReader(t *testing.T) {
 				defer os.Remove(tt.args.filename)
 			}
 
-			got, err := newBackupReader(tt.args.filename)
+			got, err := NewBackupReader(tt.args.filename)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newBackupReader() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -64,34 +62,10 @@ func TestNewBackupReader(t *testing.T) {
 				if got.file == nil {
 					t.Errorf("newBackupReader() file is nil")
 				}
-				if got.reader == nil {
+				if got.Reader == nil {
 					t.Errorf("newBackupReader() reader is nil")
 				}
 				_ = got.Close()
-			}
-		})
-	}
-}
-
-func TestReader_Close(t *testing.T) {
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			name:    "successful close",
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Second*10, true)
-			if err != nil {
-				t.Fatalf("Failed to create backup config: %v", err)
-			}
-			defer config.Cleanup()
-			if err := config.Reader.Close(); (err != nil) != tt.wantErr {
-				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -1,0 +1,91 @@
+package repository
+
+import (
+	"sys-metrics/internal/model/metrics"
+	"sys-metrics/pkg/storage"
+	"testing"
+)
+
+func TestInit(t *testing.T) {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+
+	service := Init(counters, gauges)
+
+	if service == nil {
+		t.Fatal("Init() returned nil service")
+	}
+	if service.Counters() != counters {
+		t.Error("Init() did not set counters correctly")
+	}
+	if service.Gauges() != gauges {
+		t.Error("Init() did not set gauges correctly")
+	}
+	if defaultService != service {
+		t.Error("Init() did not set defaultService correctly")
+	}
+}
+
+func TestCounters(t *testing.T) {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	Init(counters, gauges)
+
+	got := Counters()
+
+	if got == nil {
+		t.Fatal("Counters() returned nil")
+	}
+	if got != counters {
+		t.Errorf("Counters() returned wrong storage")
+	}
+}
+
+func TestGauges(t *testing.T) {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	Init(counters, gauges)
+
+	got := Gauges()
+
+	if got == nil {
+		t.Fatal("Gauges() returned nil")
+	}
+	if got != gauges {
+		t.Errorf("Gauges() returned wrong storage")
+	}
+}
+
+func TestGetService(t *testing.T) {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	service := Init(counters, gauges)
+
+	got := GetService()
+
+	if got == nil {
+		t.Fatal("GetService() returned nil")
+	}
+	if got != service {
+		t.Error("GetService() returned wrong service")
+	}
+}
+
+func TestGetAllMetrics(t *testing.T) {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	Init(counters, gauges)
+	counter := metrics.NewCounter("test_counter")
+	counter.SetValue(42)
+	_ = counters.Set("test_counter", counter)
+
+	gauge := metrics.NewGauge("test_gauge")
+	gauge.SetValue(3.14)
+	_ = gauges.Set("test_gauge", gauge)
+
+	got := GetAllMetrics()
+
+	if len(got) != 2 {
+		t.Errorf("GetAllMetrics() returned %d metrics, expected 2", len(got))
+	}
+}

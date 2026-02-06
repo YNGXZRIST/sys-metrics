@@ -1,4 +1,4 @@
-package backup
+package repository
 
 import (
 	"os"
@@ -13,17 +13,18 @@ import (
 
 const DefaultFileName = "backups.metrics"
 
-type BackupConfig struct {
-	Interval    time.Duration
-	StoragePath string
-	filePath    string
-	Enabled     bool
-	Logger      *zap.Logger
-	Writer      *Writer
-	Reader      *Reader
+type Config struct {
+	Interval       time.Duration
+	StoragePath    string
+	filePath       string
+	Enabled        bool
+	Logger         *zap.Logger
+	Writer         *Writer
+	Reader         *Reader
+	MetricsHandler MetricsBackupHandler
 }
 
-func NewBackupConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*BackupConfig, error) {
+func NewConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*Config, error) {
 	logger, err := lgr.Initialize(mode, common.TypeBackups)
 	if err != nil {
 		return nil, err
@@ -51,32 +52,34 @@ func NewBackupConfig(mode string, storagePath string, interval time.Duration, en
 	if err != nil {
 		return nil, err
 	}
-	writer, err := newBackupWriter(filePath)
+	writer, err := NewBackupWriter(filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	reader, err := newBackupReader(filePath)
+	reader, err := NewBackupReader(filePath)
 	if err != nil {
 		_ = writer.Close()
 		return nil, err
 	}
 
-	return &BackupConfig{
-		StoragePath: storagePath,
-		filePath:    filePath,
-		Interval:    interval,
-		Enabled:     enabled,
-		Logger:      logger,
-		Writer:      writer,
-		Reader:      reader,
+	return &Config{
+		StoragePath:    storagePath,
+		filePath:       filePath,
+		Interval:       interval,
+		Enabled:        enabled,
+		Logger:         logger,
+		Writer:         writer,
+		Reader:         reader,
+		MetricsHandler: NewFileMetricsBackupHandler(reader, writer),
 	}, nil
 }
-func (bc *BackupConfig) IsSyncBackup() bool {
+
+func (bc *Config) NeedSync() bool {
 	return bc.Interval == 0*time.Second
 }
 
-func (bc *BackupConfig) Close() error {
+func (bc *Config) Close() error {
 	var errs error
 	if err := bc.Writer.Close(); err != nil {
 		errs = err

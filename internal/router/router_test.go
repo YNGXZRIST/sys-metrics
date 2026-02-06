@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	model "sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/service/metrics"
-	"sys-metrics/pkg/memstorage"
+	svc "sys-metrics/internal/repository"
+	"sys-metrics/pkg/storage"
 	"testing"
 
 	"go.uber.org/zap"
@@ -20,8 +20,8 @@ func TestGetRouter(t *testing.T) {
 }
 
 func TestRoutes(t *testing.T) {
-	counters := memstorage.NewMemStorage[string, *model.Counter]()
-	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
+	counters := storage.NewMemStorage[string, *model.Counter]()
+	gauges := storage.NewMemStorage[string, *model.Gauge]()
 	svc.Init(counters, gauges)
 
 	logger, _ := zap.NewDevelopment()

@@ -5,14 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sys-metrics/internal/backup"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
 	model "sys-metrics/internal/model/metrics"
+	repo "sys-metrics/internal/repository"
 	"sys-metrics/internal/router"
-	svc "sys-metrics/internal/service/metrics"
-	"sys-metrics/pkg/memstorage"
+	"sys-metrics/pkg/storage"
 
 	"go.uber.org/zap"
 )
@@ -24,16 +23,27 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	initStorage()
 	err = initServer(opt, ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
-func initStorage() {
-	counters := memstorage.NewMemStorage[string, *model.Counter]()
-	gauges := memstorage.NewMemStorage[string, *model.Gauge]()
-	svc.Init(counters, gauges)
+func initStorage(backupConfig *repo.Config) {
+	if backupConfig.Enabled {
+		backupStorage, err := repo.NewMetricBackupStorage(backupConfig)
+		if err != nil {
+			log.Fatal(err)
+		}
+		service := repo.InitBackup(backupStorage)
+
+		if err := service.ReadBackup(); err != nil {
+			log.Printf("warning: failed to restore from backup: %v", err)
+		}
+	} else {
+		counters := storage.NewMemStorage[string, *model.Counter]()
+		gauges := storage.NewMemStorage[string, *model.Gauge]()
+		repo.Init(counters, gauges)
+	}
 }
 func initServer(opt *server.Options, ctx context.Context) error {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
@@ -41,11 +51,14 @@ func initServer(opt *server.Options, ctx context.Context) error {
 		return err
 	}
 	defer logger.Sync()
-	backupConfig, err := backup.NewBackupConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
+	backupConfig, err := repo.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer backupConfig.Close()
+
+	initStorage(backupConfig)
+
 	go func() {
 		if err := backupConfig.InitBackupRoutine(ctx); err != nil {
 			logger.Error("backup routine error", zap.Error(err))

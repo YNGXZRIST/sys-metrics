@@ -1,11 +1,11 @@
-package backup
+package repository
 
 import (
 	"os"
 	"path"
 )
 
-func (bc *BackupConfig) Cleanup() error {
+func (bc *Config) Cleanup() error {
 	if bc.Writer != nil {
 		_ = bc.Writer.Close()
 	}
@@ -17,6 +17,6 @@ func (bc *BackupConfig) Cleanup() error {
 	}
 	return nil
 }
-func (bc *BackupConfig) getBackupFilename() string {
+func (bc *Config) getBackupFilename() string {
 	return bc.filePath
 }

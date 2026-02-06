@@ -14,6 +14,7 @@ func GetRouter(logger *zap.Logger, cfg *server.Config) *chi.Mux {
 	r.Use(middleware.GzipMiddleware)
 	r.Use(middleware.WithConfig(cfg))
 	r.Use(middleware.WithLogging(logger))
+	r.Use(middleware.WithLoggerContext(logger))
 	r.Get("/", handler.IndexHandler)
 	r.Group(func(gr chi.Router) {
 		gr.Use(middleware.ContentTypeJSON)

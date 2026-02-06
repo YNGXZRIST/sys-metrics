@@ -24,7 +24,7 @@ build: ## Собрать все бинарники
 
 test: ## Запустить тесты
 	@echo "$(GREEN)Running tests...$(NC)"
-	go test -v -race -coverprofile=coverage.out ./...
+	go test -v -race -count=1 -coverprofile=coverage.out ./...
 	@echo "$(GREEN)✅ Tests passed!$(NC)"
 
 test-short: ## Запустить быстрые тесты

@@ -2,7 +2,8 @@ package metrics
 
 import (
 	model "sys-metrics/internal/model/metrics"
-	"sys-metrics/pkg/memstorage"
+	"sys-metrics/internal/repository"
+	"sys-metrics/pkg/storage"
 	"testing"
 )
 
@@ -32,9 +33,9 @@ func TestUpdate(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	var counters = memstorage.NewMemStorage[string, *model.Counter]()
-	var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-	Init(counters, gauges)
+	var counters = storage.NewMemStorage[string, *model.Counter]()
+	var gauges = storage.NewMemStorage[string, *model.Gauge]()
+	repository.Init(counters, gauges)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := Update(tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
@@ -65,9 +66,9 @@ func Test_updateCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var counters = memstorage.NewMemStorage[string, *model.Counter]()
-			var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-			Init(counters, gauges)
+			var counters = storage.NewMemStorage[string, *model.Counter]()
+			var gauges = storage.NewMemStorage[string, *model.Gauge]()
+			repository.Init(counters, gauges)
 			if err := updateCounter(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -103,9 +104,9 @@ func Test_updateGauge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var counters = memstorage.NewMemStorage[string, *model.Counter]()
-			var gauges = memstorage.NewMemStorage[string, *model.Gauge]()
-			Init(counters, gauges)
+			var counters = storage.NewMemStorage[string, *model.Counter]()
+			var gauges = storage.NewMemStorage[string, *model.Gauge]()
+			repository.Init(counters, gauges)
 			if err := updateGauge(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}

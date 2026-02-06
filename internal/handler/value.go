@@ -9,11 +9,11 @@ import (
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
-	"sys-metrics/internal/logger"
+	"sys-metrics/internal/context"
 	models "sys-metrics/internal/model/metrics"
-	svm "sys-metrics/internal/service/metrics"
+	svm "sys-metrics/internal/repository"
 	"sys-metrics/internal/service/responsewriter"
-	"sys-metrics/pkg/memstorage"
+	"sys-metrics/pkg/storage"
 
 	"go.uber.org/zap"
 )
@@ -23,6 +23,7 @@ var (
 )
 
 func ValueHandler(w http.ResponseWriter, r *http.Request) {
+	logger := context.LoggerFromContext(r.Context())
 	metricType := r.PathValue("type")
 	name := r.PathValue("name")
 	metricType = strings.ToLower(metricType)
@@ -46,7 +47,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write([]byte(writtenValue))
 	if err != nil {
-		logger.Log.Warn("Failed to write response", zap.Error(err))
+		logger.Warn("Failed to write response", zap.Error(err))
 		return
 	}
 }
@@ -77,13 +78,13 @@ func getMetricFromStorage(metricType, name string) (models.Metrics, error) {
 	case common.Counter:
 		v, err := svm.Counters().Get(name)
 		if err != nil {
-			return models.Metrics{}, memstorage.ErrNotFound
+			return models.Metrics{}, storage.ErrNotFound
 		}
 		return v.Metrics, nil
 	case common.Gauge:
 		v, err := svm.Gauges().Get(name)
 		if err != nil {
-			return models.Metrics{}, memstorage.ErrNotFound
+			return models.Metrics{}, storage.ErrNotFound
 		}
 		return v.Metrics, nil
 	default:
@@ -91,7 +92,8 @@ func getMetricFromStorage(metricType, name string) (models.Metrics, error) {
 	}
 }
 func writeServerValueError(w http.ResponseWriter, err error) {
-	if errors.Is(err, memstorage.ErrNotFound) {
+
+	if errors.Is(err, storage.ErrNotFound) {
 		responsewriter.WriteNotFound(w)
 		return
 	}
@@ -99,6 +101,5 @@ func writeServerValueError(w http.ResponseWriter, err error) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	logger.Log.Error("ValueHandler: internal server error", zap.Error(err))
 	responsewriter.WriteServerError(w)
 }

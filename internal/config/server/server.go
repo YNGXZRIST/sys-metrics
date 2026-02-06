@@ -1,7 +1,7 @@
 package server
 
 import (
-	"sys-metrics/internal/backup"
+	repo "sys-metrics/internal/repository"
 
 	"go.uber.org/zap"
 )
@@ -11,14 +11,14 @@ type Config struct {
 	host         string
 	port         string
 	logger       *zap.Logger
-	BackupConfig *backup.BackupConfig
+	BackupConfig *repo.Config
 }
 
 const DefaultPort = "8080"
 const DefaultHost = "localhost"
 const SchemeHTTP = "http"
 
-func NewConfig(s, h, p string, logger *zap.Logger, backupConfig *backup.BackupConfig) *Config {
+func NewConfig(s, h, p string, logger *zap.Logger, backupConfig *repo.Config) *Config {
 	return &Config{s, h, p, logger, backupConfig}
 }
 func (c *Config) ServerAddr() string {

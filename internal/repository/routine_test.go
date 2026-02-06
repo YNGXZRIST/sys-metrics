@@ -1,11 +1,9 @@
-package backup
+package repository
 
 import (
 	"context"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/service/metrics"
-	"sys-metrics/pkg/memstorage"
 	"testing"
 	"time"
 )
@@ -128,17 +126,21 @@ func TestBackupConfig_InitMetricsFromBackup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-			gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
-			config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Second*10, true)
+			config, err := NewConfig(common.TypeModeTest, "./test", time.Second*10, true)
 			if err != nil {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}
 			defer config.Close()
+
+			storage, err := NewMetricBackupStorage(config)
+			if err != nil {
+				t.Fatalf("Failed to create metric backup storage: %v", err)
+			}
+			InitBackup(storage)
+
 			if tt.fields.readErr == nil {
 				for _, m := range tt.fields.metrics {
-					err := config.Writer.WriteMetricToBackup(&m)
+					err := config.MetricsHandler.Write(&m)
 					if err != nil {
 						t.Fatalf("Failed to write test metric: %v", err)
 					}
@@ -149,7 +151,7 @@ func TestBackupConfig_InitMetricsFromBackup(t *testing.T) {
 				}
 			}
 
-			err = config.InitMetricsFromBackup()
+			err = GetService().ReadBackup()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InitMetricsFromBackup() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -158,16 +160,18 @@ func TestBackupConfig_InitMetricsFromBackup(t *testing.T) {
 }
 
 func TestBackupConfig_InitBackupRoutine_Disabled(t *testing.T) {
-	counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-	gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
-	svc.Init(counters, gauges)
-
-	config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Millisecond*50, false)
+	config, err := NewConfig(common.TypeModeTest, "./test", time.Millisecond*50, false)
 	if err != nil {
 		t.Fatalf("Failed to create backup config: %v", err)
 	}
 	defer config.Reader.Close()
 	defer config.Writer.Close()
+
+	storage, err := NewMetricBackupStorage(config)
+	if err != nil {
+		t.Fatalf("Failed to create metric backup storage: %v", err)
+	}
+	InitBackup(storage)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
@@ -179,16 +183,18 @@ func TestBackupConfig_InitBackupRoutine_Disabled(t *testing.T) {
 }
 
 func TestBackupConfig_InitBackupRoutine_SyncBackup(t *testing.T) {
-	counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-	gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
-	svc.Init(counters, gauges)
-
-	config, err := NewBackupConfig(common.TypeModeTest, "./test", 0*time.Second, true)
+	config, err := NewConfig(common.TypeModeTest, "./test", 0*time.Second, true)
 	if err != nil {
 		t.Fatalf("Failed to create backup config: %v", err)
 	}
 	defer config.Reader.Close()
 	defer config.Writer.Close()
+
+	storage, err := NewMetricBackupStorage(config)
+	if err != nil {
+		t.Fatalf("Failed to create metric backup storage: %v", err)
+	}
+	InitBackup(storage)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
@@ -200,16 +206,18 @@ func TestBackupConfig_InitBackupRoutine_SyncBackup(t *testing.T) {
 }
 
 func TestBackupConfig_InitBackupRoutine_AsyncBackup(t *testing.T) {
-	counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-	gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
-	svc.Init(counters, gauges)
-
-	config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Millisecond*50, true)
+	config, err := NewConfig(common.TypeModeTest, "./test", time.Millisecond*50, true)
 	if err != nil {
 		t.Fatalf("Failed to create backup config: %v", err)
 	}
 	defer config.Reader.Close()
 	defer config.Writer.Close()
+
+	storage, err := NewMetricBackupStorage(config)
+	if err != nil {
+		t.Fatalf("Failed to create metric backup storage: %v", err)
+	}
+	InitBackup(storage)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
@@ -221,16 +229,18 @@ func TestBackupConfig_InitBackupRoutine_AsyncBackup(t *testing.T) {
 }
 
 func TestBackupConfig_InitBackupRoutine_ContextCancelled(t *testing.T) {
-	counters := memstorage.NewMemStorage[string, *metrics.Counter]()
-	gauges := memstorage.NewMemStorage[string, *metrics.Gauge]()
-	svc.Init(counters, gauges)
-
-	config, err := NewBackupConfig(common.TypeModeTest, "./test", time.Millisecond*10, true)
+	config, err := NewConfig(common.TypeModeTest, "./test", time.Millisecond*10, true)
 	if err != nil {
 		t.Fatalf("Failed to create backup config: %v", err)
 	}
 	defer config.Reader.Close()
 	defer config.Writer.Close()
+
+	storage, err := NewMetricBackupStorage(config)
+	if err != nil {
+		t.Fatalf("Failed to create metric backup storage: %v", err)
+	}
+	InitBackup(storage)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

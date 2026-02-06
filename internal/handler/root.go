@@ -7,7 +7,7 @@ import (
 	"sys-metrics/internal"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	svm "sys-metrics/internal/service/metrics"
+	svm "sys-metrics/internal/repository"
 	"sys-metrics/internal/service/responsewriter"
 )
 
