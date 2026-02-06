@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -9,7 +10,7 @@ func (bc *Config) InitBackupRoutine(ctx context.Context) error {
 	if bc.Enabled {
 		err := GetService().ReadBackup()
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading backup: %w", err)
 		}
 	}
 	if !bc.NeedSync() {
@@ -22,7 +23,7 @@ func (bc *Config) InitBackupRoutine(ctx context.Context) error {
 			case <-ticker.C:
 				err := GetService().WriteBackup()
 				if err != nil {
-					return err
+					return fmt.Errorf("error writing backup: %w", err)
 				}
 			}
 		}

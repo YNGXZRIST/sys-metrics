@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"sync"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
@@ -124,14 +125,14 @@ func (s *BackupMemoryService) BackupCounters() BackupMetricStorage[*metrics.Coun
 
 func (s *BackupMemoryService) WriteBackup() error {
 	if err := s.backupStorage.Reader.Reset(); err != nil {
-		return err
+		return fmt.Errorf("error writing reset backup: %w", err)
 	}
 	metricsToWrite := s.GetAllMetrics()
 	if err := s.backupStorage.Writer.file.Truncate(0); err != nil {
-		return err
+		return fmt.Errorf("error writing truncate backup: %w", err)
 	}
 	if _, err := s.backupStorage.Writer.file.Seek(0, 0); err != nil {
-		return err
+		return fmt.Errorf("error writing seek backup: %w", err)
 	}
 	s.backupStorage.Writer.writer.Reset(s.backupStorage.Writer.file)
 
@@ -143,12 +144,12 @@ func (s *BackupMemoryService) ReadBackup() error {
 	defer s.mu.Unlock()
 
 	if err := s.backupStorage.Reader.Reset(); err != nil {
-		return err
+		return fmt.Errorf("error writing reset backup: %w", err)
 	}
 
 	metricsData, err := s.backupStorage.MetricsHandler.Read()
 	if err != nil {
-		return err
+		return fmt.Errorf("error writing read backup: %w", err)
 	}
 
 	for _, metric := range metricsData {
@@ -156,12 +157,12 @@ func (s *BackupMemoryService) ReadBackup() error {
 		case common.Counter:
 			counter := &metrics.Counter{Metrics: metric}
 			if err := s.backupStorage.Counters().Set(metric.ID, counter); err != nil {
-				return err
+				return fmt.Errorf("error writing counter: %w", err)
 			}
 		case common.Gauge:
 			gauge := &metrics.Gauge{Metrics: metric}
 			if err := s.backupStorage.Gauges().Set(metric.ID, gauge); err != nil {
-				return err
+				return fmt.Errorf("error writing gauge: %w", err)
 			}
 		default:
 			continue

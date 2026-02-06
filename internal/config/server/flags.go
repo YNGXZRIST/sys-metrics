@@ -59,7 +59,7 @@ func (opt *Options) parseEnv() error {
 	if opt.ServerAddress != nil {
 		err = config.ParseAndSetHostPort(*opt.ServerAddress, opt)
 		if err != nil {
-			return err
+			return fmt.Errorf("error parsing server address: %w", err)
 		}
 	}
 

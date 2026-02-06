@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
@@ -23,7 +24,7 @@ func NewBackupReader(filename string) (*Reader, error) {
 func (r *Reader) Reset() error {
 	_, err := r.file.Seek(0, 0)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reset file backup: %w", err)
 	}
 	r.Reader.Reset(r.file)
 	return nil

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
@@ -22,7 +23,7 @@ func NewBackupWriter(filename string) (*Writer, error) {
 }
 func (w *Writer) Close() error {
 	if err := w.writer.Flush(); err != nil {
-		return err
+		return fmt.Errorf("error flushing writer: %w", err)
 	}
 	return w.file.Close()
 }

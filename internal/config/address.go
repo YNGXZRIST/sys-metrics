@@ -32,7 +32,7 @@ func ParseServerAddress(address string) (*ServerAddress, error) {
 func ParseAndSetHostPort(address string, setter HostPortSetter) error {
 	addr, err := ParseServerAddress(address)
 	if err != nil {
-		return err
+		return fmt.Errorf("parse address error: %w", err)
 	}
 	setter.SetHostPort(addr.Host, addr.Port)
 	return nil

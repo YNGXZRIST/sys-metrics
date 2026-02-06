@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"sys-metrics/internal/common"
@@ -86,7 +87,7 @@ func (bc *Config) Close() error {
 	}
 	if err := bc.Reader.Close(); err != nil {
 		if errs != nil {
-			return errs
+			return fmt.Errorf("multiple errors: %v; %v", errs, err)
 		}
 		errs = err
 	}

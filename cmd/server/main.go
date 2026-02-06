@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -48,7 +49,7 @@ func initStorage(backupConfig *repo.Config) {
 func initServer(opt *server.Options, ctx context.Context) error {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
 	if err != nil {
-		return err
+		return fmt.Errorf("error initializing logger: %w", err)
 	}
 	defer logger.Sync()
 	backupConfig, err := repo.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
@@ -68,7 +69,7 @@ func initServer(opt *server.Options, ctx context.Context) error {
 	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
 	err = http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, cfg))
 	if err != nil {
-		return err
+		return fmt.Errorf("server error: %w", err)
 	}
 	return nil
 }

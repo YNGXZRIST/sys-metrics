@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/storage"
 )
@@ -42,12 +43,12 @@ type counterBackupStorage struct {
 
 func (s *counterBackupStorage) Set(key string, value *metrics.Counter) error {
 	if err := s.MemStorage.Set(key, value); err != nil {
-		return err
+		return fmt.Errorf("error setting metrics: %w", err)
 	}
 
 	if s.config.NeedSync() {
 		if err := s.metricsHandler.Upsert(&value.Metrics); err != nil {
-			return err
+			return fmt.Errorf("error updating metrics: %w", err)
 		}
 	}
 
@@ -66,12 +67,12 @@ type gaugeBackupStorage struct {
 
 func (s *gaugeBackupStorage) Set(key string, value *metrics.Gauge) error {
 	if err := s.MemStorage.Set(key, value); err != nil {
-		return err
+		return fmt.Errorf("error setting metrics: %w", err)
 	}
 
 	if s.config.NeedSync() {
 		if err := s.metricsHandler.Upsert(&value.Metrics); err != nil {
-			return err
+			return fmt.Errorf("error updating metrics: %w", err)
 		}
 	}
 

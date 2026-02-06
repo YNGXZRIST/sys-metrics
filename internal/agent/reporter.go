@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -36,13 +37,13 @@ func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
 		err := r.sendMetricToServer(m.Metrics)
 		if err != nil {
-			return err
+			return fmt.Errorf("error send gauge metric to server: %w", err)
 		}
 	}
 	for _, m := range c.Counters {
 		err := r.sendMetricToServer(m.Metrics)
 		if err != nil {
-			return err
+			return fmt.Errorf("error send counter metric to server: %w", err)
 		}
 	}
 	return nil
@@ -50,7 +51,7 @@ func (r *Reporter) Send(c *Collector) error {
 func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		return err
+		return fmt.Errorf("error marshal metric: %w", err)
 	}
 	writer := bytes.NewReader(jsonData)
 	url := r.BuildUpdateURL()
@@ -58,19 +59,19 @@ func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	r.logger.Info("request:" + string(jsonData))
 	req, err := http.NewRequest(http.MethodPost, url, writer)
 	if err != nil {
-		return err
+		return fmt.Errorf("error create request: %w", err)
 	}
 	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
 	response, err := r.httpClient.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("error do request: %w", err)
 	}
 	r.logger.Info("response encoding: " + response.Header.Get(httpcompressor.ContentEncodingHeader))
 	defer response.Body.Close()
 	res, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("error read response: %w", err)
 	}
 	r.logger.Info("response: " + response.Status + "\n" + string(res))
 	r.logger.Info(strconv.Itoa(response.StatusCode))

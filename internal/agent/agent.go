@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sys-metrics/internal/config/agent"
 	"time"
@@ -60,7 +61,7 @@ func (a *Agent) Report() error {
 	defer a.mu.Unlock()
 	err := a.reporter.Send(a.collector)
 	if err != nil {
-		return err
+		return fmt.Errorf("reporter send error: %w", err)
 	}
 	a.collector.ResetPollMetric()
 	return nil
