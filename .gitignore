@@ -30,3 +30,4 @@ vendor/
 /cmd/server/logs/
 /logs/
 /backups/
+/internal/logger/logs/

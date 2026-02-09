@@ -156,6 +156,17 @@ iter9: build check-metricstest ## Автотесты итерации 9
 		-source-path=.; \
 	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 9 passed!$(NC)"
+iter10:  build check-metricstest ## Автотесты итерации 10
+
+  SERVER_PORT=$(random unused-port)
+          ADDRESS="localhost:${SERVER_PORT}"
+          TEMP_FILE=$(random tempfile)
+          metricstest -test.v -test.run=^TestIteration10[AB]$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -database-dsn='***postgres:5432/postgres?sslmode=disable' \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
 	gofmt -w .

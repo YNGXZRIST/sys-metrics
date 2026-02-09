@@ -24,6 +24,5 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	responsewriter.WriteSuccess(w)
-	return
 
 }
