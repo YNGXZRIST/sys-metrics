@@ -19,6 +19,7 @@ type Options struct {
 	StoreInterval     time.Duration
 	BackupStoragePath string `env:"STORE_FILE" envDefault:"./backups"`
 	Restore           bool   `env:"RESTORE" envDefault:"true"`
+	DNS               string `env:"DATABASE_DSN"`
 }
 
 func (opt *Options) SetHostPort(host, port string) {
@@ -35,6 +36,7 @@ func parseArgs(args []string) (*Options, error) {
 	opt.ServerAddress = &serverAddr
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Server mode. Possible values: production, development")
 	flags.IntVar(&intervalSec, "i", 300, "Storage interval in seconds")
+	flags.StringVar(&opt.DNS, "d", "", "Database DSN for backup storage")
 	opt.StoreInterval = time.Duration(intervalSec) * time.Second
 	flags.StringVar(&opt.BackupStoragePath, "f", "./backups", "Backup storage path")
 	flags.BoolVar(&opt.Restore, "restore", true, "Restore backups")

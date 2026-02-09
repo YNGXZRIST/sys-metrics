@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
 	model "sys-metrics/internal/model/metrics"
@@ -18,16 +19,22 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	opt, err := server.NewOption(os.Args[1:])
+	err := run(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = initServer(opt, ctx)
+}
+func run(args []string) error {
+	opt, err := server.NewOption(args)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error parsing options: %w", err)
 	}
+	ctx := context.Background()
+	err = initServer(ctx, opt)
+	if err != nil {
+		return fmt.Errorf("error initializing server: %w", err)
+	}
+	return nil
 }
 func initStorage(backupConfig *repo.Config) {
 	if backupConfig.Enabled {
@@ -46,12 +53,13 @@ func initStorage(backupConfig *repo.Config) {
 		repo.Init(counters, gauges)
 	}
 }
-func initServer(opt *server.Options, ctx context.Context) error {
+func initServer(ctx context.Context, opt *server.Options) error {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
 	if err != nil {
 		return fmt.Errorf("error initializing logger: %w", err)
 	}
 	defer logger.Sync()
+
 	backupConfig, err := repo.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
 	if err != nil {
 		log.Fatal(err)
@@ -60,16 +68,28 @@ func initServer(opt *server.Options, ctx context.Context) error {
 
 	initStorage(backupConfig)
 
+	routineCtx, cancel := context.WithCancel(ctx)
 	go func() {
-		if err := backupConfig.InitBackupRoutine(ctx); err != nil {
+		if err := backupConfig.InitBackupRoutine(routineCtx); err != nil {
 			logger.Error("backup routine error", zap.Error(err))
 		}
 	}()
+	defer cancel()
+
+	conn, err := initDB(opt)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
 
 	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
-	err = http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, cfg))
-	if err != nil {
+	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, conn)); err != nil {
 		return fmt.Errorf("server error: %w", err)
 	}
 	return nil
+}
+
+func initDB(opt *server.Options) (*db.DB, error) {
+	dbConfig := db.NewCfg(opt)
+	return db.NewConn(dbConfig)
 }

@@ -16,11 +16,3 @@ func WithLoggerContext(logger *zap.Logger) func(http.Handler) http.Handler {
 		})
 	}
 }
-
-func LoggerFromContext(ctx context.Context) *zap.Logger {
-	logger, ok := ctx.Value(common.ContextLoggerKey).(*zap.Logger)
-	if !ok {
-		return zap.NewNop()
-	}
-	return logger
-}

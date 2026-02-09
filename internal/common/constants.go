@@ -57,6 +57,6 @@ const (
 type contextKey string
 
 const (
-	ConfigContextKey contextKey = "config"
+	ContextDBKey     contextKey = "db"
 	ContextLoggerKey contextKey = "logger"
 )

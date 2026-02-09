@@ -27,3 +27,6 @@ func WriteServerError(w http.ResponseWriter) {
 func WriteNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 }
+func WriteInternalServerError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+}
