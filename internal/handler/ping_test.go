@@ -45,15 +45,41 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	}
 	defer pool.Purge(resource)
 
+	hostPort := resource.GetPort("5432/tcp")
+	t.Logf("Postgres is available on port: %s", hostPort)
+	dsn := "postgres://postgres:postgres@localhost:" + hostPort + "/postgres?sslmode=disable"
+	err = pool.Retry(func() error {
+		cfg := db.NewCfg(&server.Options{DNS: dsn})
+		conn, err := db.NewConn(cfg)
+		if err != nil {
+			return err
+		}
+		defer func(conn *db.DB) {
+			err := conn.Close()
+			if err != nil {
+				t.Errorf("failed to close db connection: %v", err)
+			}
+		}(conn)
+		return conn.Ping()
+	})
+	if err != nil {
+		t.Fatalf("Could not connect to database: %s", err)
+	}
+
 	opt := &server.Options{
-		DNS: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable",
+		DNS: dsn,
 	}
 	cfg := db.NewCfg(opt)
 	conn, err := db.NewConn(cfg)
 	if err != nil {
 		t.Fatalf("failed to create db connection: %v", err)
 	}
-	defer conn.Close()
+	defer func(conn *db.DB) {
+		err := conn.Close()
+		if err != nil {
+			t.Errorf("failed to close db connection: %v", err)
+		}
+	}(conn)
 
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	ctx := r.Context()
@@ -65,6 +91,7 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	PingHandler(w, r)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("PingHandler returned status %d, want %d", resp.StatusCode, http.StatusOK)
 	}
@@ -88,6 +115,7 @@ func TestPingHandler_DBError(t *testing.T) {
 	PingHandler(w, r)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("PingHandler returned status %d, want %d", resp.StatusCode, http.StatusInternalServerError)
 	}
