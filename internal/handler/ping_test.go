@@ -127,6 +127,7 @@ func TestPingHandler_EmptyContext(t *testing.T) {
 	PingHandler(w, r)
 
 	resp := w.Result()
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("PingHandler returned status %d, want %d", resp.StatusCode, http.StatusInternalServerError)
 	}
