@@ -1,3 +1,7 @@
+//go test --tags=integration -v -run TestPingHandler_DBSuccess
+//go:build integration
+// +build integration
+
 package handler
 
 import (

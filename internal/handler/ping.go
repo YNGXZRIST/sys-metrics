@@ -1,7 +1,3 @@
-//go test --tags=integration
-//go:build integration
-// +build integration
-
 package handler
 
 import (
