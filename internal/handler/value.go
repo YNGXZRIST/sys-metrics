@@ -11,7 +11,7 @@ import (
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/context"
 	models "sys-metrics/internal/model/metrics"
-	svm "sys-metrics/internal/repository"
+	svm "sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/service/responsewriter"
 	"sys-metrics/pkg/storage"
 

@@ -11,7 +11,10 @@ import (
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
 	model "sys-metrics/internal/model/metrics"
-	repo "sys-metrics/internal/repository"
+	"sys-metrics/internal/repository/file"
+	"sys-metrics/internal/repository/memory"
+	"sys-metrics/internal/repository/metrics"
+	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/router"
 	"sys-metrics/pkg/storage"
 
@@ -36,22 +39,25 @@ func run(args []string) error {
 	}
 	return nil
 }
-func initStorage(backupConfig *repo.Config) {
+func initStorage(backupConfig *file.Config) metricsiface.ServiceInterface {
+	var service metricsiface.ServiceInterface
 	if backupConfig.Enabled {
-		backupStorage, err := repo.NewMetricBackupStorage(backupConfig)
+		backupStorage, err := file.NewMetricFileBackupStorage(backupConfig)
 		if err != nil {
 			log.Fatal(err)
 		}
-		service := repo.InitBackup(backupStorage)
-
+		service = file.NewBackupService(backupStorage)
+		metrics.Init(service)
 		if err := service.ReadBackup(); err != nil {
 			log.Printf("warning: failed to restore from backup: %v", err)
 		}
 	} else {
 		counters := storage.NewMemStorage[string, *model.Counter]()
 		gauges := storage.NewMemStorage[string, *model.Gauge]()
-		repo.Init(counters, gauges)
+		service = memory.NewService(counters, gauges)
+		metrics.Init(service)
 	}
+	return service
 }
 func initServer(ctx context.Context, opt *server.Options) error {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
@@ -60,17 +66,16 @@ func initServer(ctx context.Context, opt *server.Options) error {
 	}
 	defer logger.Sync()
 
-	backupConfig, err := repo.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
+	backupConfig, err := file.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer backupConfig.Close()
 
-	initStorage(backupConfig)
-
+	serviceInterface := initStorage(backupConfig)
 	routineCtx, cancel := context.WithCancel(ctx)
 	go func() {
-		if err := backupConfig.InitBackupRoutine(routineCtx); err != nil {
+		if err := serviceInterface.InitRoutine(routineCtx); err != nil {
 			logger.Error("backup routine error", zap.Error(err))
 		}
 	}()

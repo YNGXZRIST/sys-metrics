@@ -1,7 +1,7 @@
 package server
 
 import (
-	repo "sys-metrics/internal/repository"
+	file "sys-metrics/internal/repository/file"
 	"testing"
 
 	"go.uber.org/zap"
@@ -89,7 +89,7 @@ func TestNewConfig(t *testing.T) {
 		h            string
 		p            string
 		logger       *zap.Logger
-		backupConfig *repo.Config
+		backupConfig *file.Config
 	}
 	tests := []struct {
 		name string
@@ -102,7 +102,7 @@ func TestNewConfig(t *testing.T) {
 				h:            DefaultHost,
 				p:            DefaultPort,
 				logger:       zap.NewExample(),
-				backupConfig: &repo.Config{},
+				backupConfig: &file.Config{},
 			},
 		},
 	}

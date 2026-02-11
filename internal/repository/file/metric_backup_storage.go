@@ -1,15 +1,20 @@
-package repository
+package file
+
+import "errors"
 
 type MetricBackupStorage struct {
-	*FileBackupStorage
+	*BackupStorage
 	*Config
 }
 
-func NewMetricBackupStorage(config *Config) (*MetricBackupStorage, error) {
+func NewMetricFileBackupStorage(config *Config) (*MetricBackupStorage, error) {
+	if config == nil {
+		return nil, errors.New("config is nil")
+	}
 	fileBackupStorage := NewFileBackupStorage(config, config.MetricsHandler)
 	metricStorage := &MetricBackupStorage{
-		FileBackupStorage: fileBackupStorage,
-		Config:            config,
+		BackupStorage: fileBackupStorage,
+		Config:        config,
 	}
 
 	return metricStorage, nil

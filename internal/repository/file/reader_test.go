@@ -1,11 +1,13 @@
-package repository
+package file
 
 import (
 	"os"
+	"sys-metrics/internal/common"
 	"testing"
+	"time"
 )
 
-func Test_newBackupReader(t *testing.T) {
+func TestNewBackupReader(t *testing.T) {
 	type args struct {
 		filename string
 	}
@@ -65,6 +67,30 @@ func Test_newBackupReader(t *testing.T) {
 					t.Errorf("newBackupReader() reader is nil")
 				}
 				_ = got.Close()
+			}
+		})
+	}
+}
+
+func TestReader_Close(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "successful close",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := NewConfig(common.TypeModeTest, "./test", time.Second*10, true)
+			if err != nil {
+				t.Fatalf("Failed to create backup config: %v", err)
+			}
+			defer config.Cleanup()
+			if err := config.Reader.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

@@ -1,4 +1,4 @@
-package repository
+package file
 
 import (
 	"bufio"
@@ -11,7 +11,7 @@ type Writer struct {
 	writer *bufio.Writer
 }
 
-func NewBackupWriter(filename string) (*Writer, error) {
+func newBackupWriter(filename string) (*Writer, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err

@@ -34,7 +34,7 @@ test-short: ## Запустить быстрые тесты
 
 coverage: test ## Показать покрытие кода тестами
 	@echo "$(GREEN)Generating coverage report...$(NC)"
-	go tool cover -html=coverage.out
+	go tool cover  -html=coverage.out
 
 download-metricstest: ## Скачать автотесты с GitHub
 	@echo "$(GREEN)Downloading metricstest...$(NC)"
@@ -156,17 +156,21 @@ iter9: build check-metricstest ## Автотесты итерации 9
 		-source-path=.; \
 	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 9 passed!$(NC)"
-iter10:  build check-metricstest ## Автотесты итерации 10
-
-  SERVER_PORT=$(random unused-port)
-          ADDRESS="localhost:${SERVER_PORT}"
-          TEMP_FILE=$(random tempfile)
-          metricstest -test.v -test.run=^TestIteration10[AB]$ \
-            -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
-            -database-dsn='***postgres:5432/postgres?sslmode=disable' \
-            -server-port=$SERVER_PORT \
-            -source-path=.
+iter10: build check-metricstest ## Автотесты итерации 10
+	@echo "$(GREEN)Running iteration 10 tests...$(NC)"
+	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
+	ADDRESS="localhost:$$SERVER_PORT"; \
+	TEMP_FILE=$$(mktemp); \
+	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	$(METRICSTEST) -test.v -test.run='^TestIteration9$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=$$SERVER_PORT \
+		 -database-dsn='***postgres:5432/postgres?sslmode=disable' \
+		-file-storage-path=./backup \
+		-source-path=.; \
+	rm -f $$TEMP_FILE
+	@echo "$(GREEN)✅ Iteration 9 passed!$(NC)"
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
 	gofmt -w .

@@ -1,4 +1,4 @@
-package repository
+package file
 
 import (
 	"encoding/json"
@@ -6,19 +6,19 @@ import (
 	"sys-metrics/internal/model/metrics"
 )
 
-type FileMetricsBackupHandler struct {
+type BackupHandler struct {
 	reader *Reader
 	writer *Writer
 }
 
-func NewFileMetricsBackupHandler(reader *Reader, writer *Writer) *FileMetricsBackupHandler {
-	return &FileMetricsBackupHandler{
+func NewFileMetricsBackupHandler(reader *Reader, writer *Writer) *BackupHandler {
+	return &BackupHandler{
 		reader: reader,
 		writer: writer,
 	}
 }
 
-func (h *FileMetricsBackupHandler) Read() ([]metrics.Metrics, error) {
+func (h *BackupHandler) Read() ([]metrics.Metrics, error) {
 	m := make([]metrics.Metrics, 0)
 	for {
 		line, err := h.reader.Reader.ReadString('\n')
@@ -39,7 +39,7 @@ func (h *FileMetricsBackupHandler) Read() ([]metrics.Metrics, error) {
 	return m, nil
 }
 
-func (h *FileMetricsBackupHandler) Write(metric *metrics.Metrics) error {
+func (h *BackupHandler) Write(metric *metrics.Metrics) error {
 	data, err := json.Marshal(metric)
 	if err != nil {
 		return fmt.Errorf("error serializing metrics: %w", err)
@@ -53,7 +53,7 @@ func (h *FileMetricsBackupHandler) Write(metric *metrics.Metrics) error {
 	return h.writer.writer.Flush()
 }
 
-func (h *FileMetricsBackupHandler) WriteBatch(metrics []metrics.Metrics) error {
+func (h *BackupHandler) WriteBatch(metrics []metrics.Metrics) error {
 	for _, metric := range metrics {
 		data, err := json.Marshal(metric)
 		if err != nil {
@@ -67,7 +67,7 @@ func (h *FileMetricsBackupHandler) WriteBatch(metrics []metrics.Metrics) error {
 	return h.writer.writer.Flush()
 }
 
-func (h *FileMetricsBackupHandler) Upsert(metric *metrics.Metrics) error {
+func (h *BackupHandler) Upsert(metric *metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
 		return fmt.Errorf("error resetting reader: %w", err)
 	}
@@ -100,7 +100,7 @@ func (h *FileMetricsBackupHandler) Upsert(metric *metrics.Metrics) error {
 	return h.WriteBatch(existingMetrics)
 }
 
-func (h *FileMetricsBackupHandler) UpsertBatch(newMetrics []metrics.Metrics) error {
+func (h *BackupHandler) UpsertBatch(newMetrics []metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
 		return fmt.Errorf("error resetting reader: %w", err)
 	}

@@ -1,4 +1,4 @@
-package repository
+package file
 
 import (
 	"os"
@@ -61,7 +61,7 @@ func Test_newBackupWriter(t *testing.T) {
 				defer os.Remove(tt.args.filename)
 			}
 
-			got, err := NewBackupWriter(tt.args.filename)
+			got, err := newBackupWriter(tt.args.filename)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newBackupWriter() error = %v, wantErr %v", err, tt.wantErr)
 				return

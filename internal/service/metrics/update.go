@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/repository"
+	metrics2 "sys-metrics/internal/repository/metrics"
 	"sys-metrics/pkg/storage"
 )
 
@@ -30,7 +30,7 @@ func Update(metricType, name, value string) error {
 }
 
 func updateCounter(name string, value int64) error {
-	repo := repository.Counters()
+	repo := metrics2.Counters()
 	counter, err := repo.Get(name)
 	if errors.Is(err, storage.ErrNotFound) {
 		counter = metrics.NewCounter(name)
@@ -46,7 +46,7 @@ func updateCounter(name string, value int64) error {
 }
 
 func updateGauge(name string, value float64) error {
-	repo := repository.Gauges()
+	repo := metrics2.Gauges()
 	gauge, err := repo.Get(name)
 	if err != nil {
 		gauge = metrics.NewGauge(name)

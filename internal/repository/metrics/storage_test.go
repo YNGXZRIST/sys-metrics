@@ -1,8 +1,10 @@
-package repository
+package metrics
 
 import (
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
+	file "sys-metrics/internal/repository/file"
+	"sys-metrics/internal/repository/memory"
 	"sys-metrics/pkg/storage"
 	"testing"
 	"time"
@@ -11,8 +13,7 @@ import (
 func TestInit(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-
-	service := Init(counters, gauges)
+	service := Init(memory.NewService(counters, gauges))
 
 	if service == nil {
 		t.Fatal("Init() returned nil service")
@@ -31,7 +32,7 @@ func TestInit(t *testing.T) {
 func TestCounters(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-	Init(counters, gauges)
+	Init(memory.NewService(counters, gauges))
 
 	got := Counters()
 
@@ -46,7 +47,7 @@ func TestCounters(t *testing.T) {
 func TestGauges(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-	Init(counters, gauges)
+	Init(memory.NewService(counters, gauges))
 
 	got := Gauges()
 
@@ -61,7 +62,7 @@ func TestGauges(t *testing.T) {
 func TestGetService(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-	service := Init(counters, gauges)
+	service := Init(memory.NewService(counters, gauges))
 
 	got := GetService()
 
@@ -76,7 +77,8 @@ func TestGetService(t *testing.T) {
 func TestGetAllMetrics(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-	Init(counters, gauges)
+	Init(memory.NewService(counters, gauges))
+
 	counter := metrics.NewCounter("test_counter")
 	counter.SetValue(42)
 	_ = counters.Set("test_counter", counter)
@@ -115,7 +117,7 @@ func TestBackupMemoryService_ReadBackup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := NewConfig(common.TypeModeTest, "", time.Second*10, true)
+			config, err := file.NewConfig(common.TypeModeTest, "", time.Second*10, true)
 			if err != nil {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}

@@ -10,7 +10,8 @@ import (
 	"reflect"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/repository"
+	"sys-metrics/internal/repository/memory"
+	svc "sys-metrics/internal/repository/metrics"
 	"sys-metrics/pkg/storage"
 	"testing"
 )
@@ -67,7 +68,7 @@ func TestValueHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
+			svc.Init(memory.NewService(counters, gauges))
 
 			gaugeVal := 123.456
 			err := gauges.Set(common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
@@ -161,7 +162,7 @@ func TestValueHandlerJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
+			svc.Init(memory.NewService(counters, gauges))
 
 			gaugeVal := 123.456
 			err := gauges.Set(common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
@@ -272,7 +273,7 @@ func Test_getMetricFromStorage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
+			svc.Init(memory.NewService(counters, gauges))
 			if tt.args.isWantSet {
 				switch tt.args.metricType {
 				case common.Counter:

@@ -1,8 +1,8 @@
-package repository
+package metrics
 
 import "sys-metrics/internal/model/metrics"
 
-type MetricsBackupHandler interface {
+type Handler interface {
 	Read() ([]metrics.Metrics, error)
 	Write(metric *metrics.Metrics) error
 	WriteBatch(metrics []metrics.Metrics) error

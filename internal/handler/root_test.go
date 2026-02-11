@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sys-metrics/internal/model/metrics"
-	svm "sys-metrics/internal/repository"
+	"sys-metrics/internal/repository/memory"
+	svm "sys-metrics/internal/repository/metrics"
 	"sys-metrics/pkg/storage"
 	"testing"
 
@@ -14,7 +15,7 @@ import (
 func TestIndexHandler(t *testing.T) {
 	counters := storage.NewMemStorage[string, *metrics.Counter]()
 	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-	svm.Init(counters, gauges)
+	svm.Init(memory.NewService(counters, gauges))
 	h := http.NewServeMux()
 	h.HandleFunc("/", IndexHandler)
 	srv := httptest.NewServer(h)

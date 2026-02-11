@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	svc "sys-metrics/internal/repository"
+	"sys-metrics/internal/repository/memory"
+	svc "sys-metrics/internal/repository/metrics"
 	"sys-metrics/pkg/storage"
 	"testing"
 )
@@ -49,7 +50,7 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
+			svc.Init(memory.NewService(counters, gauges))
 
 			req := httptest.NewRequest(http.MethodGet, "/update", nil)
 			req.SetPathValue("type", tt.args.metricType)
@@ -113,7 +114,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(counters, gauges)
+			svc.Init(memory.NewService(counters, gauges))
 			payload, err := json.Marshal(tt.args)
 			if err != nil {
 				t.Fatalf("failed to marshal request body: %v", err)

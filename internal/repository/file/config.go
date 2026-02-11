@@ -1,4 +1,4 @@
-package repository
+package file
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"path"
 	"sys-metrics/internal/common"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/repository/metricsiface"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,7 +22,7 @@ type Config struct {
 	Logger         *zap.Logger
 	Writer         *Writer
 	Reader         *Reader
-	MetricsHandler MetricsBackupHandler
+	MetricsHandler metricsiface.Handler
 }
 
 func NewConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*Config, error) {
@@ -51,7 +52,7 @@ func NewConfig(mode string, storagePath string, interval time.Duration, enabled 
 	if err != nil {
 		return nil, err
 	}
-	writer, err := NewBackupWriter(filePath)
+	writer, err := newBackupWriter(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -90,4 +91,19 @@ func (bc *Config) Close() error {
 		errs = err
 	}
 	return errs
+}
+func (bc *Config) Cleanup() error {
+	if bc.Writer != nil {
+		_ = bc.Writer.Close()
+	}
+	if bc.Reader != nil {
+		_ = bc.Reader.Close()
+	}
+	if bc.filePath != path.Join(bc.StoragePath, DefaultFileName) {
+		return os.RemoveAll(bc.StoragePath)
+	}
+	return nil
+}
+func (bc *Config) getBackupFilename() string {
+	return bc.filePath
 }
