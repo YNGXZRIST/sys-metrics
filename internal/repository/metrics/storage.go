@@ -7,10 +7,6 @@ import (
 
 var defaultService metricsiface.ServiceInterface
 
-type BackupDBService struct {
-	backupStorage any
-}
-
 func Init(service metricsiface.ServiceInterface) metricsiface.ServiceInterface {
 	defaultService = service
 	return service
