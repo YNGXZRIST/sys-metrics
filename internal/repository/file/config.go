@@ -1,12 +1,10 @@
 package file
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"sys-metrics/internal/common"
 	lgr "sys-metrics/internal/logger"
-	"sys-metrics/internal/repository/metricsiface"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,14 +13,11 @@ import (
 const DefaultFileName = "backups.metrics"
 
 type Config struct {
-	Interval       time.Duration
-	StoragePath    string
-	filePath       string
-	Enabled        bool
-	Logger         *zap.Logger
-	Writer         *Writer
-	Reader         *Reader
-	MetricsHandler metricsiface.Handler
+	Interval    time.Duration
+	StoragePath string
+	filePath    string
+	Enabled     bool
+	Logger      *zap.Logger
 }
 
 func NewConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*Config, error) {
@@ -48,30 +43,16 @@ func NewConfig(mode string, storagePath string, interval time.Duration, enabled 
 	} else {
 		filePath = path.Join(storagePath, DefaultFileName)
 	}
-	err = os.MkdirAll(storagePath, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-	writer, err := newBackupWriter(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := NewBackupReader(filePath)
-	if err != nil {
-		_ = writer.Close()
+	if err := os.MkdirAll(storagePath, os.ModePerm); err != nil {
 		return nil, err
 	}
 
 	return &Config{
-		StoragePath:    storagePath,
-		filePath:       filePath,
-		Interval:       interval,
-		Enabled:        enabled,
-		Logger:         logger,
-		Writer:         writer,
-		Reader:         reader,
-		MetricsHandler: NewFileMetricsBackupHandler(reader, writer),
+		StoragePath: storagePath,
+		filePath:    filePath,
+		Interval:    interval,
+		Enabled:     enabled,
+		Logger:      logger,
 	}, nil
 }
 
@@ -80,30 +61,16 @@ func (bc *Config) NeedSync() bool {
 }
 
 func (bc *Config) Close() error {
-	var errs error
-	if err := bc.Writer.Close(); err != nil {
-		errs = err
-	}
-	if err := bc.Reader.Close(); err != nil {
-		if errs != nil {
-			return fmt.Errorf("multiple errors: %v; %v", errs, err)
-		}
-		errs = err
-	}
-	return errs
+	return nil
 }
+
 func (bc *Config) Cleanup() error {
-	if bc.Writer != nil {
-		_ = bc.Writer.Close()
-	}
-	if bc.Reader != nil {
-		_ = bc.Reader.Close()
-	}
 	if bc.filePath != path.Join(bc.StoragePath, DefaultFileName) {
 		return os.RemoveAll(bc.StoragePath)
 	}
 	return nil
 }
+
 func (bc *Config) getBackupFilename() string {
 	return bc.filePath
 }

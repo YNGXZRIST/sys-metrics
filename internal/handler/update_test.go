@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
-	"sys-metrics/pkg/storage"
 	"testing"
 )
 
@@ -48,9 +48,8 @@ func TestUpdateHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := storage.NewMemStorage[string, *metrics.Counter]()
-			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(memory.NewService(counters, gauges))
+
+			svc.Init(memory.NewService())
 
 			req := httptest.NewRequest(http.MethodGet, "/update", nil)
 			req.SetPathValue("type", tt.args.metricType)
@@ -112,9 +111,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := storage.NewMemStorage[string, *metrics.Counter]()
-			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(memory.NewService(counters, gauges))
+			svc.Init(memory.NewService())
 			payload, err := json.Marshal(tt.args)
 			if err != nil {
 				t.Fatalf("failed to marshal request body: %v", err)
@@ -136,7 +133,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 				t.Errorf("UpdateHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)
 			}
 			if tt.args.MType == common.Gauge {
-				gauge, err := gauges.Get(tt.args.ID)
+				gauge, err := svc.Gauges().Get(context.TODO(), tt.args.ID)
 				if err != nil {
 					t.Fatalf("gauges.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}
@@ -148,7 +145,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 				}
 			}
 			if tt.args.MType == common.Counter {
-				counter, err := counters.Get(tt.args.ID)
+				counter, err := svc.Counters().Get(context.TODO(), tt.args.ID)
 				if err != nil {
 					t.Fatalf("counters.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}

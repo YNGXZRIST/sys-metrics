@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
-	"sys-metrics/pkg/storage"
 	"testing"
 )
 
@@ -66,17 +66,16 @@ func TestValueHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := storage.NewMemStorage[string, *metrics.Counter]()
-			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(memory.NewService(counters, gauges))
+
+			svc.Init(memory.NewService())
 
 			gaugeVal := 123.456
-			err := gauges.Set(common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
+			err := svc.Gauges().Set(context.TODO(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
 			if err != nil {
 				t.Errorf("gauges.Set(%s): expected %v, got %v", common.Alloc, nil, err)
 			}
 			counterVal := int64(42)
-			err = counters.Set(common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
+			err = svc.Counters().Set(context.TODO(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
 			if err != nil {
 				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
@@ -160,17 +159,15 @@ func TestValueHandlerJSON(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := storage.NewMemStorage[string, *metrics.Counter]()
-			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(memory.NewService(counters, gauges))
+			svc.Init(memory.NewService())
 
 			gaugeVal := 123.456
-			err := gauges.Set(common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
+			err := svc.Gauges().Set(context.TODO(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
 			if err != nil {
 				t.Errorf("gauges.Set(%s): expected %v, got %v", common.Alloc, nil, err)
 			}
 			counterVal := int64(42)
-			err = counters.Set(common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
+			err = svc.Counters().Set(context.TODO(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
 			if err != nil {
 				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
@@ -271,26 +268,24 @@ func Test_getMetricFromStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			counters := storage.NewMemStorage[string, *metrics.Counter]()
-			gauges := storage.NewMemStorage[string, *metrics.Gauge]()
-			svc.Init(memory.NewService(counters, gauges))
+			svc.Init(memory.NewService())
 			if tt.args.isWantSet {
 				switch tt.args.metricType {
 				case common.Counter:
 					counterVal := int64(42)
-					err := counters.Set(tt.args.name, &metrics.Counter{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Counter, Delta: &counterVal}})
+					err := svc.Counters().Set(context.TODO(), tt.args.name, &metrics.Counter{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Counter, Delta: &counterVal}})
 					if err != nil {
 						t.Errorf("counters.Set(%s): expected %v, got %v", tt.args.name, nil, err)
 					}
 				case common.Gauge:
 					gaugeVal := 123.456
-					err := gauges.Set(tt.args.name, &metrics.Gauge{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Gauge, Value: &gaugeVal}})
+					err := svc.Gauges().Set(context.TODO(), tt.args.name, &metrics.Gauge{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Gauge, Value: &gaugeVal}})
 					if err != nil {
 						t.Errorf("gauges.Set(%s): expected %v, got %v", tt.args.name, nil, err)
 					}
 				}
 			}
-			got, err := getMetricFromStorage(tt.args.metricType, tt.args.name)
+			got, err := getMetricFromStorage(context.TODO(), tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getMetricFromStorage() error = %v, wantErr %v", err, tt.wantErr)
 				return

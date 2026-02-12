@@ -21,8 +21,9 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.PathValue("value")
 	metricType = strings.ToLower(metricType)
 	id = collector.GetMetricType(id)
-	err := serviceMetrics.Update(metricType, id, value)
-	logger := context.LoggerFromContext(r.Context())
+	ctx := r.Context()
+	err := serviceMetrics.Update(ctx, metricType, id, value)
+	logger := context.LoggerFromContext(ctx)
 	if err != nil {
 		logger.Warn("UpdateHandler got error", zap.Error(err))
 		responsewriter.WriteBadRequest(w)
@@ -33,7 +34,8 @@ func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
-	logger := context.LoggerFromContext(r.Context())
+	ctx := r.Context()
+	logger := context.LoggerFromContext(ctx)
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&req); err != nil {
 		logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
@@ -63,12 +65,12 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	err := serviceMetrics.Update(req.MType, req.ID, valueStr)
+	err := serviceMetrics.Update(ctx, req.MType, req.ID, valueStr)
 	if err != nil {
 		responsewriter.WriteBadRequest(w)
 		return
 	}
-	metric, err := getMetricFromStorage(req.MType, req.ID)
+	metric, err := getMetricFromStorage(ctx, req.MType, req.ID)
 	if err != nil {
 		responsewriter.WriteServerError(w)
 		return

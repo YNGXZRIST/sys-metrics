@@ -89,7 +89,12 @@ func TestReader_Close(t *testing.T) {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}
 			defer config.Cleanup()
-			if err := config.Reader.Close(); (err != nil) != tt.wantErr {
+			storage, err := NewMetricFileBackupStorage(config)
+			if err != nil {
+				t.Fatalf("Failed to create backup storage: %v", err)
+			}
+			defer func() { _ = storage.Writer.Close() }()
+			if err := storage.Reader.Close(); (err != nil) != tt.wantErr {
 				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

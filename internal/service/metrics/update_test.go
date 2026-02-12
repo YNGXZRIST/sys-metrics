@@ -1,10 +1,9 @@
 package metrics
 
 import (
-	model "sys-metrics/internal/model/metrics"
+	"context"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
-	"sys-metrics/pkg/storage"
 	"testing"
 )
 
@@ -34,12 +33,10 @@ func TestUpdate(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	var counters = storage.NewMemStorage[string, *model.Counter]()
-	var gauges = storage.NewMemStorage[string, *model.Gauge]()
-	metrics.Init(memory.NewService(counters, gauges))
+	metrics.Init(memory.NewService())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Update(tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := Update(context.TODO(), tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -67,13 +64,11 @@ func Test_updateCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var counters = storage.NewMemStorage[string, *model.Counter]()
-			var gauges = storage.NewMemStorage[string, *model.Gauge]()
-			metrics.Init(memory.NewService(counters, gauges))
-			if err := updateCounter(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			metrics.Init(memory.NewService())
+			if err := updateCounter(context.TODO(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			val, err := counters.Get(tt.args.name)
+			val, err := metrics.Counters().Get(context.TODO(), tt.args.name)
 			if err != nil {
 				t.Errorf("counters.Get() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -105,15 +100,13 @@ func Test_updateGauge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var counters = storage.NewMemStorage[string, *model.Counter]()
-			var gauges = storage.NewMemStorage[string, *model.Gauge]()
-			metrics.Init(memory.NewService(counters, gauges))
-			if err := updateGauge(tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			metrics.Init(memory.NewService())
+			if err := updateGauge(context.TODO(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			val, err := gauges.Get(tt.args.name)
+			val, err := metrics.Gauges().Get(context.TODO(), tt.args.name)
 			if err != nil {
-				t.Errorf("counters.updateGauge() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if *val.Value != tt.args.value {
 				t.Errorf("updateGauge() Value got %v, want %v", *val.Delta, tt.args.value)

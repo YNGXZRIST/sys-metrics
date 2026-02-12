@@ -7,12 +7,13 @@ import (
 )
 
 type ServiceInterface interface {
-	GetAllMetrics() []metrics.Metrics
+	GetAllMetrics(ctx context.Context) []metrics.Metrics
 	Gauges() MetricStorage[*metrics.Gauge]
 	Counters() MetricStorage[*metrics.Counter]
-	ReadBackup() error
-	WriteBackup() error
+	ReadBackup(ctx context.Context) error
+	WriteBackup(ctx context.Context) error
 	InitRoutine(ctx context.Context) error
+	Close(ctx context.Context) error
 }
 
 type MetricStorage[V any] interface {
@@ -29,8 +30,8 @@ type BackupConfig interface {
 }
 
 type Handler interface {
-	Upsert(metric *metrics.Metrics) error
-	Read() ([]metrics.Metrics, error)
-	Write(metric *metrics.Metrics) error
-	WriteBatch(metrics []metrics.Metrics) error
+	Upsert(ctx context.Context, metric *metrics.Metrics) error
+	Read(ctx context.Context) ([]metrics.Metrics, error)
+	Write(ctx context.Context, metric *metrics.Metrics) error
+	WriteBatch(ctx context.Context, metrics []metrics.Metrics) error
 }

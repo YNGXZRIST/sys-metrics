@@ -4,7 +4,6 @@ import (
 	"context"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/repository/metricsiface"
 	"testing"
 	"time"
 )
@@ -22,14 +21,11 @@ func TestBackupService_BackupCounters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
-	bc := svc.BackupCounters()
+	bc := svc.BackupCounters(context.TODO())
 	if bc == nil {
 		t.Error("BackupCounters() returned nil")
-	}
-	_, ok := bc.(metricsiface.BackupMetricStorage[*metrics.Counter])
-	if !ok {
-		t.Error("BackupCounters() returned wrong type")
 	}
 }
 
@@ -46,14 +42,11 @@ func TestBackupService_BackupGauges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
-	bg := svc.BackupGauges()
+	bg := svc.BackupGauges(context.TODO())
 	if bg == nil {
 		t.Error("BackupGauges() returned nil")
-	}
-	_, ok := bg.(metricsiface.BackupMetricStorage[*metrics.Gauge])
-	if !ok {
-		t.Error("BackupGauges() returned wrong type")
 	}
 }
 
@@ -70,14 +63,11 @@ func TestBackupService_Counters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
 	c := svc.Counters()
 	if c == nil {
 		t.Error("Counters() returned nil")
-	}
-	_, ok := c.(metricsiface.MetricStorage[*metrics.Counter])
-	if !ok {
-		t.Error("Counters() returned wrong type")
 	}
 }
 
@@ -94,14 +84,11 @@ func TestBackupService_Gauges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
 	g := svc.Gauges()
 	if g == nil {
 		t.Error("Gauges() returned nil")
-	}
-	_, ok := g.(metricsiface.MetricStorage[*metrics.Gauge])
-	if !ok {
-		t.Error("Gauges() returned wrong type")
 	}
 }
 
@@ -118,20 +105,21 @@ func TestBackupService_GetAllMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
 	counter := metrics.NewCounter("test_counter")
 	counter.SetValue(10)
 	gauge := metrics.NewGauge("test_gauge")
 	gauge.SetValue(2.5)
-	err = svc.Counters().Set(counter.ID, counter)
+	err = svc.Counters().Set(context.TODO(), counter.ID, counter)
 	if err != nil {
 		t.Fatalf("Failed to set counter: %v", err)
 	}
-	err = svc.Gauges().Set(gauge.ID, gauge)
+	err = svc.Gauges().Set(context.TODO(), gauge.ID, gauge)
 	if err != nil {
 		t.Fatalf("Failed to set gauge: %v", err)
 	}
-	metricsList := svc.GetAllMetrics()
+	metricsList := svc.GetAllMetrics(context.TODO())
 	if len(metricsList) != 2 {
 		t.Errorf("GetAllMetrics() returned %d metrics, want 2", len(metricsList))
 	}
@@ -150,6 +138,7 @@ func TestBackupService_InitRoutine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -172,8 +161,9 @@ func TestBackupService_ReadBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
-	err = svc.ReadBackup()
+	err = svc.ReadBackup(context.TODO())
 	if err != nil {
 		t.Errorf("ReadBackup() error = %v", err)
 	}
@@ -192,14 +182,15 @@ func TestBackupService_WriteBackup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	svc := NewBackupService(storage)
 	counter := metrics.NewCounter("test_counter")
 	counter.SetValue(5)
-	err = svc.Counters().Set(counter.ID, counter)
+	err = svc.Counters().Set(context.TODO(), counter.ID, counter)
 	if err != nil {
 		t.Fatalf("Failed to set counter: %v", err)
 	}
-	err = svc.WriteBackup()
+	err = svc.WriteBackup(context.TODO())
 	if err != nil {
 		t.Errorf("WriteBackup() error = %v", err)
 	}
@@ -218,9 +209,11 @@ func TestNewBackupService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create metric backup storage: %v", err)
 	}
+	defer storage.Close()
 	bs := NewBackupService(storage)
 	if bs == nil {
 		t.Error("NewBackupService() returned nil")
+		return
 	}
 	if bs.BackupStorage != storage {
 		t.Error("NewBackupService() storage mismatch")

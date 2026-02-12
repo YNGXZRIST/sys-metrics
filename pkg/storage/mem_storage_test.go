@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -37,7 +38,7 @@ func TestMemStorage_Delete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.s.Delete(tt.key); !errors.Is(err, tt.wantErr) {
+			if err := tt.s.Delete(context.TODO(), tt.key); !errors.Is(err, tt.wantErr) {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -78,7 +79,7 @@ func TestMemStorage_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.Get(tt.key)
+			got, err := tt.s.Get(context.TODO(), tt.key)
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -122,7 +123,7 @@ func TestMemStorage_Has(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.Has(tt.key); got != tt.want {
+			if got := tt.s.Has(context.TODO(), tt.key); got != tt.want {
 				t.Errorf("Has() = %v, want %v", got, tt.want)
 			}
 		})
@@ -159,11 +160,11 @@ func TestMemStorage_Set(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.s.Set(tt.args.key, tt.args.value)
+			err := tt.s.Set(context.TODO(), tt.args.key, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			val, _ := tt.s.Get(tt.args.key)
+			val, _ := tt.s.Get(context.TODO(), tt.args.key)
 			if !reflect.DeepEqual(val, tt.wantVal) {
 				t.Errorf("Get() got = %v, want %v", val, tt.wantVal)
 			}
@@ -208,7 +209,7 @@ func TestMemStorage_All(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.All(); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.s.All(context.TODO()); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("All() = %v, want %v", got, tt.want)
 			}
 		})

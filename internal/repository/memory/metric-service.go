@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"sys-metrics/internal/model/metrics"
+	"sys-metrics/pkg/storage"
 )
 import "sys-metrics/internal/repository/metricsiface"
 
@@ -15,16 +16,20 @@ func (s *Service) InitRoutine(ctx context.Context) error {
 	return nil
 }
 
-func NewService(counters metricsiface.MetricStorage[*metrics.Counter], gauge metricsiface.MetricStorage[*metrics.Gauge]) *Service {
-	return &Service{counters: counters, gauges: gauge}
+func NewService() *Service {
+	counters := storage.NewMemStorage[string, *metrics.Counter]()
+	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	return &Service{counters: counters, gauges: gauges}
 }
-
-func (s *Service) GetAllMetrics() []metrics.Metrics {
+func (s *Service) Close(ctx context.Context) error {
+	return nil
+}
+func (s *Service) GetAllMetrics(ctx context.Context) []metrics.Metrics {
 	var m []metrics.Metrics
-	for _, counter := range s.counters.All() {
+	for _, counter := range s.counters.All(ctx) {
 		m = append(m, counter.Metrics)
 	}
-	for _, gauge := range s.gauges.All() {
+	for _, gauge := range s.gauges.All(ctx) {
 		m = append(m, gauge.Metrics)
 	}
 	return m
@@ -37,10 +42,10 @@ func (s *Service) Counters() metricsiface.MetricStorage[*metrics.Counter] {
 	return s.counters
 }
 
-func (s *Service) ReadBackup() error {
+func (s *Service) ReadBackup(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) WriteBackup() error {
+func (s *Service) WriteBackup(ctx context.Context) error {
 	return nil
 }

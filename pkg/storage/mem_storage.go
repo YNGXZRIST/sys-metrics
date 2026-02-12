@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"sync"
 )
@@ -16,14 +17,14 @@ func NewMemStorage[K comparable, V any]() *MemStorage[K, V] {
 	return &MemStorage[K, V]{data: make(map[K]V), mu: sync.Mutex{}}
 }
 
-func (s *MemStorage[K, V]) Set(key K, value V) error {
+func (s *MemStorage[K, V]) Set(ctx context.Context, key K, value V) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data[key] = value
 	return nil
 }
 
-func (s *MemStorage[K, V]) Get(key K) (V, error) {
+func (s *MemStorage[K, V]) Get(ctx context.Context, key K) (V, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v, ok := s.data[key]
@@ -33,7 +34,7 @@ func (s *MemStorage[K, V]) Get(key K) (V, error) {
 	}
 	return v, nil
 }
-func (s *MemStorage[K, V]) All() map[K]V {
+func (s *MemStorage[K, V]) All(ctx context.Context) map[K]V {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r := make(map[K]V, len(s.data))
@@ -43,7 +44,7 @@ func (s *MemStorage[K, V]) All() map[K]V {
 	return r
 }
 
-func (s *MemStorage[K, V]) Delete(key K) error {
+func (s *MemStorage[K, V]) Delete(ctx context.Context, key K) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.data[key]; !ok {
@@ -53,7 +54,7 @@ func (s *MemStorage[K, V]) Delete(key K) error {
 	return nil
 }
 
-func (s *MemStorage[K, V]) Has(key K) bool {
+func (s *MemStorage[K, V]) Has(ctx context.Context, key K) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	_, ok := s.data[key]

@@ -21,7 +21,11 @@ func NewCfg(opt *server.Options) *db.Config {
 	}
 }
 func NewConn(cfg *db.Config) (*DB, error) {
-	conn, err := sql.Open("pgx", cfg.DNS)
+	if cfg == nil || cfg.DNS == "" {
+		return nil, fmt.Errorf("database DSN is not set")
+	}
+	dsn := cfg.DNS
+	conn, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}

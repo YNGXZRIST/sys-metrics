@@ -27,9 +27,10 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		responsewriter.WriteServerError(w)
 		return
 	}
+	ctx := r.Context()
 	data := PageData{
-		Gauge:   svm.Gauges().All(),
-		Counter: svm.Counters().All(),
+		Gauge:   svm.Gauges().All(ctx),
+		Counter: svm.Counters().All(ctx),
 	}
 	w.Header().Set(common.ContentTypeHeader, common.TextHTMLUTF8)
 	if err := tmpl.Execute(w, data); err != nil {

@@ -1,10 +1,12 @@
-package file
+package metrics
 
 import (
+	"context"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/pkg/storage"
 	"testing"
+	"time"
 )
 
 func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
@@ -22,7 +24,7 @@ func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
 			name: "Sync mode (interval=0)",
 			fields: fields{
 				MemStorage:     storage.NewMemStorage[string, *metrics.Gauge](),
-				config:         &Config{Interval: 0},
+				config:         &mockBackupConfig{interval: 0},
 				metricsHandler: nil,
 			},
 			want: true,
@@ -31,7 +33,7 @@ func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
 			name: "Async mode (interval>0)",
 			fields: fields{
 				MemStorage:     storage.NewMemStorage[string, *metrics.Gauge](),
-				config:         &Config{Interval: 1},
+				config:         &mockBackupConfig{interval: time.Second},
 				metricsHandler: nil,
 			},
 			want: false,
@@ -39,10 +41,10 @@ func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &gaugeBackupStorage{
+			s := &GaugeBackupStorage{
 				MemStorage:     tt.fields.MemStorage,
-				config:         tt.fields.config,
-				metricsHandler: tt.fields.metricsHandler,
+				Config:         tt.fields.config,
+				MetricsHandler: tt.fields.metricsHandler,
 			}
 			if got := s.NeedSync(); got != tt.want {
 				t.Errorf("NeedSync() = %v, want %v", got, tt.want)
@@ -80,25 +82,18 @@ func Test_gaugeBackupStorage_Set(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config, err := NewConfig("test", "./test", 1, true)
-			if err != nil {
-				t.Fatalf("Failed to create backup config: %v", err)
-			}
-			defer func() {
-				_ = config.Close()
-				_ = config.Cleanup()
-			}()
-			s := &gaugeBackupStorage{
+			config := &mockBackupConfig{interval: time.Second}
+			s := &GaugeBackupStorage{
 				MemStorage:     storage.NewMemStorage[string, *metrics.Gauge](),
-				config:         config,
-				metricsHandler: nil,
+				Config:         config,
+				MetricsHandler: nil,
 			}
-			err = s.Set(tt.args.key, tt.args.value)
+			err := s.Set(context.TODO(), tt.args.key, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr && tt.args.value != nil {
-				stored, _ := s.MemStorage.Get(tt.args.key)
+				stored, _ := s.MemStorage.Get(context.TODO(), tt.args.key)
 				if stored == nil {
 					t.Errorf("Set() did not store value for key %v", tt.args.key)
 				}

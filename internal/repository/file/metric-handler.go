@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sys-metrics/internal/model/metrics"
@@ -18,7 +19,7 @@ func NewFileMetricsBackupHandler(reader *Reader, writer *Writer) *BackupHandler 
 	}
 }
 
-func (h *BackupHandler) Read() ([]metrics.Metrics, error) {
+func (h *BackupHandler) Read(ctx context.Context) ([]metrics.Metrics, error) {
 	m := make([]metrics.Metrics, 0)
 	for {
 		line, err := h.reader.Reader.ReadString('\n')
@@ -39,7 +40,7 @@ func (h *BackupHandler) Read() ([]metrics.Metrics, error) {
 	return m, nil
 }
 
-func (h *BackupHandler) Write(metric *metrics.Metrics) error {
+func (h *BackupHandler) Write(ctx context.Context, metric *metrics.Metrics) error {
 	data, err := json.Marshal(metric)
 	if err != nil {
 		return fmt.Errorf("error serializing metrics: %w", err)
@@ -53,7 +54,7 @@ func (h *BackupHandler) Write(metric *metrics.Metrics) error {
 	return h.writer.writer.Flush()
 }
 
-func (h *BackupHandler) WriteBatch(metrics []metrics.Metrics) error {
+func (h *BackupHandler) WriteBatch(ctx context.Context, metrics []metrics.Metrics) error {
 	for _, metric := range metrics {
 		data, err := json.Marshal(metric)
 		if err != nil {
@@ -67,12 +68,12 @@ func (h *BackupHandler) WriteBatch(metrics []metrics.Metrics) error {
 	return h.writer.writer.Flush()
 }
 
-func (h *BackupHandler) Upsert(metric *metrics.Metrics) error {
+func (h *BackupHandler) Upsert(ctx context.Context, metric *metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
 		return fmt.Errorf("error resetting reader: %w", err)
 	}
 
-	existingMetrics, err := h.Read()
+	existingMetrics, err := h.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("error reading metrics: %w", err)
 	}
@@ -97,15 +98,15 @@ func (h *BackupHandler) Upsert(metric *metrics.Metrics) error {
 	}
 	h.writer.writer.Reset(h.writer.file)
 
-	return h.WriteBatch(existingMetrics)
+	return h.WriteBatch(ctx, existingMetrics)
 }
 
-func (h *BackupHandler) UpsertBatch(newMetrics []metrics.Metrics) error {
+func (h *BackupHandler) UpsertBatch(ctx context.Context, newMetrics []metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
 		return fmt.Errorf("error resetting reader: %w", err)
 	}
 
-	existingMetrics, err := h.Read()
+	existingMetrics, err := h.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("error reading metrics: %w", err)
 	}
@@ -132,5 +133,5 @@ func (h *BackupHandler) UpsertBatch(newMetrics []metrics.Metrics) error {
 	}
 	h.writer.writer.Reset(h.writer.file)
 
-	return h.WriteBatch(existingMetrics)
+	return h.WriteBatch(ctx, existingMetrics)
 }

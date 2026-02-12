@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
-	"sys-metrics/internal/context"
+	ctxsrv "sys-metrics/internal/context"
 	models "sys-metrics/internal/model/metrics"
 	svm "sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/service/responsewriter"
@@ -23,12 +24,13 @@ var (
 )
 
 func ValueHandler(w http.ResponseWriter, r *http.Request) {
-	logger := context.LoggerFromContext(r.Context())
+	ctx := r.Context()
+	logger := ctxsrv.LoggerFromContext(ctx)
 	metricType := r.PathValue("type")
 	name := r.PathValue("name")
 	metricType = strings.ToLower(metricType)
 	name = collector.GetMetricType(name)
-	v, err := getMetricFromStorage(metricType, name)
+	v, err := getMetricFromStorage(ctx, metricType, name)
 	if err != nil {
 		writeServerValueError(w, err)
 		return
@@ -55,11 +57,12 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 func ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
+	ctx := r.Context()
 	if err := dec.Decode(&req); err != nil || req.ID == "" || req.MType == "" {
 		responsewriter.WriteNotFound(w)
 		return
 	}
-	v, err := getMetricFromStorage(req.MType, req.ID)
+	v, err := getMetricFromStorage(ctx, req.MType, req.ID)
 	if err != nil {
 		writeServerValueError(w, err)
 		return
@@ -73,16 +76,16 @@ func ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getMetricFromStorage(metricType, name string) (models.Metrics, error) {
+func getMetricFromStorage(ctx context.Context, metricType, name string) (models.Metrics, error) {
 	switch metricType {
 	case common.Counter:
-		v, err := svm.Counters().Get(name)
+		v, err := svm.Counters().Get(ctx, name)
 		if err != nil {
 			return models.Metrics{}, storage.ErrNotFound
 		}
 		return v.Metrics, nil
 	case common.Gauge:
-		v, err := svm.Gauges().Get(name)
+		v, err := svm.Gauges().Get(ctx, name)
 		if err != nil {
 			return models.Metrics{}, storage.ErrNotFound
 		}

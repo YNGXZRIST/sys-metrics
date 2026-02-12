@@ -3,10 +3,8 @@ package router
 import (
 	"net/http"
 	"net/http/httptest"
-	model "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
-	"sys-metrics/pkg/storage"
 	"testing"
 
 	"go.uber.org/zap"
@@ -21,9 +19,7 @@ func TestGetRouter(t *testing.T) {
 }
 
 func TestRoutes(t *testing.T) {
-	counters := storage.NewMemStorage[string, *model.Counter]()
-	gauges := storage.NewMemStorage[string, *model.Gauge]()
-	svc.Init(memory.NewService(counters, gauges))
+	svc.Init(memory.NewService())
 
 	logger, _ := zap.NewDevelopment()
 	router := GetRouter(logger, nil)

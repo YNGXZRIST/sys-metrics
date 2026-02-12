@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"os"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
@@ -107,18 +108,23 @@ func TestWriter_Close(t *testing.T) {
 				t.Fatalf("Failed to create backup config: %v", err)
 			}
 			defer config.Cleanup()
+			storage, err := NewMetricFileBackupStorage(config)
+			if err != nil {
+				t.Fatalf("Failed to create backup storage: %v", err)
+			}
+			defer func() { _ = storage.Reader.Close() }()
 
 			testMetric := &metrics.Metrics{
 				ID:    "test_close",
 				MType: "gauge",
 				Value: func() *float64 { v := 42.0; return &v }(),
 			}
-			err = config.MetricsHandler.Write(testMetric)
+			err = storage.MetricsHandler.Write(context.TODO(), testMetric)
 			if err != nil {
 				t.Fatalf("Failed to write metric: %v", err)
 			}
 
-			if err := config.Writer.Close(); (err != nil) != tt.wantErr {
+			if err := storage.Writer.Close(); (err != nil) != tt.wantErr {
 				t.Errorf("Close() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

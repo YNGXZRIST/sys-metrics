@@ -21,17 +21,19 @@ func NewBackupService(bs *MetricBackupStorage) *BackupService {
 	}
 }
 
-func (s *BackupService) GetAllMetrics() []metrics.Metrics {
+func (s *BackupService) GetAllMetrics(ctx context.Context) []metrics.Metrics {
 	var m []metrics.Metrics
-	for _, counter := range s.BackupStorage.Counters().All() {
+	for _, counter := range s.BackupStorage.Counters().All(ctx) {
 		m = append(m, counter.Metrics)
 	}
-	for _, gauge := range s.BackupStorage.Gauges().All() {
+	for _, gauge := range s.BackupStorage.Gauges().All(ctx) {
 		m = append(m, gauge.Metrics)
 	}
 	return m
 }
-
+func (s *BackupService) Close(ctx context.Context) error {
+	return s.BackupStorage.Close()
+}
 func (s *BackupService) Gauges() metricsiface.MetricStorage[*metrics.Gauge] {
 	return s.BackupStorage.Gauges()
 }
@@ -40,19 +42,19 @@ func (s *BackupService) Counters() metricsiface.MetricStorage[*metrics.Counter] 
 	return s.BackupStorage.Counters()
 }
 
-func (s *BackupService) BackupGauges() metricsiface.BackupMetricStorage[*metrics.Gauge] {
+func (s *BackupService) BackupGauges(ctx context.Context) metricsiface.BackupMetricStorage[*metrics.Gauge] {
 	return s.BackupStorage.Gauges()
 }
 
-func (s *BackupService) BackupCounters() metricsiface.BackupMetricStorage[*metrics.Counter] {
+func (s *BackupService) BackupCounters(ctx context.Context) metricsiface.BackupMetricStorage[*metrics.Counter] {
 	return s.BackupStorage.Counters()
 }
 
-func (s *BackupService) WriteBackup() error {
+func (s *BackupService) WriteBackup(ctx context.Context) error {
 	if err := s.BackupStorage.Reader.Reset(); err != nil {
 		return fmt.Errorf("error writing reset backup: %w", err)
 	}
-	metricsToWrite := s.GetAllMetrics()
+	metricsToWrite := s.GetAllMetrics(ctx)
 	if err := s.BackupStorage.Writer.file.Truncate(0); err != nil {
 		return fmt.Errorf("error writing truncate backup: %w", err)
 	}
@@ -61,10 +63,10 @@ func (s *BackupService) WriteBackup() error {
 	}
 	s.BackupStorage.Writer.writer.Reset(s.BackupStorage.Writer.file)
 
-	return s.BackupStorage.MetricsHandler.WriteBatch(metricsToWrite)
+	return s.BackupStorage.MetricsHandler.WriteBatch(ctx, metricsToWrite)
 }
 
-func (s *BackupService) ReadBackup() error {
+func (s *BackupService) ReadBackup(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -72,7 +74,7 @@ func (s *BackupService) ReadBackup() error {
 		return fmt.Errorf("error writing reset backup: %w", err)
 	}
 
-	metricsData, err := s.BackupStorage.MetricsHandler.Read()
+	metricsData, err := s.BackupStorage.MetricsHandler.Read(ctx)
 	if err != nil {
 		return fmt.Errorf("error writing read backup: %w", err)
 	}
@@ -81,26 +83,26 @@ func (s *BackupService) ReadBackup() error {
 		switch metric.MType {
 		case common.Counter:
 			counter := &metrics.Counter{Metrics: metric}
-			if err := s.BackupStorage.Counters().Set(metric.ID, counter); err != nil {
+			if err := s.BackupStorage.Counters().Set(ctx, metric.ID, counter); err != nil {
 				return fmt.Errorf("error writing counter: %w", err)
 			}
 		case common.Gauge:
 			gauge := &metrics.Gauge{Metrics: metric}
-			if err := s.BackupStorage.Gauges().Set(metric.ID, gauge); err != nil {
+			if err := s.BackupStorage.Gauges().Set(ctx, metric.ID, gauge); err != nil {
 				return fmt.Errorf("error writing gauge: %w", err)
 			}
 		default:
 			continue
 		}
 	}
-
+	fmt.Println(s.BackupStorage.Counters())
 	return nil
 }
 
 func (s *BackupService) InitRoutine(ctx context.Context) error {
 	cfg := s.BackupStorage.Config
 	if cfg.Enabled {
-		if err := s.ReadBackup(); err != nil {
+		if err := s.ReadBackup(ctx); err != nil {
 			return fmt.Errorf("error reading backup: %w", err)
 		}
 	}
@@ -112,7 +114,7 @@ func (s *BackupService) InitRoutine(ctx context.Context) error {
 			case <-ctx.Done():
 				return nil
 			case <-ticker.C:
-				if err := s.WriteBackup(); err != nil {
+				if err := s.WriteBackup(ctx); err != nil {
 					return fmt.Errorf("error writing backup: %w", err)
 				}
 			}

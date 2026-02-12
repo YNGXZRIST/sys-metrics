@@ -10,13 +10,13 @@ import (
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/config/server"
 	lgr "sys-metrics/internal/logger"
-	model "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/file"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
+	"sys-metrics/internal/repository/postgress"
 	"sys-metrics/internal/router"
-	"sys-metrics/pkg/storage"
+	"sys-metrics/migrations"
 
 	"go.uber.org/zap"
 )
@@ -39,54 +39,80 @@ func run(args []string) error {
 	}
 	return nil
 }
-func initStorage(backupConfig *file.Config) metricsiface.ServiceInterface {
-	var service metricsiface.ServiceInterface
+func initLogger(mode string) (*zap.Logger, error) {
+	logger, err := lgr.Initialize(mode, common.TypeServer)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing logger: %w", err)
+	}
+	return logger, nil
+}
+
+func isDSNSet(opt *server.Options) bool {
+	return opt.DNS != ""
+}
+
+func initDB(opt *server.Options) (*db.DB, error) {
+	cfg := db.NewCfg(opt)
+	return db.NewConn(cfg)
+}
+
+func initBackupConfig(opt *server.Options) (*file.Config, error) {
+	return file.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
+}
+
+func isDatabaseConnected(conn *db.DB) bool {
+	return conn != nil && conn.Ping() == nil
+}
+
+func createService(opt *server.Options) (metricsiface.ServiceInterface, *db.DB, *file.Config, bool, error) {
+	if isDSNSet(opt) {
+		err := migrations.Migrate(opt.DNS)
+		if err != nil {
+			return nil, nil, nil, false, fmt.Errorf("error initializing migrations: %w", err)
+		}
+		conn, err := initDB(opt)
+		if err != nil {
+			return nil, nil, nil, false, fmt.Errorf("error initializing db: %w", err)
+		}
+		if isDatabaseConnected(conn) {
+			service := postgress.NewMetricStorage(conn)
+			return service, conn, nil, true, nil
+		}
+	}
+
+	backupConfig, err := initBackupConfig(opt)
+	if err != nil {
+		return nil, nil, nil, false, fmt.Errorf("error initializing backup config: %w", err)
+	}
 	if backupConfig.Enabled {
 		backupStorage, err := file.NewMetricFileBackupStorage(backupConfig)
 		if err != nil {
-			log.Fatal(err)
+			_ = backupConfig.Close()
+			return nil, nil, nil, false, fmt.Errorf("error initializing backup storage: %w", err)
 		}
-		service = file.NewBackupService(backupStorage)
-		metrics.Init(service)
-		if err := service.ReadBackup(); err != nil {
-			log.Printf("warning: failed to restore from backup: %v", err)
-		}
-	} else {
-		counters := storage.NewMemStorage[string, *model.Counter]()
-		gauges := storage.NewMemStorage[string, *model.Gauge]()
-		service = memory.NewService(counters, gauges)
-		metrics.Init(service)
+		service := file.NewBackupService(backupStorage)
+		return service, nil, backupConfig, true, nil
 	}
-	return service
+	return memory.NewService(), nil, nil, false, nil
 }
-func initServer(ctx context.Context, opt *server.Options) error {
-	logger, err := lgr.Initialize(opt.Mode, common.TypeServer)
-	if err != nil {
-		return fmt.Errorf("error initializing logger: %w", err)
-	}
-	defer logger.Sync()
 
-	backupConfig, err := file.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
-	if err != nil {
-		log.Fatal(err)
+func restoreFromBackup(ctx context.Context, service metricsiface.ServiceInterface) {
+	if err := service.ReadBackup(ctx); err != nil {
+		log.Printf("warning: failed to restore from backup: %v", err)
 	}
-	defer backupConfig.Close()
+}
 
-	serviceInterface := initStorage(backupConfig)
+func startBackupRoutine(ctx context.Context, service metricsiface.ServiceInterface, logger *zap.Logger) context.CancelFunc {
 	routineCtx, cancel := context.WithCancel(ctx)
 	go func() {
-		if err := serviceInterface.InitRoutine(routineCtx); err != nil {
+		if err := service.InitRoutine(routineCtx); err != nil {
 			logger.Error("backup routine error", zap.Error(err))
 		}
 	}()
-	defer cancel()
+	return cancel
+}
 
-	conn, err := initDB(opt)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
+func startHTTPServer(opt *server.Options, logger *zap.Logger, backupConfig *file.Config, conn *db.DB) error {
 	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
 	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, conn)); err != nil {
 		return fmt.Errorf("server error: %w", err)
@@ -94,7 +120,31 @@ func initServer(ctx context.Context, opt *server.Options) error {
 	return nil
 }
 
-func initDB(opt *server.Options) (*db.DB, error) {
-	dbConfig := db.NewCfg(opt)
-	return db.NewConn(dbConfig)
+func initServer(ctx context.Context, opt *server.Options) error {
+	logger, err := initLogger(opt.Mode)
+	if err != nil {
+		return err
+	}
+	defer logger.Sync()
+
+	serviceInterface, conn, backupConfigForHTTP, needRestore, err := createService(opt)
+	if err != nil {
+		return err
+	}
+	defer serviceInterface.Close(ctx)
+	if conn != nil {
+		defer conn.Close()
+	}
+	defer backupConfigForHTTP.Close()
+
+	defer backupConfigForHTTP.Close()
+	metrics.Init(serviceInterface)
+	if needRestore {
+		restoreFromBackup(ctx, serviceInterface)
+	}
+
+	cancel := startBackupRoutine(ctx, serviceInterface, logger)
+	defer cancel()
+
+	return startHTTPServer(opt, logger, backupConfigForHTTP, conn)
 }
