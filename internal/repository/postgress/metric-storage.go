@@ -46,35 +46,38 @@ func (s *MetricStorage) Counters() metricsiface.MetricStorage[*metrics.Counter] 
 }
 
 func (s *MetricStorage) ReadBackup(ctx context.Context) error {
-	rows, err := s.Config.conn.QueryContext(ctx, "SELECT * from metrics")
+	allMetrics, err := s.Config.handler.Read(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("read metrics from db: %w", err)
 	}
-	for rows.Next() {
-		var metric metrics.Metrics
-		err = rows.Scan(metric)
-		if err != nil {
-			return fmt.Errorf("failed to scan metrics: %v", err)
-		}
-		switch metric.MType {
+	for _, v := range allMetrics {
+		var err error
+		switch v.MType {
 		case common.Gauge:
-			gauge := metrics.NewGauge(metric.ID)
-			gauge.SetValue(*metric.Value)
+			gauge := metrics.NewGauge(v.ID)
+			gauge.SetValue(*v.Value)
+			err = s.Gauges().Set(ctx, v.ID, gauge)
 		case common.Counter:
-			counter := metrics.NewCounter(metric.ID)
-			counter.SetValue(*metric.Delta)
-			err := s.Counters().Set(ctx, metric.ID, counter)
-			if err != nil {
-				return fmt.Errorf("metric error '%s': %w", metric.ID, err)
-			}
+			counter := metrics.NewCounter(v.ID)
+			counter.SetValue(*v.Delta)
+			err = s.Counters().Set(ctx, v.ID, counter)
+		default:
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("set metrics error: %w", err)
 		}
 	}
-	//TODO implement me
+	s.Config.initialized = true
 	return nil
 }
 
 func (s *MetricStorage) WriteBackup(ctx context.Context) error {
-	//TODO implement me
+	allMetrics := s.GetAllMetrics(ctx)
+	err := s.Config.handler.WriteBatch(ctx, allMetrics)
+	if err != nil {
+		return fmt.Errorf("write metrics backup error: %w", err)
+	}
 	return nil
 }
 

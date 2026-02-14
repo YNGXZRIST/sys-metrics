@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	handler metricsiface.Handler
-	conn    *db.DB
+	handler     metricsiface.Handler
+	conn        *db.DB
+	initialized bool
 }
 
 func NewConfig(dbConn *db.DB) *Config {
@@ -16,5 +17,5 @@ func NewConfig(dbConn *db.DB) *Config {
 }
 
 func (c *Config) NeedSync() bool {
-	return true
+	return c.initialized
 }
