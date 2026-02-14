@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"fmt"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/storage"
 )
@@ -27,13 +28,14 @@ func (s *Service) Close(ctx context.Context) error {
 func (s *Service) GetAllMetrics(ctx context.Context) []metrics.Metrics {
 	counters := s.counters.All(ctx)
 	gauges := s.gauges.All(ctx)
-	var m = make([]metrics.Metrics, len(counters)+len(gauges))
+	var m = make([]metrics.Metrics, 0, len(counters)+len(gauges))
 	for _, counter := range counters {
 		m = append(m, counter.Metrics)
 	}
 	for _, gauge := range gauges {
 		m = append(m, gauge.Metrics)
 	}
+	fmt.Println("m", m)
 	return m
 }
 func (s *Service) Gauges() metricsiface.MetricStorage[*metrics.Gauge] {
