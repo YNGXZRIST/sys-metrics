@@ -95,7 +95,6 @@ func (s *BackupService) ReadBackup(ctx context.Context) error {
 			continue
 		}
 	}
-	fmt.Println(s.BackupStorage.Counters())
 	return nil
 }
 
