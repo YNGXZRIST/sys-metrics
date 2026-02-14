@@ -22,11 +22,13 @@ func NewBackupService(bs *MetricBackupStorage) *BackupService {
 }
 
 func (s *BackupService) GetAllMetrics(ctx context.Context) []metrics.Metrics {
-	var m []metrics.Metrics
-	for _, counter := range s.BackupStorage.Counters().All(ctx) {
+	counters := s.BackupStorage.Counters().All(ctx)
+	gauges := s.BackupStorage.Gauges().All(ctx)
+	var m = make([]metrics.Metrics, len(counters)+len(gauges))
+	for _, counter := range counters {
 		m = append(m, counter.Metrics)
 	}
-	for _, gauge := range s.BackupStorage.Gauges().All(ctx) {
+	for _, gauge := range gauges {
 		m = append(m, gauge.Metrics)
 	}
 	return m
