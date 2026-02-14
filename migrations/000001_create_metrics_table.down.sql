@@ -1,3 +1,3 @@
 DROP INDEX IF EXISTS idx_metrics_mtype;
-DROP INDEX IF EXISTS idx_metrics_id;
+DROP INDEX IF EXISTS idx_metrics_name;
 DROP TABLE IF EXISTS metrics;
