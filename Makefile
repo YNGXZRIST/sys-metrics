@@ -162,7 +162,7 @@ iter10: build check-metricstest ## Автотесты итерации 10
 	ADDRESS="localhost:$$SERVER_PORT"; \
 	TEMP_FILE=$$(mktemp); \
 	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
-	$(METRICSTEST) -test.v -test.run='^TestIteration9$$' \
+	$(METRICSTEST) -test.v -test.run='^TestIteration10$$' \
 		-agent-binary-path=$(AGENT_BINARY) \
 		-binary-path=$(SERVER_BINARY) \
 		-server-port=$$SERVER_PORT \
@@ -170,7 +170,22 @@ iter10: build check-metricstest ## Автотесты итерации 10
 		-file-storage-path=./backup \
 		-source-path=.; \
 	rm -f $$TEMP_FILE
-	@echo "$(GREEN)✅ Iteration 9 passed!$(NC)"
+	@echo "$(GREEN)✅ Iteration 10 passed!$(NC)"
+iter11: build check-metricstest ## Автотесты итерации 11
+	@echo "$(GREEN)Running iteration 11 tests...$(NC)"
+	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
+	ADDRESS="localhost:$$SERVER_PORT"; \
+	TEMP_FILE=$$(mktemp); \
+	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	$(METRICSTEST) -test.v -test.run='^TestIteration11$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=$$SERVER_PORT \
+		 -database-dsn='***postgres:5432/postgres?sslmode=disable' \
+		-file-storage-path=./backup \
+		-source-path=.; \
+	rm -f $$TEMP_FILE
+	@echo "$(GREEN)✅ Iteration 11 passed!$(NC)"
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
 	gofmt -w .
