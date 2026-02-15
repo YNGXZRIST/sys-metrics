@@ -29,6 +29,9 @@ func GetService() metricsiface.ServiceInterface {
 func GetAllMetrics(ctx context.Context) []metrics.Metrics {
 	return defaultService.GetAllMetrics(ctx)
 }
+func WriteBatchMetrics(ctx context.Context, metrics []metrics.Metrics) error {
+	return defaultService.WriteBatchMetrics(ctx, metrics)
+}
 
 type BackupStorage struct {
 	counters       *s.MemStorage[string, *metrics.Counter]

@@ -14,6 +14,7 @@ type ServiceInterface interface {
 	WriteBackup(ctx context.Context) error
 	InitRoutine(ctx context.Context) error
 	Close(ctx context.Context) error
+	WriteBatchMetrics(ctx context.Context, m []metrics.Metrics) error
 }
 
 type MetricStorage[V any] interface {

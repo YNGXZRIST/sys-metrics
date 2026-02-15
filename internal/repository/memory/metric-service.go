@@ -3,14 +3,39 @@ package memory
 import (
 	"context"
 	"fmt"
-	"sys-metrics/internal/model/metrics"
+	"sync"
+	"sys-metrics/internal/common"
+	models "sys-metrics/internal/model/metrics"
+	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/pkg/storage"
 )
 import "sys-metrics/internal/repository/metricsiface"
 
 type Service struct {
-	counters metricsiface.MetricStorage[*metrics.Counter]
-	gauges   metricsiface.MetricStorage[*metrics.Gauge]
+	counters metricsiface.MetricStorage[*models.Counter]
+	gauges   metricsiface.MetricStorage[*models.Gauge]
+	mu       sync.Mutex
+}
+
+func (s *Service) WriteBatchMetrics(ctx context.Context, m []models.Metrics) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	snapshot := s.GetAllMetricsLocked(ctx)
+	for _, v := range m {
+		var err error
+		switch v.MType {
+		case common.Gauge:
+			err = s.Gauges().Set(ctx, v.ID, &models.Gauge{Metrics: v})
+		case common.Counter:
+			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
+		}
+		if err != nil {
+			metrics.RollbackMemory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+			return fmt.Errorf("write metrics %v error: %w", v.MType, err)
+
+		}
+	}
+	return nil
 }
 
 func (s *Service) InitRoutine(ctx context.Context) error {
@@ -18,31 +43,36 @@ func (s *Service) InitRoutine(ctx context.Context) error {
 }
 
 func NewService() *Service {
-	counters := storage.NewMemStorage[string, *metrics.Counter]()
-	gauges := storage.NewMemStorage[string, *metrics.Gauge]()
+	counters := storage.NewMemStorage[string, *models.Counter]()
+	gauges := storage.NewMemStorage[string, *models.Gauge]()
 	return &Service{counters: counters, gauges: gauges}
 }
 func (s *Service) Close(ctx context.Context) error {
 	return nil
 }
-func (s *Service) GetAllMetrics(ctx context.Context) []metrics.Metrics {
+func (s *Service) GetAllMetricsLocked(ctx context.Context) []models.Metrics {
 	counters := s.counters.All(ctx)
 	gauges := s.gauges.All(ctx)
-	var m = make([]metrics.Metrics, 0, len(counters)+len(gauges))
+	var m = make([]models.Metrics, 0, len(counters)+len(gauges))
 	for _, counter := range counters {
 		m = append(m, counter.Metrics)
 	}
 	for _, gauge := range gauges {
 		m = append(m, gauge.Metrics)
 	}
-	fmt.Println("m", m)
 	return m
 }
-func (s *Service) Gauges() metricsiface.MetricStorage[*metrics.Gauge] {
+func (s *Service) GetAllMetrics(ctx context.Context) []models.Metrics {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	m := s.GetAllMetricsLocked(ctx)
+	return m
+}
+func (s *Service) Gauges() metricsiface.MetricStorage[*models.Gauge] {
 	return s.gauges
 }
 
-func (s *Service) Counters() metricsiface.MetricStorage[*metrics.Counter] {
+func (s *Service) Counters() metricsiface.MetricStorage[*models.Counter] {
 	return s.counters
 }
 
