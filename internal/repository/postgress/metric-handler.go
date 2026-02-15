@@ -126,8 +126,8 @@ func (h *Handler) WriteBatch(ctx context.Context, metrics []metrics.Metrics) err
 			" ON CONFLICT (name) DO UPDATE SET mtype = EXCLUDED.mtype, delta = EXCLUDED.delta, value = EXCLUDED.value, hash = EXCLUDED.hash"
 		_, err := tx.ExecContext(ctx, sqlQuery, args...)
 		if err != nil {
-			err := tx.Rollback()
-			if err != nil {
+			errRollback := tx.Rollback()
+			if errRollback != nil {
 				return fmt.Errorf("rollback transaction: %w", err)
 			}
 			return fmt.Errorf("batch upsert: %w", err)
