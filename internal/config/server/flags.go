@@ -39,7 +39,7 @@ func parseArgs(args []string) (*Options, error) {
 	flags.StringVar(&opt.DNS, "d", "", "Database DSN for backup storage")
 	opt.StoreInterval = time.Duration(intervalSec) * time.Second
 	flags.StringVar(&opt.BackupStoragePath, "f", "./backups", "Backup storage path")
-	flags.BoolVar(&opt.Restore, "restore", true, "Restore backups")
+	flags.BoolVar(&opt.Restore, "r", true, "Restore backups")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
