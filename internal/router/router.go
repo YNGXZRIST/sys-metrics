@@ -24,6 +24,7 @@ func GetRouter(logger *zap.Logger, conn *db.DB) *chi.Mux {
 		gr.Post("/update", handler.UpdateHandlerJSON)
 		gr.Post("/value/", handler.ValueHandlerJSON)
 		gr.Post("/update/", handler.UpdateHandlerJSON)
+		gr.Post("/updates", handler.UpdatesMetricsHandlerJSON)
 		gr.Post("/updates/", handler.UpdatesMetricsHandlerJSON)
 	})
 	r.Post("/update/{type}/{name}/{value}", handler.UpdateHandler)
