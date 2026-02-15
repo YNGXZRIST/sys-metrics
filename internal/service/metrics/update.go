@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strconv"
 	"sys-metrics/internal/common"
-	"sys-metrics/internal/model/metrics"
-	metrics2 "sys-metrics/internal/repository/metrics"
-	"sys-metrics/pkg/storage"
+	models "sys-metrics/internal/model/metrics"
+	storage "sys-metrics/internal/repository/metrics"
+	mem "sys-metrics/pkg/storage"
 )
 
 func Update(ctx context.Context, metricType, name, value string) error {
@@ -31,10 +31,10 @@ func Update(ctx context.Context, metricType, name, value string) error {
 }
 
 func updateCounter(ctx context.Context, name string, value int64) error {
-	repo := metrics2.Counters()
+	repo := storage.Counters()
 	counter, err := repo.Get(ctx, name)
-	if errors.Is(err, storage.ErrNotFound) {
-		counter = metrics.NewCounter(name)
+	if errors.Is(err, mem.ErrNotFound) {
+		counter = models.NewCounter(name)
 	} else if err != nil {
 		return fmt.Errorf("repository error: %w", err)
 	}
@@ -47,15 +47,25 @@ func updateCounter(ctx context.Context, name string, value int64) error {
 }
 
 func updateGauge(ctx context.Context, name string, value float64) error {
-	repo := metrics2.Gauges()
+	repo := storage.Gauges()
 	gauge, err := repo.Get(ctx, name)
 	if err != nil {
-		gauge = metrics.NewGauge(name)
+		gauge = models.NewGauge(name)
 	}
 	gauge.SetValue(value)
 	err = repo.Set(ctx, name, gauge)
 	if err != nil {
 		return fmt.Errorf("repository error set gauge: %w", err)
+	}
+	return nil
+}
+func BatchUpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+	err := storage.WriteBatchMetrics(ctx, metrics)
+	if err != nil {
+		return fmt.Errorf("write batch metrics: %w", err)
 	}
 	return nil
 }

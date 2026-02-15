@@ -84,7 +84,7 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 
 }
 func UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Request) {
-	var req []*models.Metrics
+	var req []models.Metrics
 	ctx := r.Context()
 	logger := context.LoggerFromContext(ctx)
 	dec := json.NewDecoder(r.Body)
@@ -94,5 +94,12 @@ func UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger.Info("UpdatesMetricsHandlerJSON", zap.Any("req", req))
+	err := serviceMetrics.BatchUpdateMetrics(ctx, req)
+	if err != nil {
+		logger.Warn("UpdatesMetricsHandlerJSON got error", zap.Error(err))
+		responsewriter.WriteServerError(w)
+		return
+	}
+	responsewriter.WriteSuccessStatus(w)
 
 }
