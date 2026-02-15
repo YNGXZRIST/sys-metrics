@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
+	"sys-metrics/internal/errors/labelerrors"
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
@@ -26,7 +27,7 @@ func (s *MetricStorage) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	byID, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-		return fmt.Errorf("write metrics: %w", err)
+		return labelerrors.NewLabelError("DB STORAGE", fmt.Errorf("failed to rollback: %w", err))
 	}
 	updateMetrics := make([]models.Metrics, 0, len(byID))
 	for _, v := range byID {
@@ -35,7 +36,7 @@ func (s *MetricStorage) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	err = s.Config.handler.WriteBatch(ctx, updateMetrics)
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
-		return fmt.Errorf("write metrics backup error: %w", err)
+		return labelerrors.NewLabelError("DB STORAGE", fmt.Errorf("failed to commit: %w", err))
 	}
 	return nil
 }
@@ -82,7 +83,7 @@ func (s *MetricStorage) ReadBackup(ctx context.Context) error {
 	defer s.mu.Unlock()
 	allMetrics, err := s.Config.handler.Read(ctx)
 	if err != nil {
-		return fmt.Errorf("read metrics from db: %w", err)
+		return labelerrors.NewLabelError("DB STORAGE", fmt.Errorf("failed to read metrics: %w", err))
 	}
 	for _, v := range allMetrics {
 		var err error
@@ -99,7 +100,7 @@ func (s *MetricStorage) ReadBackup(ctx context.Context) error {
 			continue
 		}
 		if err != nil {
-			return fmt.Errorf("set metrics error: %w", err)
+			return labelerrors.NewLabelError("DB STORAGE", fmt.Errorf("failed to set metrics: %w", err))
 		}
 	}
 	s.Config.initialized = true
@@ -111,7 +112,7 @@ func (s *MetricStorage) WriteBackup(ctx context.Context) error {
 	allMetrics := s.GetAllMetricsLocked(ctx)
 	err := s.Config.handler.WriteBatch(ctx, allMetrics)
 	if err != nil {
-		return fmt.Errorf("write metrics backup error: %w", err)
+		return labelerrors.NewLabelError("DB STORAGE", fmt.Errorf("failed to batch: %w", err))
 	}
 	return nil
 }

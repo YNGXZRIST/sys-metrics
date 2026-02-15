@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 
 	"go.uber.org/zap"
 )
@@ -22,7 +23,7 @@ func Initialize(mode, cmdType string) (*zap.Logger, error) {
 		err = errors.New("invalid mode")
 	}
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("LOGGER", err)
 	}
 
 	return log, nil

@@ -10,6 +10,7 @@ import (
 	"sys-metrics/internal/common"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
+	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
 	"syscall"
 
@@ -41,7 +42,7 @@ func main() {
 func initAgent(opt *config.Options) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
-		return nil, fmt.Errorf("could not initialize logger: %w", err)
+		return nil, labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("error initializing logger: %w", err))
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
 	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)

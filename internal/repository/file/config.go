@@ -1,9 +1,11 @@
 package file
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
 	"time"
 
@@ -23,20 +25,20 @@ type Config struct {
 func NewConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*Config, error) {
 	logger, err := lgr.Initialize(mode, common.TypeBackups)
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("FILE", fmt.Errorf("failed to initialize logger: %w", err))
 	}
 
 	var filePath string
 	if mode == common.TypeModeTest {
 		tmpDir, err := os.MkdirTemp("", "backups_test_dir_*")
 		if err != nil {
-			return nil, err
+			return nil, labelerrors.NewLabelError("FILE", fmt.Errorf("failed to create temp dir: %w", err))
 		}
 		storagePath = tmpDir
 		tmpFile, err := os.CreateTemp(storagePath, "backups_test_*.metrics")
 		if err != nil {
 			_ = os.RemoveAll(tmpDir)
-			return nil, err
+			return nil, labelerrors.NewLabelError("FILE", fmt.Errorf("cannot create temp backups.metrics file: %w", err))
 		}
 		filePath = tmpFile.Name()
 		_ = tmpFile.Close()
@@ -44,7 +46,7 @@ func NewConfig(mode string, storagePath string, interval time.Duration, enabled 
 		filePath = path.Join(storagePath, DefaultFileName)
 	}
 	if err := os.MkdirAll(storagePath, os.ModePerm); err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("FILE", fmt.Errorf("failed to create storage path: %w", err))
 	}
 
 	return &Config{

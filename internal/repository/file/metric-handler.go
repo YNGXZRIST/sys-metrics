@@ -27,7 +27,7 @@ func (h *BackupHandler) Read(ctx context.Context) ([]metrics.Metrics, error) {
 		if len(line) > 0 {
 			metric := metrics.Metrics{}
 			if err := json.Unmarshal([]byte(line), &metric); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to unmarshal metric line: %w", err)
 			}
 			m = append(m, metric)
 		}
@@ -49,7 +49,7 @@ func (h *BackupHandler) Write(ctx context.Context, metric *metrics.Metrics) erro
 
 	_, err = h.writer.writer.Write(data)
 	if err != nil {
-		return fmt.Errorf("error writing metrics: %w", err)
+		return fmt.Errorf("failed to write metrics: %w", err)
 	}
 	return h.writer.writer.Flush()
 }
@@ -62,7 +62,7 @@ func (h *BackupHandler) WriteBatch(ctx context.Context, metrics []metrics.Metric
 		}
 		data = append(data, '\n')
 		if _, err := h.writer.writer.Write(data); err != nil {
-			return fmt.Errorf("error writing metrics: %w", err)
+			return fmt.Errorf("failed to write metrics: %w", err)
 		}
 	}
 	return h.writer.writer.Flush()
@@ -70,12 +70,12 @@ func (h *BackupHandler) WriteBatch(ctx context.Context, metrics []metrics.Metric
 
 func (h *BackupHandler) Upsert(ctx context.Context, metric *metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
-		return fmt.Errorf("error resetting reader: %w", err)
+		return fmt.Errorf("failed to reset metrics: %w", err)
 	}
 
 	existingMetrics, err := h.Read(ctx)
 	if err != nil {
-		return fmt.Errorf("error reading metrics: %w", err)
+		return fmt.Errorf("failed to read metrics: %w", err)
 	}
 
 	found := false
@@ -91,10 +91,10 @@ func (h *BackupHandler) Upsert(ctx context.Context, metric *metrics.Metrics) err
 	}
 
 	if err := h.writer.file.Truncate(0); err != nil {
-		return fmt.Errorf("error truncating file: %w", err)
+		return fmt.Errorf("failed to truncate metrics: %w", err)
 	}
 	if _, err := h.writer.file.Seek(0, 0); err != nil {
-		return fmt.Errorf("error seeking file: %w", err)
+		return fmt.Errorf("failed to seek metrics: %w", err)
 	}
 	h.writer.writer.Reset(h.writer.file)
 
@@ -103,12 +103,12 @@ func (h *BackupHandler) Upsert(ctx context.Context, metric *metrics.Metrics) err
 
 func (h *BackupHandler) UpsertBatch(ctx context.Context, newMetrics []metrics.Metrics) error {
 	if err := h.reader.Reset(); err != nil {
-		return fmt.Errorf("error resetting reader: %w", err)
+		return fmt.Errorf("failed to reset metrics: %w", err)
 	}
 
 	existingMetrics, err := h.Read(ctx)
 	if err != nil {
-		return fmt.Errorf("error reading metrics: %w", err)
+		return fmt.Errorf("error reading from reader: %w", err)
 	}
 
 	metricsMap := make(map[string]int)
@@ -126,10 +126,10 @@ func (h *BackupHandler) UpsertBatch(ctx context.Context, newMetrics []metrics.Me
 	}
 
 	if err := h.writer.file.Truncate(0); err != nil {
-		return fmt.Errorf("error truncating file: %w", err)
+		return fmt.Errorf("failed to truncate metrics: %w", err)
 	}
 	if _, err := h.writer.file.Seek(0, 0); err != nil {
-		return fmt.Errorf("error seeking file: %w", err)
+		return fmt.Errorf("failed to seek metrics: %w", err)
 	}
 	h.writer.writer.Reset(h.writer.file)
 

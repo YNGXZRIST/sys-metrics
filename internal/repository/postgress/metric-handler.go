@@ -105,7 +105,7 @@ func (h *Handler) WriteBatch(ctx context.Context, metrics []metrics.Metrics) err
 	}
 	tx, err := h.dbConn.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	for i := 0; i < len(metrics); i += batchSize {
 		end := i + batchSize
@@ -128,9 +128,9 @@ func (h *Handler) WriteBatch(ctx context.Context, metrics []metrics.Metrics) err
 		if err != nil {
 			errRollback := tx.Rollback()
 			if errRollback != nil {
-				return fmt.Errorf("rollback transaction: %w", err)
+				return fmt.Errorf("failed to rollback: %w", err)
 			}
-			return fmt.Errorf("batch upsert: %w", err)
+			return fmt.Errorf("failed to exec batch: %w", err)
 		}
 	}
 	return tx.Commit()

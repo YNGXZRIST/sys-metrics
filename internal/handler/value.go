@@ -11,6 +11,8 @@ import (
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
 	ctxsrv "sys-metrics/internal/context"
+	"sys-metrics/internal/errors/labelerrors"
+	"sys-metrics/internal/errors/timeerrors"
 	models "sys-metrics/internal/model/metrics"
 	svm "sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/service/responsewriter"
@@ -32,6 +34,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	name = collector.GetMetricType(name)
 	v, err := getMetricFromStorage(ctx, metricType, name)
 	if err != nil {
+		logger.Error("Failed to get metric", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
 		writeServerValueError(w, err)
 		return
 	}
@@ -49,7 +52,7 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write([]byte(writtenValue))
 	if err != nil {
-		logger.Warn("Failed to write response", zap.Error(err))
+		logger.Error("Failed to write response", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
 		return
 	}
 }
@@ -81,17 +84,17 @@ func getMetricFromStorage(ctx context.Context, metricType, name string) (models.
 	case common.Counter:
 		v, err := svm.Counters().Get(ctx, name)
 		if err != nil {
-			return models.Metrics{}, storage.ErrNotFound
+			return models.Metrics{}, labelerrors.NewLabelError("COUNTER", storage.ErrNotFound)
 		}
 		return v.Metrics, nil
 	case common.Gauge:
 		v, err := svm.Gauges().Get(ctx, name)
 		if err != nil {
-			return models.Metrics{}, storage.ErrNotFound
+			return models.Metrics{}, labelerrors.NewLabelError("GAUGE", storage.ErrNotFound)
 		}
 		return v.Metrics, nil
 	default:
-		return models.Metrics{}, ErrUnknownMetricType
+		return models.Metrics{}, labelerrors.NewLabelError("UNKNOWN", storage.ErrNotFound)
 	}
 }
 func writeServerValueError(w http.ResponseWriter, err error) {

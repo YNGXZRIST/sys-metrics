@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sys-metrics/internal/errors/labelerrors"
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/rollback"
@@ -24,7 +25,7 @@ func (s *Service) WriteBatchMetrics(ctx context.Context, m []models.Metrics) err
 	_, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-		return fmt.Errorf("write metrics: %w", err)
+		return labelerrors.NewLabelError("MEMORY", fmt.Errorf("failed to write batch: %w", err))
 	}
 	return nil
 }

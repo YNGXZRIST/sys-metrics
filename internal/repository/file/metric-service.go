@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/rollback"
@@ -24,7 +25,7 @@ func (s *BackupService) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	byID, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-		return fmt.Errorf("write memory metrics: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to apply batch: %w", err))
 	}
 	updateMetrics := make([]models.Metrics, 0, len(byID))
 	for _, v := range byID {
@@ -33,7 +34,7 @@ func (s *BackupService) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	err = s.WriteBackupLocked(ctx)
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
-		return fmt.Errorf("write backup metrics %v error: %w", updateMetrics, err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to write batch: %w", err))
 	}
 	return nil
 }
@@ -83,14 +84,14 @@ func (s *BackupService) BackupCounters(ctx context.Context) metricsiface.BackupM
 }
 func (s *BackupService) WriteBackupLocked(ctx context.Context) error {
 	if err := s.BackupStorage.Reader.Reset(); err != nil {
-		return fmt.Errorf("error writing reset backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to reset metrics: %w", err))
 	}
 	metricsToWrite := s.GetAllMetricsLocked(ctx)
 	if err := s.BackupStorage.Writer.file.Truncate(0); err != nil {
-		return fmt.Errorf("error writing truncate backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to truncate file: %w", err))
 	}
 	if _, err := s.BackupStorage.Writer.file.Seek(0, 0); err != nil {
-		return fmt.Errorf("error writing seek backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to seek file: %w", err))
 	}
 	s.BackupStorage.Writer.writer.Reset(s.BackupStorage.Writer.file)
 
@@ -107,12 +108,12 @@ func (s *BackupService) ReadBackup(ctx context.Context) error {
 	defer s.mu.Unlock()
 
 	if err := s.BackupStorage.Reader.Reset(); err != nil {
-		return fmt.Errorf("error writing reset backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to reset metrics: %w", err))
 	}
 
 	metricsData, err := s.BackupStorage.MetricsHandler.Read(ctx)
 	if err != nil {
-		return fmt.Errorf("error writing read backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to read metrics: %w", err))
 	}
 
 	for _, metric := range metricsData {
@@ -120,12 +121,12 @@ func (s *BackupService) ReadBackup(ctx context.Context) error {
 		case common.Counter:
 			counter := &models.Counter{Metrics: metric}
 			if err := s.BackupStorage.Counters().Set(ctx, metric.ID, counter); err != nil {
-				return fmt.Errorf("error writing counter: %w", err)
+				return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to write metric: %w", err))
 			}
 		case common.Gauge:
 			gauge := &models.Gauge{Metrics: metric}
 			if err := s.BackupStorage.Gauges().Set(ctx, metric.ID, gauge); err != nil {
-				return fmt.Errorf("error writing gauge: %w", err)
+				return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to write metric: %w", err))
 			}
 		default:
 			continue
@@ -138,7 +139,7 @@ func (s *BackupService) InitRoutine(ctx context.Context) error {
 	cfg := s.BackupStorage.Config
 	if cfg.Enabled {
 		if err := s.ReadBackup(ctx); err != nil {
-			return fmt.Errorf("error reading backup: %w", err)
+			return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to read metrics: %w", err))
 		}
 	}
 	if !cfg.NeedSync() {
@@ -150,7 +151,7 @@ func (s *BackupService) InitRoutine(ctx context.Context) error {
 				return nil
 			case <-ticker.C:
 				if err := s.WriteBackup(ctx); err != nil {
-					return fmt.Errorf("error writing backup: %w", err)
+					return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to write metrics: %w", err))
 				}
 			}
 		}

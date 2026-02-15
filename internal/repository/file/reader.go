@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sys-metrics/internal/errors/labelerrors"
 )
 
 type Reader struct {
@@ -14,7 +15,7 @@ type Reader struct {
 func NewBackupReader(filename string) (*Reader, error) {
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to open file: %w", err))
 	}
 	return &Reader{
 		file:   file,
@@ -24,7 +25,7 @@ func NewBackupReader(filename string) (*Reader, error) {
 func (r *Reader) Reset() error {
 	_, err := r.file.Seek(0, 0)
 	if err != nil {
-		return fmt.Errorf("error reset file backup: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to reset file: %w", err))
 	}
 	r.Reader.Reset(r.file)
 	return nil

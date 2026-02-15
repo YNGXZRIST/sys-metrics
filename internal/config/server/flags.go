@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
+	"sys-metrics/internal/errors/labelerrors"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -70,15 +71,15 @@ func (opt *Options) parseEnv() error {
 func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("ARGS", fmt.Errorf("error parsing args: %w", err))
 	}
 	err = opt.parseEnv()
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("ENV", fmt.Errorf("error parsing env: %w", err))
 	}
 	err = config.ValidateMode(opt.Mode)
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("MODE", fmt.Errorf("error validation mode: %w", err))
 	}
 	return opt, nil
 }

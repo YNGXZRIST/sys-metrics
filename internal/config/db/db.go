@@ -6,6 +6,7 @@ import (
 	"fmt"
 	db "sys-metrics/internal/config/db/internal"
 	"sys-metrics/internal/config/server"
+	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/pgerrors"
 	"time"
 
@@ -30,12 +31,12 @@ func NewCfg(opt *server.Options) *db.Config {
 }
 func NewConn(cfg *db.Config) (*DB, error) {
 	if cfg == nil || cfg.DNS == "" {
-		return nil, fmt.Errorf("database DSN is not set")
+		return nil, labelerrors.NewLabelError("DB", fmt.Errorf("database DSN is not set"))
 	}
 	dsn := cfg.DNS
 	conn, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database: %w", err)
+		return nil, labelerrors.NewLabelError("DB", fmt.Errorf("error connecting to database: %w", err))
 	}
 	return &DB{DB: conn, Config: cfg}, nil
 }
@@ -52,7 +53,7 @@ func runWithRetry[T any](ctx context.Context, op func() (T, error)) (T, error) {
 			return lastRes, nil
 		}
 		if classifier.Classify(lastErr) == pgerrors.NonRetriable {
-			return zero, lastErr
+			return zero, labelerrors.NewLabelError("DB", pgerrors.NewPgError(lastErr))
 		}
 		select {
 		case <-ctx.Done():
@@ -60,6 +61,9 @@ func runWithRetry[T any](ctx context.Context, op func() (T, error)) (T, error) {
 		case <-time.After(time.Duration(sleepSeconds) * time.Second):
 			sleepSeconds += 2
 		}
+	}
+	if lastErr != nil {
+		lastErr = labelerrors.NewLabelError("DB", pgerrors.NewPgError(lastErr))
 	}
 	return lastRes, lastErr
 }

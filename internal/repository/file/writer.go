@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sys-metrics/internal/errors/labelerrors"
 )
 
 type Writer struct {
@@ -14,7 +15,7 @@ type Writer struct {
 func newBackupWriter(filename string) (*Writer, error) {
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to open backup file: %w", err))
 	}
 	return &Writer{
 		file:   file,
@@ -23,7 +24,7 @@ func newBackupWriter(filename string) (*Writer, error) {
 }
 func (w *Writer) Close() error {
 	if err := w.writer.Flush(); err != nil {
-		return fmt.Errorf("error flushing writer: %w", err)
+		return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to flush writer: %w", err))
 	}
 	return w.file.Close()
 }

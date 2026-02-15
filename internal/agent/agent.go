@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"sys-metrics/internal/config/agent"
+	"sys-metrics/internal/errors/labelerrors"
+	"sys-metrics/internal/errors/timeerrors"
 	"time"
 
 	"go.uber.org/zap"
@@ -61,7 +63,7 @@ func (a *Agent) Report() error {
 	defer a.mu.Unlock()
 	err := a.reporter.Send(a.collector)
 	if err != nil {
-		return fmt.Errorf("reporter send error: %w", err)
+		return timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
 	}
 	a.collector.ResetPollMetric()
 	return nil

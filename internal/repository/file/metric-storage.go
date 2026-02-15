@@ -1,8 +1,8 @@
 package file
 
 import (
-	"errors"
 	"fmt"
+	"sys-metrics/internal/errors/labelerrors"
 	m "sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 )
@@ -17,17 +17,17 @@ type MetricBackupStorage struct {
 
 func NewMetricFileBackupStorage(config *Config) (*MetricBackupStorage, error) {
 	if config == nil {
-		return nil, errors.New("config is nil")
+		return nil, labelerrors.NewLabelError("BACKUP", fmt.Errorf("config is nil"))
 	}
 	filePath := config.getBackupFilename()
 	writer, err := newBackupWriter(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("new backup writer: %w", err)
+		return nil, labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to create backup writer: %w", err))
 	}
 	reader, err := NewBackupReader(filePath)
 	if err != nil {
 		_ = writer.Close()
-		return nil, fmt.Errorf("new backup reader: %w", err)
+		return nil, labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to create backup reader: %w", err))
 	}
 	handler := NewFileMetricsBackupHandler(reader, writer)
 	backupStorage := m.NewBackupStorage(config, handler)
@@ -51,7 +51,7 @@ func (s *MetricBackupStorage) Close() error {
 	}
 	if err := s.Reader.Close(); err != nil {
 		if errs != nil {
-			return fmt.Errorf("multiple errors: %v; %v", errs, err)
+			return labelerrors.NewLabelError("BACKUP", fmt.Errorf("failed to close reader: %w", err))
 		}
 		errs = err
 	}

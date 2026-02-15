@@ -29,7 +29,7 @@ func ApplyCounter(
 			c.SetValue(*v.Delta)
 		}
 		if err := counters.Set(ctx, v.ID, c); err != nil {
-			return zero, fmt.Errorf("write metrics %v: %w", v.MType, err)
+			return zero, fmt.Errorf("failed to batch counter %s: %w", v.ID, err)
 		}
 		current, _ := counters.Get(ctx, v.ID)
 		if current != nil {
@@ -58,7 +58,7 @@ func ApplyBatchToStorages(
 		switch v.MType {
 		case common.Gauge:
 			if err := ApplyGauge(ctx, v, gauges); err != nil {
-				return nil, fmt.Errorf("write metrics %v: %w", v.MType, err)
+				return nil, fmt.Errorf("failed to batch gauge %s: %w", v.ID, err)
 			}
 			byID[v.ID] = v
 		case common.Counter:

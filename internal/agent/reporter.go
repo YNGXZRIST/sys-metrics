@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/httpcompressor"
 
@@ -37,13 +38,13 @@ func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
 		err := r.sendMetricToServer(m.Metrics)
 		if err != nil {
-			return fmt.Errorf("error send gauge metric to server: %w", err)
+			return labelerrors.NewLabelError("SEND METRIC", fmt.Errorf("error send gauge metric to server:: %w", err))
 		}
 	}
 	for _, m := range c.Counters {
 		err := r.sendMetricToServer(m.Metrics)
 		if err != nil {
-			return fmt.Errorf("error send counter metric to server: %w", err)
+			return labelerrors.NewLabelError("SEND METRIC", fmt.Errorf("error send counter metric to server:: %w", err))
 		}
 	}
 	return nil
@@ -57,16 +58,16 @@ func (r *Reporter) sendMetricsToServer(c *Collector) error {
 		reqData = append(reqData, &m.Metrics)
 	}
 	if len(reqData) == 0 {
-		return fmt.Errorf("empty metrics for send")
+		return labelerrors.NewLabelError("SEND METRICS", fmt.Errorf("no metrics to send"))
 	}
 	jsonData, err := json.Marshal(reqData)
 	if err != nil {
-		return fmt.Errorf("error encode metrics: %w", err)
+		return labelerrors.NewLabelError("SEND METRICS", fmt.Errorf("error marshalling metrics to JSON: %w", err))
 	}
 	url := r.BuildUpdatesURL()
 	res, err := r.sendUpdateRequest(url, jsonData)
 	if err != nil {
-		return fmt.Errorf("error send update request: %w", err)
+		return labelerrors.NewLabelError("SEND METRICS", fmt.Errorf("error sending update request: %w", err))
 	}
 	r.logger.Info("Response ", zap.String("body", string(res)))
 	return nil
