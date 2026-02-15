@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sys-metrics/internal/common"
 	models "sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/repository/metrics"
+	"sys-metrics/internal/repository/rollback"
 	"sys-metrics/pkg/storage"
 )
 import "sys-metrics/internal/repository/metricsiface"
@@ -30,7 +30,7 @@ func (s *Service) WriteBatchMetrics(ctx context.Context, m []models.Metrics) err
 			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
 		}
 		if err != nil {
-			metrics.RollbackMemory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
 			return fmt.Errorf("write metrics %v error: %w", v.MType, err)
 
 		}

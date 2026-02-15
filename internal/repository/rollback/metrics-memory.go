@@ -1,4 +1,4 @@
-package metrics
+package rollback
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"sys-metrics/internal/repository/metricsiface"
 )
 
-func RollbackMemory(ctx context.Context, gauges metricsiface.MetricStorage[*metrics.Gauge], counters metricsiface.MetricStorage[*metrics.Counter], snapshot, newMetrics []metrics.Metrics) {
+func Memory(ctx context.Context, gauges metricsiface.MetricStorage[*metrics.Gauge], counters metricsiface.MetricStorage[*metrics.Counter], snapshot, newMetrics []metrics.Metrics) {
 	gaugeOld := make(map[string]metrics.Metrics, len(snapshot))
 	counterOld := make(map[string]metrics.Metrics, len(snapshot))
 	for _, v := range snapshot {

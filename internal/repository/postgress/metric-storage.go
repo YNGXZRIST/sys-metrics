@@ -9,6 +9,7 @@ import (
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
+	"sys-metrics/internal/repository/rollback"
 )
 
 type MetricStorage struct {
@@ -30,13 +31,13 @@ func (s *MetricStorage) WriteBatchMetrics(ctx context.Context, m []models.Metric
 			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
 		}
 		if err != nil {
-			metrics.RollbackMemory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
 			return fmt.Errorf("write metrics %v error: %w", v.MType, err)
 		}
 	}
 	err := s.Config.handler.WriteBatch(ctx, m)
 	if err != nil {
-		metrics.RollbackMemory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
 		return fmt.Errorf("write metrics backup error: %w", err)
 	}
 	return nil
