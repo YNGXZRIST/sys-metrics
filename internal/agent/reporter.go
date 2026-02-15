@@ -48,32 +48,64 @@ func (r *Reporter) Send(c *Collector) error {
 	}
 	return nil
 }
+func (r *Reporter) sendMetricsToServer(c *Collector) error {
+	reqData := make([]*metrics.Metrics, 0, len(c.Gauges)+len(c.Counters))
+	for _, m := range c.Gauges {
+		reqData = append(reqData, &m.Metrics)
+	}
+	for _, m := range c.Counters {
+		reqData = append(reqData, &m.Metrics)
+	}
+	if len(reqData) == 0 {
+		return fmt.Errorf("empty metrics for send")
+	}
+	jsonData, err := json.Marshal(reqData)
+	if err != nil {
+		return fmt.Errorf("error encode metrics: %w", err)
+	}
+	url := r.BuildUpdatesURL()
+	res, err := r.sendUpdateRequest(url, jsonData)
+	if err != nil {
+		return fmt.Errorf("error send update request: %w", err)
+	}
+	r.logger.Info("Response ", zap.String("body", string(res)))
+	return nil
+}
 func (r *Reporter) sendMetricToServer(m metrics.Metrics) error {
 	jsonData, err := json.Marshal(m)
 	if err != nil {
 		return fmt.Errorf("error marshal metric: %w", err)
 	}
-	writer := bytes.NewReader(jsonData)
 	url := r.BuildUpdateURL()
-	r.logger.Info("Request", zap.String("url", url), zap.String("json", string(jsonData)))
+	res, err := r.sendUpdateRequest(url, jsonData)
+	if err != nil {
+		return fmt.Errorf("error send update request: %w", err)
+	}
+	fmt.Println(string(res))
+	return nil
+
+}
+func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error) {
+	r.logger.Info("Request", zap.String("url", url), zap.String("json", string(reqData)))
+
+	writer := bytes.NewReader(reqData)
 	req, err := http.NewRequest(http.MethodPost, url, writer)
 	if err != nil {
-		return fmt.Errorf("error create request: %w", err)
+		return nil, fmt.Errorf("error create request: %w", err)
 	}
 	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
 	response, err := r.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error do request: %w", err)
+		return nil, fmt.Errorf("error do request: %w", err)
 	}
 	r.logger.Info("Response status", zap.Int("status", response.StatusCode), zap.String("encoding", response.Header.Get(httpcompressor.ContentEncodingHeader)))
 	defer response.Body.Close()
 	res, err := io.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("error read response: %w", err)
+		return nil, fmt.Errorf("error read response: %w", err)
 	}
-	r.logger.Info("Response ", zap.Int("status", response.StatusCode), zap.String("body", string(res)))
-	return nil
+	return res, nil
 }
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	var s string
@@ -86,4 +118,7 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 }
 func (r *Reporter) BuildUpdateURL() string {
 	return r.serverAddr + "/update"
+}
+func (r *Reporter) BuildUpdatesURL() string {
+	return r.serverAddr + "/updates"
 }
