@@ -1,4 +1,4 @@
-.PHONY: help build test lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 download-metricstest
+.PHONY: help build test test-integration test-coverpkg lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 download-metricstest coverage coverage-percent coverage-packages
 
 # Цвета для вывода
 GREEN=\033[0;32m
@@ -25,9 +25,23 @@ build: ## Собрать все бинарники
 	go build -o ./bin/statictest ./cmd/statictest
 	@echo "$(GREEN)✅ Build complete!$(NC)"
 
-test: ## Запустить тесты
+COVER_EXCLUDE ?= cmd/statictest
+
+test: ## Запустить тесты (без integration)
 	@echo "$(GREEN)Running tests...$(NC)"
-	go test -v -race -count=1 -coverprofile=coverage.out ./...
+	go test -v -race -count=1 -coverprofile=coverage.out $$(go list ./... | grep -vE '$(COVER_EXCLUDE)')
+	@echo "$(GREEN)✅ Tests passed!$(NC)"
+test-integration: ## Тесты с тегом integration
+	@echo "$(GREEN)Running tests (with integration)...$(NC)"
+	go test -v -race -count=1 -tags=integration -coverprofile=coverage.out $$(go list ./... | grep -vE '$(COVER_EXCLUDE)')
+	@echo "$(GREEN)✅ Tests passed!$(NC)"
+
+# Тесты (с integration) с -coverpkg:
+test-coverpkg: ## Тесты с тегом integration и -coverpkg
+	@echo "$(GREEN)Running tests (integration + coverpkg)...$(NC)"
+	@PKGS=$$(go list ./... | grep -vE '$(COVER_EXCLUDE)'); \
+	COVERPKG=$$(echo "$$PKGS" | tr '\n' ',' | sed 's/,$$//'); \
+	go test -v -race -count=1 -tags=integration -coverpkg="$$COVERPKG" -coverprofile=coverage.out $$PKGS
 	@echo "$(GREEN)✅ Tests passed!$(NC)"
 
 test-short: ## Запустить быстрые тесты
@@ -35,21 +49,32 @@ test-short: ## Запустить быстрые тесты
 	go test -short ./...
 	@echo "$(GREEN)✅ Short tests passed!$(NC)"
 
-coverage: test ## Показать покрытие кода тестами
+coverage: test ## Показать покрытие
 	@echo "$(GREEN)Generating coverage report...$(NC)"
 	go tool cover  -html=coverage.out
 
-download-metricstest: ## Скачать автотесты с GitHub
-	@echo "$(GREEN)Downloading metricstest...$(NC)"
-	@if [ -f "./scripts/download-metricstest.sh" ]; then \
-		./scripts/download-metricstest.sh; \
-	else \
-		echo "$(RED)❌ Script not found: ./scripts/download-metricstest.sh$(NC)"; \
-		echo "$(YELLOW)Download manually from:$(NC)"; \
-		echo "  https://github.com/Yandex-Practicum/go-autotests/releases"; \
+coverage-percent: ## Показать общий процент покрытия
+	@if [ ! -f coverage.out ]; then \
+		echo "$(RED)❌ coverage.out не найден. Запустите: make test или make test-integration$(NC)"; \
 		exit 1; \
 	fi
+	@echo "$(GREEN)Покрытие кода:$(NC)"
+	@go tool cover -func=coverage.out | grep total | awk '{printf "  Всего: $(GREEN)%s$(NC)\n", $$3}'
 
+coverage-packages: ## Показать процент покрытия по пакетам
+	@if [ ! -f coverage.out ]; then \
+		echo "$(RED)❌ coverage.out не найден. Запустите: make test или make test-integration$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Покрытие по пакетам:$(NC)"
+	@go tool cover -func=coverage.out | awk '$$0 !~ /^total/ { \
+		path=$$1; sub(/:.*$$/, "", path); \
+		match(path, /.*\//); pkg=(RLENGTH>0) ? substr(path, 1, RLENGTH-1) : "."; \
+		gsub(/%/, "", $$3); sum[pkg]+=$$3; cnt[pkg]++ } \
+		END { for (p in sum) printf "%6.1f%%  %s\n", sum[p]/cnt[p], p }' | sort -k1 -n
+	@echo ""
+	@echo "$(GREEN)Итого:$(NC)"
+	@go tool cover -func=coverage.out | grep total | awk '{printf "  $(GREEN)%s$(NC)\n", $$3}'
 # Автотесты по итерациям
 check-metricstest:
 	@if ! command -v metricstest >/dev/null 2>&1; then \
