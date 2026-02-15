@@ -94,7 +94,7 @@ func getMetricFromStorage(ctx context.Context, metricType, name string) (models.
 		}
 		return v.Metrics, nil
 	default:
-		return models.Metrics{}, labelerrors.NewLabelError("UNKNOWN", storage.ErrNotFound)
+		return models.Metrics{}, ErrUnknownMetricType
 	}
 }
 func writeServerValueError(w http.ResponseWriter, err error) {
