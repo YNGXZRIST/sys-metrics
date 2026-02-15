@@ -83,3 +83,16 @@ func UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+func UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Request) {
+	var req []*models.Metrics
+	ctx := r.Context()
+	logger := context.LoggerFromContext(ctx)
+	dec := json.NewDecoder(r.Body)
+	if err := dec.Decode(&req); err != nil {
+		logger.Warn("UpdatesMetricsHandlerJSON got error", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	logger.Info("UpdatesMetricsHandlerJSON", zap.Any("req", req))
+
+}
