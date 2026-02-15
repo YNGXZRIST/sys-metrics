@@ -11,6 +11,9 @@ SERVER_BINARY=cmd/server/server
 AGENT_BINARY=cmd/agent/agent
 METRICSTEST=metricstest
 
+# DSN для локального запуска iter10/11/12 (переопредели: make iter12 DATABASE_DSN='...')
+DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+
 help: ## Показать справку
 	@echo "$(GREEN)Доступные команды:$(NC)"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
@@ -166,7 +169,7 @@ iter10: build check-metricstest ## Автотесты итерации 10
 		-agent-binary-path=$(AGENT_BINARY) \
 		-binary-path=$(SERVER_BINARY) \
 		-server-port=$$SERVER_PORT \
-		 -database-dsn='***postgres:5432/postgres?sslmode=disable' \
+		-database-dsn='$(DATABASE_DSN)' \
 		-file-storage-path=./backup \
 		-source-path=.; \
 	rm -f $$TEMP_FILE
@@ -181,11 +184,25 @@ iter11: build check-metricstest ## Автотесты итерации 11
 		-agent-binary-path=$(AGENT_BINARY) \
 		-binary-path=$(SERVER_BINARY) \
 		-server-port=$$SERVER_PORT \
-		 -database-dsn='***postgres:5432/postgres?sslmode=disable' \
+		-database-dsn='$(DATABASE_DSN)' \
+		-source-path=. ; \
+	rm -f $$TEMP_FILE
+	@echo "$(GREEN)✅ Iteration 11 passed!$(NC)"
+iter12: build check-metricstest ## Автотесты итерации 12
+	@echo "$(GREEN)Running iteration 12 tests...$(NC)"
+	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
+	ADDRESS="localhost:$$SERVER_PORT"; \
+	TEMP_FILE=$$(mktemp); \
+	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	$(METRICSTEST) -test.v -test.run='^TestIteration12$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=$$SERVER_PORT \
+		-database-dsn='$(DATABASE_DSN)' \
 		-file-storage-path=./backup \
 		-source-path=.; \
 	rm -f $$TEMP_FILE
-	@echo "$(GREEN)✅ Iteration 11 passed!$(NC)"
+	@echo "$(GREEN)✅ Iteration 12 passed!$(NC)"
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
 	gofmt -w .

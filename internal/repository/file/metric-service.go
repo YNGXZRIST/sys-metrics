@@ -20,6 +20,7 @@ func (s *BackupService) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot := s.GetAllMetricsLocked(ctx)
+	updateMetrics := make([]models.Metrics, 0, len(m))
 	for _, v := range m {
 		var err error
 		switch v.MType {
@@ -27,16 +28,20 @@ func (s *BackupService) WriteBatchMetrics(ctx context.Context, m []models.Metric
 			err = s.Gauges().Set(ctx, v.ID, &models.Gauge{Metrics: v})
 		case common.Counter:
 			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
+		default:
+			continue
 		}
 		if err != nil {
 			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
 			return fmt.Errorf("write memory metrics  %v error: %w", v.MType, err)
 		}
+		updateMetrics = append(updateMetrics, v)
+
 	}
 	err := s.WriteBackupLocked(ctx)
 	if err != nil {
-		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-		return fmt.Errorf("write backup metrics %v error: %w", m, err)
+		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
+		return fmt.Errorf("write backup metrics %v error: %w", updateMetrics, err)
 	}
 	return nil
 }
