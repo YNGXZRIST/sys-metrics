@@ -10,6 +10,7 @@ import (
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/rollback"
+	"sys-metrics/internal/repository/utils"
 )
 
 type MetricStorage struct {
@@ -22,24 +23,16 @@ func (s *MetricStorage) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot := s.GetAllMetricsLocked(ctx)
-	updateMetrics := make([]models.Metrics, 0, len(m))
-	for _, v := range m {
-		var err error
-		switch v.MType {
-		case common.Gauge:
-			err = s.Gauges().Set(ctx, v.ID, &models.Gauge{Metrics: v})
-		case common.Counter:
-			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
-		default:
-			continue
-		}
-		if err != nil {
-			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-			return fmt.Errorf("write metrics %v error: %w", v.MType, err)
-		}
+	byID, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
+	if err != nil {
+		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+		return fmt.Errorf("write metrics: %w", err)
+	}
+	updateMetrics := make([]models.Metrics, 0, len(byID))
+	for _, v := range byID {
 		updateMetrics = append(updateMetrics, v)
 	}
-	err := s.Config.handler.WriteBatch(ctx, updateMetrics)
+	err = s.Config.handler.WriteBatch(ctx, updateMetrics)
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
 		return fmt.Errorf("write metrics backup error: %w", err)
@@ -53,6 +46,7 @@ func NewMetricStorage(db *db.DB) *MetricStorage {
 	return ms
 }
 func (s *MetricStorage) Close(ctx context.Context) error {
+	_ = ctx
 	return s.Config.conn.Close()
 }
 func (s *MetricStorage) GetAllMetricsLocked(ctx context.Context) []models.Metrics {
@@ -123,5 +117,6 @@ func (s *MetricStorage) WriteBackup(ctx context.Context) error {
 }
 
 func (s *MetricStorage) InitRoutine(ctx context.Context) error {
+	_ = ctx
 	return nil
 }

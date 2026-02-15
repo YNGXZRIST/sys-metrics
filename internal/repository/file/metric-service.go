@@ -8,6 +8,7 @@ import (
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/rollback"
+	"sys-metrics/internal/repository/utils"
 	"time"
 )
 
@@ -20,25 +21,16 @@ func (s *BackupService) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot := s.GetAllMetricsLocked(ctx)
-	updateMetrics := make([]models.Metrics, 0, len(m))
-	for _, v := range m {
-		var err error
-		switch v.MType {
-		case common.Gauge:
-			err = s.Gauges().Set(ctx, v.ID, &models.Gauge{Metrics: v})
-		case common.Counter:
-			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
-		default:
-			continue
-		}
-		if err != nil {
-			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
-			return fmt.Errorf("write memory metrics  %v error: %w", v.MType, err)
-		}
-		updateMetrics = append(updateMetrics, v)
-
+	byID, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
+	if err != nil {
+		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+		return fmt.Errorf("write memory metrics: %w", err)
 	}
-	err := s.WriteBackupLocked(ctx)
+	updateMetrics := make([]models.Metrics, 0, len(byID))
+	for _, v := range byID {
+		updateMetrics = append(updateMetrics, v)
+	}
+	err = s.WriteBackupLocked(ctx)
 	if err != nil {
 		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
 		return fmt.Errorf("write backup metrics %v error: %w", updateMetrics, err)
@@ -69,6 +61,7 @@ func (s *BackupService) GetAllMetrics(ctx context.Context) []models.Metrics {
 	return s.GetAllMetricsLocked(ctx)
 }
 func (s *BackupService) Close(ctx context.Context) error {
+	_ = ctx
 	return s.BackupStorage.Close()
 }
 func (s *BackupService) Gauges() metricsiface.MetricStorage[*models.Gauge] {
@@ -80,10 +73,12 @@ func (s *BackupService) Counters() metricsiface.MetricStorage[*models.Counter] {
 }
 
 func (s *BackupService) BackupGauges(ctx context.Context) metricsiface.BackupMetricStorage[*models.Gauge] {
+	_ = ctx
 	return s.BackupStorage.Gauges()
 }
 
 func (s *BackupService) BackupCounters(ctx context.Context) metricsiface.BackupMetricStorage[*models.Counter] {
+	_ = ctx
 	return s.BackupStorage.Counters()
 }
 func (s *BackupService) WriteBackupLocked(ctx context.Context) error {

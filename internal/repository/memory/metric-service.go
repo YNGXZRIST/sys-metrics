@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sys-metrics/internal/common"
 	models "sys-metrics/internal/model/metrics"
+	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/rollback"
+	"sys-metrics/internal/repository/utils"
 	"sys-metrics/pkg/storage"
 )
-import "sys-metrics/internal/repository/metricsiface"
 
 type Service struct {
 	counters metricsiface.MetricStorage[*models.Counter]
@@ -21,28 +21,16 @@ func (s *Service) WriteBatchMetrics(ctx context.Context, m []models.Metrics) err
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	snapshot := s.GetAllMetricsLocked(ctx)
-	updateMetrics := make([]models.Metrics, 0, len(m))
-	for _, v := range m {
-		var err error
-		switch v.MType {
-		case common.Gauge:
-			err = s.Gauges().Set(ctx, v.ID, &models.Gauge{Metrics: v})
-		case common.Counter:
-			err = s.Counters().Set(ctx, v.ID, &models.Counter{Metrics: v})
-		default:
-			continue
-		}
-		if err != nil {
-			rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, updateMetrics)
-			return fmt.Errorf("write metrics %v error: %w", v.MType, err)
-		}
-		updateMetrics = append(updateMetrics, v)
-
+	_, err := utils.ApplyBatchToStorages(ctx, m, s.Gauges(), s.Counters())
+	if err != nil {
+		rollback.Memory(ctx, s.Gauges(), s.Counters(), snapshot, m)
+		return fmt.Errorf("write metrics: %w", err)
 	}
 	return nil
 }
 
 func (s *Service) InitRoutine(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 
@@ -52,6 +40,7 @@ func NewService() *Service {
 	return &Service{counters: counters, gauges: gauges}
 }
 func (s *Service) Close(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 func (s *Service) GetAllMetricsLocked(ctx context.Context) []models.Metrics {
@@ -81,9 +70,11 @@ func (s *Service) Counters() metricsiface.MetricStorage[*models.Counter] {
 }
 
 func (s *Service) ReadBackup(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
 
 func (s *Service) WriteBackup(ctx context.Context) error {
+	_ = ctx
 	return nil
 }
