@@ -1,9 +1,10 @@
 package server
 
 import (
-	"log"
-	"reflect"
+	file "sys-metrics/internal/repository/file"
 	"testing"
+
+	"go.uber.org/zap"
 )
 
 func TestConfig_InternalAddr(t *testing.T) {
@@ -11,7 +12,7 @@ func TestConfig_InternalAddr(t *testing.T) {
 		scheme string
 		host   string
 		port   string
-		logger *log.Logger
+		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -24,7 +25,7 @@ func TestConfig_InternalAddr(t *testing.T) {
 				scheme: "http",
 				host:   "localhost",
 				port:   "8080",
-				logger: log.Default(),
+				logger: zap.NewExample(),
 			},
 			want: "localhost:8080",
 		},
@@ -49,7 +50,7 @@ func TestConfig_ServerAddr(t *testing.T) {
 		scheme string
 		host   string
 		port   string
-		logger *log.Logger
+		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -62,7 +63,7 @@ func TestConfig_ServerAddr(t *testing.T) {
 				scheme: SchemeHTTP,
 				host:   DefaultHost,
 				port:   DefaultPort,
-				logger: log.Default(),
+				logger: zap.NewNop(),
 			},
 			want: "http://localhost:8080",
 		},
@@ -84,36 +85,41 @@ func TestConfig_ServerAddr(t *testing.T) {
 
 func TestNewConfig(t *testing.T) {
 	type args struct {
-		s      string
-		h      string
-		p      string
-		logger *log.Logger
+		s            string
+		h            string
+		p            string
+		logger       *zap.Logger
+		backupConfig *file.Config
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Config
 	}{
 		{
 			name: "default",
 			args: args{
-				s:      SchemeHTTP,
-				h:      DefaultHost,
-				p:      DefaultPort,
-				logger: log.Default(),
-			},
-			want: &Config{
-				scheme: SchemeHTTP,
-				host:   DefaultHost,
-				port:   DefaultPort,
-				logger: log.Default(),
+				s:            SchemeHTTP,
+				h:            DefaultHost,
+				p:            DefaultPort,
+				logger:       zap.NewExample(),
+				backupConfig: &file.Config{},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewConfig() = %v, want %v", got, tt.want)
+			got := NewConfig(tt.args.s, tt.args.h, tt.args.p, tt.args.logger, tt.args.backupConfig)
+			if got.scheme != tt.args.s {
+				t.Errorf("NewConfig().scheme = %v, want %v", got.scheme, tt.args.s)
+			}
+			if got.host != tt.args.h {
+				t.Errorf("NewConfig().host = %v, want %v", got.host, tt.args.h)
+			}
+			if got.port != tt.args.p {
+				t.Errorf("NewConfig().port = %v, want %v", got.port, tt.args.p)
+			}
+			if got.logger == nil {
+				t.Errorf("NewConfig().logger is nil, want non-nil logger")
 			}
 		})
 	}

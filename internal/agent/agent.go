@@ -2,25 +2,30 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sys-metrics/internal/config/agent"
+	"sys-metrics/internal/errors/labelerrors"
+	"sys-metrics/internal/errors/timeerrors"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Agent struct {
 	*agent.Config
-	mu        sync.RWMutex
+	mu        sync.Mutex
 	collector *Collector
 	reporter  *Reporter
 }
 
 func NewAgent(cfg *agent.Config) *Agent {
-	return &Agent{cfg, sync.RWMutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
+	return &Agent{cfg, sync.Mutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
 }
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()
 	if err != nil {
-		a.Logger.Println(err)
+		a.Logger.Error("report error", zap.Error(err))
 	}
 	ticker := time.NewTicker(a.ReportInterval)
 	defer ticker.Stop()
@@ -32,7 +37,7 @@ func (a *Agent) StartReport(ctx context.Context) {
 		case <-ticker.C:
 			err := a.Report()
 			if err != nil {
-				a.Logger.Println(err)
+				a.Logger.Error("report error", zap.Error(err))
 			}
 		}
 	}
@@ -56,9 +61,9 @@ func (a *Agent) StartPoll(ctx context.Context) {
 func (a *Agent) Report() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	err := a.reporter.Send(*a.collector)
+	err := a.reporter.Send(a.collector)
 	if err != nil {
-		return err
+		return timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
 	}
 	a.collector.ResetPollMetric()
 	return nil

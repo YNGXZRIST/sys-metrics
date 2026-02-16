@@ -37,3 +37,26 @@ const (
 	Sys           = "Sys"
 	TotalAlloc    = "TotalAlloc"
 )
+const (
+	TypeModeDevelopment = "development"
+	TypeModeProduction  = "production"
+	TypeModeDefault
+	TypeModeTest = "test"
+)
+const (
+	TypeAgent   = "agent"
+	TypeServer  = "server"
+	TypeBackups = "backups"
+)
+const (
+	ContentTypeHeader = "Content-Type"
+	ApplicationJSON   = "application/json"
+	TextHTMLUTF8      = "text/html; charset=utf-8"
+)
+
+type contextKey string
+
+const (
+	ContextDBKey     contextKey = "db"
+	ContextLoggerKey contextKey = "logger"
+)

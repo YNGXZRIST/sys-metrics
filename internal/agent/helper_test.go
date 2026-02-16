@@ -1,9 +1,10 @@
 package agent
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
+
+	"go.uber.org/zap"
 )
 
 var testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -11,7 +12,4 @@ var testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,
 	w.Write([]byte(`OK`))
 }))
 
-var testReporter = &Reporter{
-	serverAddr: testServer.URL,
-	logger:     log.Default(),
-}
+var testReporter = NewReporter(testServer.URL, zap.NewNop())

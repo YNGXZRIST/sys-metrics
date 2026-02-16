@@ -26,3 +26,8 @@ vendor/
 /memo.png
 /metricstest-darwin-arm64
 /bin/statictest
+/cmd/agent/logs/
+/cmd/server/logs/
+/logs/
+/backups/
+/internal/logger/logs/

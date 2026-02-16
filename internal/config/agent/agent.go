@@ -1,18 +1,19 @@
 package agent
 
 import (
-	"log"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type Config struct {
 	PollInterval   time.Duration
 	ReportInterval time.Duration
 	ServerAddr     string
-	Logger         *log.Logger
+	Logger         *zap.Logger
 }
 
-func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *log.Logger) *Config {
+func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *zap.Logger) *Config {
 	return &Config{
 		PollInterval:   pollInterval,
 		ReportInterval: reportInterval,

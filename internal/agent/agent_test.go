@@ -2,15 +2,15 @@ package agent
 
 import (
 	"context"
-	"log"
-	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/agent"
 	"testing"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func TestAgent_Report(t *testing.T) {
-	cfg := agent.NewConfig(1, 1, testServer.URL, log.Default())
+	cfg := agent.NewConfig(1, 1, testServer.URL, zap.NewExample())
 	a := NewAgent(cfg)
 
 	err := a.Report()
@@ -20,7 +20,7 @@ func TestAgent_Report(t *testing.T) {
 }
 
 func TestAgent_StartPoll(t *testing.T) {
-	cfg := agent.NewConfig(1, 2, testServer.URL, log.Default())
+	cfg := agent.NewConfig(1, 2, testServer.URL, zap.NewExample())
 	newAgent := NewAgent(cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -38,22 +38,17 @@ func TestAgent_StartPoll(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("StartPoll not ended by context")
 	}
-	if newAgent.collector == nil {
-		t.Fatal("collector is nil")
+	if len(newAgent.collector.Gauges) == 0 {
+		t.Fatal("collector Gauges metrics is empty")
 	}
-	if len(newAgent.collector.metrics) == 0 {
-		t.Fatal("collector metrics is empty")
+	if len(newAgent.collector.Counters) == 0 {
+		t.Fatal("collector Counters metrics is empty")
 	}
-	if len(newAgent.collector.metrics[common.Gauge]) == 0 {
-		t.Fatal("metrics Gauge is empty")
-	}
-	if len(newAgent.collector.metrics[common.Counter]) == 0 {
-		t.Fatal("metrics Counter is empty")
-	}
+
 }
 
 func TestAgent_StartReport(t *testing.T) {
-	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, log.Default())
+	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, zap.NewExample())
 	newAgent := NewAgent(cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -73,7 +68,7 @@ func TestAgent_StartReport(t *testing.T) {
 }
 
 func TestNewAgent(t *testing.T) {
-	cfg := agent.NewConfig(2, 2, "localhost", log.Default())
+	cfg := agent.NewConfig(2, 2, "localhost", zap.NewExample())
 
 	t.Run("creates agent with config", func(t *testing.T) {
 		got := NewAgent(cfg)

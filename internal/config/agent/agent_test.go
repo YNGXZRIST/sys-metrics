@@ -1,10 +1,10 @@
 package agent
 
 import (
-	"log"
-	"reflect"
 	"testing"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -12,12 +12,11 @@ func TestNewConfig(t *testing.T) {
 		pollInterval   time.Duration
 		reportInterval time.Duration
 		serverAddr     string
-		logger         *log.Logger
+		logger         *zap.Logger
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Config
 	}{
 		{
 			name: "default",
@@ -25,20 +24,24 @@ func TestNewConfig(t *testing.T) {
 				pollInterval:   10 * time.Millisecond,
 				reportInterval: 10 * time.Millisecond,
 				serverAddr:     "localhost",
-				logger:         log.Default(),
-			},
-			want: &Config{
-				PollInterval:   10 * time.Millisecond,
-				ReportInterval: 10 * time.Millisecond,
-				ServerAddr:     "localhost",
-				Logger:         log.Default(),
+				logger:         zap.NewExample(),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewConfig(tt.args.pollInterval, tt.args.reportInterval, tt.args.serverAddr, tt.args.logger); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewConfig() = %v, want %v", got, tt.want)
+			got := NewConfig(tt.args.pollInterval, tt.args.reportInterval, tt.args.serverAddr, tt.args.logger)
+			if got.PollInterval != tt.args.pollInterval {
+				t.Errorf("NewConfig().PollInterval = %v, want %v", got.PollInterval, tt.args.pollInterval)
+			}
+			if got.ReportInterval != tt.args.reportInterval {
+				t.Errorf("NewConfig().ReportInterval = %v, want %v", got.ReportInterval, tt.args.reportInterval)
+			}
+			if got.ServerAddr != tt.args.serverAddr {
+				t.Errorf("NewConfig().ServerAddr = %v, want %v", got.ServerAddr, tt.args.serverAddr)
+			}
+			if got.Logger == nil {
+				t.Errorf("NewConfig().Logger is nil, want non-nil logger")
 			}
 		})
 	}
