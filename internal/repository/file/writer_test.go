@@ -119,7 +119,7 @@ func TestWriter_Close(t *testing.T) {
 				MType: "gauge",
 				Value: func() *float64 { v := 42.0; return &v }(),
 			}
-			err = storage.MetricsHandler.Write(context.TODO(), testMetric)
+			err = storage.MetricsHandler.Write(context.Background(), testMetric)
 			if err != nil {
 				t.Fatalf("Failed to write metric: %v", err)
 			}

@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package postgress
+package postgres
 
 import (
 	"context"
@@ -98,7 +98,7 @@ func TestHandler_Read(t *testing.T) {
 	if err != nil {
 		t.Fatal("cannot insert metrics", err)
 	}
-	read, err := cfg.handler.Read(context.TODO())
+	read, err := cfg.handler.Read(context.Background())
 	if err != nil {
 		t.Fatal("cannot read metrics from database", err)
 	}
@@ -123,7 +123,7 @@ func TestHandler_Upsert(t *testing.T) {
 	gauge := metrics.NewGauge(common.TypeModeTest)
 	gauge.SetValue(1)
 	metric := &metrics.Metrics{ID: gauge.ID, MType: gauge.MType, Delta: gauge.Delta, Value: gauge.Value, Hash: gauge.Hash}
-	err := cfg.handler.Upsert(context.TODO(), metric)
+	err := cfg.handler.Upsert(context.Background(), metric)
 	if err != nil {
 		t.Fatalf("Could not upsert metric: %s", err)
 	}
@@ -152,7 +152,7 @@ func TestHandler_Write(t *testing.T) {
 	gauge := metrics.NewGauge(common.TypeModeTest)
 	gauge.SetValue(2)
 	metric := &metrics.Metrics{ID: gauge.ID, MType: gauge.MType, Delta: gauge.Delta, Value: gauge.Value, Hash: gauge.Hash}
-	err := cfg.handler.Write(context.TODO(), metric)
+	err := cfg.handler.Write(context.Background(), metric)
 	if err != nil {
 		t.Fatalf("Could not write metric: %s", err)
 	}
@@ -182,11 +182,11 @@ func TestHandler_WriteBatch(t *testing.T) {
 	counter := metrics.NewCounter(common.PollCount)
 	counter.SetValue(2)
 	metricsArr := []metrics.Metrics{gauge.Metrics, counter.Metrics}
-	err := cfg.handler.WriteBatch(context.TODO(), metricsArr)
+	err := cfg.handler.WriteBatch(context.Background(), metricsArr)
 	if err != nil {
 		t.Fatalf("Could not write metrics: %s", err)
 	}
-	read, err := cfg.handler.Read(context.TODO())
+	read, err := cfg.handler.Read(context.Background())
 	if err != nil {
 		t.Fatalf("Could not read after WriteBatch: %s", err)
 	}
@@ -211,7 +211,7 @@ func TestHandler_WriteBatch(t *testing.T) {
 func TestHandler_chunkSelect(t *testing.T) {
 	conn := getTestDB(t)
 	h := &Handler{dbConn: conn}
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	t.Run("empty when lastID beyond data", func(t *testing.T) {
 		lastID := int64(999999999)

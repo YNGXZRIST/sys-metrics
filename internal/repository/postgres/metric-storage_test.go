@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package postgress
+package postgres
 
 import (
 	"context"
@@ -54,7 +54,7 @@ func TestMetricStorage_Close(t *testing.T) {
 		t.Fatalf("create conn for Close test: %v", err)
 	}
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 	err = storage.Close(ctx)
 	if err != nil {
 		t.Errorf("Close() error = %v", err)
@@ -64,7 +64,7 @@ func TestMetricStorage_Close(t *testing.T) {
 func TestMetricStorage_Counters(t *testing.T) {
 	conn := getTestDB(t)
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 	got := storage.Counters()
 	if got == nil {
 		t.Fatal("Counters() returned nil")
@@ -87,7 +87,7 @@ func TestMetricStorage_Counters(t *testing.T) {
 func TestMetricStorage_Gauges(t *testing.T) {
 	conn := getTestDB(t)
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 	got := storage.Gauges()
 	if got == nil {
 		t.Fatal("Gauges() returned nil")
@@ -110,7 +110,7 @@ func TestMetricStorage_Gauges(t *testing.T) {
 func TestMetricStorage_GetAllMetrics(t *testing.T) {
 	conn := getTestDB(t)
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	t.Run("empty", func(t *testing.T) {
 		got := storage.GetAllMetrics(ctx)
@@ -149,7 +149,7 @@ func TestMetricStorage_GetAllMetrics(t *testing.T) {
 func TestMetricStorage_InitRoutine(t *testing.T) {
 	conn := getTestDB(t)
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 	err := storage.InitRoutine(ctx)
 	if err != nil {
 		t.Errorf("InitRoutine() error = %v", err)
@@ -158,7 +158,7 @@ func TestMetricStorage_InitRoutine(t *testing.T) {
 
 func TestMetricStorage_ReadBackup(t *testing.T) {
 	conn := getTestDB(t)
-	ctx := context.TODO()
+	ctx := context.Background()
 	gauge := metrics.NewGauge(common.Alloc)
 	gauge.SetValue(2.5)
 	counter := metrics.NewCounter(common.PollCount)
@@ -192,7 +192,7 @@ func TestMetricStorage_ReadBackup(t *testing.T) {
 func TestMetricStorage_WriteBackup(t *testing.T) {
 	conn := getTestDB(t)
 	storage := NewMetricStorage(conn)
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	gauge := metrics.NewGauge(common.Alloc)
 	gauge.SetValue(3)

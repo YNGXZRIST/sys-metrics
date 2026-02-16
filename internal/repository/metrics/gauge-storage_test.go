@@ -88,12 +88,12 @@ func Test_gaugeBackupStorage_Set(t *testing.T) {
 				Config:         config,
 				MetricsHandler: nil,
 			}
-			err := s.Set(context.TODO(), tt.args.key, tt.args.value)
+			err := s.Set(context.Background(), tt.args.key, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Set() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !tt.wantErr && tt.args.value != nil {
-				stored, _ := s.MemStorage.Get(context.TODO(), tt.args.key)
+				stored, _ := s.MemStorage.Get(context.Background(), tt.args.key)
 				if stored == nil {
 					t.Errorf("Set() did not store value for key %v", tt.args.key)
 				}

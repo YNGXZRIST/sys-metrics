@@ -15,7 +15,7 @@ import (
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
-	"sys-metrics/internal/repository/postgress"
+	"sys-metrics/internal/repository/postgres"
 	"sys-metrics/internal/router"
 	"sys-metrics/migrations"
 
@@ -76,7 +76,7 @@ func createService(opt *server.Options) (metricsiface.ServiceInterface, *db.DB, 
 			return nil, nil, nil, false, labelerrors.NewLabelError("INIT DB", fmt.Errorf("error initializing database connection: %w", err))
 		}
 		if isDatabaseConnected(conn) {
-			service := postgress.NewMetricStorage(conn)
+			service := postgres.NewMetricStorage(conn)
 			return service, conn, nil, true, nil
 		}
 	}

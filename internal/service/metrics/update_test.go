@@ -36,7 +36,7 @@ func TestUpdate(t *testing.T) {
 	metrics.Init(memory.NewService())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Update(context.TODO(), tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := Update(context.Background(), tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -65,10 +65,10 @@ func Test_updateCounter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			metrics.Init(memory.NewService())
-			if err := updateCounter(context.TODO(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := updateCounter(context.Background(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateCounter() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			val, err := metrics.Counters().Get(context.TODO(), tt.args.name)
+			val, err := metrics.Counters().Get(context.Background(), tt.args.name)
 			if err != nil {
 				t.Errorf("counters.Get() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -101,10 +101,10 @@ func Test_updateGauge(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			metrics.Init(memory.NewService())
-			if err := updateGauge(context.TODO(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := updateGauge(context.Background(), tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			val, err := metrics.Gauges().Get(context.TODO(), tt.args.name)
+			val, err := metrics.Gauges().Get(context.Background(), tt.args.name)
 			if err != nil {
 				t.Errorf("updateGauge() error = %v, wantErr %v", err, tt.wantErr)
 			}

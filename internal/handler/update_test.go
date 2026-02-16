@@ -133,7 +133,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 				t.Errorf("UpdateHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)
 			}
 			if tt.args.MType == common.Gauge {
-				gauge, err := svc.Gauges().Get(context.TODO(), tt.args.ID)
+				gauge, err := svc.Gauges().Get(context.Background(), tt.args.ID)
 				if err != nil {
 					t.Fatalf("gauges.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}
@@ -145,7 +145,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 				}
 			}
 			if tt.args.MType == common.Counter {
-				counter, err := svc.Counters().Get(context.TODO(), tt.args.ID)
+				counter, err := svc.Counters().Get(context.Background(), tt.args.ID)
 				if err != nil {
 					t.Fatalf("counters.Get(%s): expected %v, got %v", tt.args.ID, nil, err)
 				}
