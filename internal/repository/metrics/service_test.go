@@ -64,17 +64,17 @@ func TestGetAllMetrics(t *testing.T) {
 
 	counter := metrics.NewCounter("test_counter")
 	counter.SetValue(42)
-	err := svc.Counters().Set(context.TODO(), "test_counter", counter)
+	err := svc.Counters().Set(context.Background(), "test_counter", counter)
 	if err != nil {
 		t.Errorf("Counters() returned %v", err)
 	}
 	gauge := metrics.NewGauge("test_gauge")
 	gauge.SetValue(3.14)
-	err = svc.Gauges().Set(context.TODO(), "test_gauge", gauge)
+	err = svc.Gauges().Set(context.Background(), "test_gauge", gauge)
 	if err != nil {
 		t.Errorf("Gauges() returned %v", err)
 	}
-	got := GetAllMetrics(context.TODO())
+	got := GetAllMetrics(context.Background())
 
 	if len(got) != 2 {
 		t.Errorf("GetAllMetrics() returned %d metrics, expected 2", len(got))

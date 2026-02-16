@@ -117,12 +117,12 @@ func TestBackupMemoryService_ReadBackup(t *testing.T) {
 				t.Fatalf("Failed to create backup storage: %v", err)
 			}
 			defer backupStorage.Close()
-			err = backupStorage.MetricsHandler.Write(context.TODO(), tt.args.metric)
+			err = backupStorage.MetricsHandler.Write(context.Background(), tt.args.metric)
 			if err != nil {
 				t.Fatalf("Failed to write metric to backup: %v", err)
 			}
 			service := NewBackupService(backupStorage)
-			err = service.ReadBackup(context.TODO())
+			err = service.ReadBackup(context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadBackup() error = %v, wantErr %v", err, tt.wantErr)
 			}

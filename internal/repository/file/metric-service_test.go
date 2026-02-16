@@ -23,7 +23,7 @@ func TestBackupService_BackupCounters(t *testing.T) {
 	}
 	defer storage.Close()
 	svc := NewBackupService(storage)
-	bc := svc.BackupCounters(context.TODO())
+	bc := svc.BackupCounters(context.Background())
 	if bc == nil {
 		t.Error("BackupCounters() returned nil")
 	}
@@ -44,7 +44,7 @@ func TestBackupService_BackupGauges(t *testing.T) {
 	}
 	defer storage.Close()
 	svc := NewBackupService(storage)
-	bg := svc.BackupGauges(context.TODO())
+	bg := svc.BackupGauges(context.Background())
 	if bg == nil {
 		t.Error("BackupGauges() returned nil")
 	}
@@ -111,15 +111,15 @@ func TestBackupService_GetAllMetrics(t *testing.T) {
 	counter.SetValue(10)
 	gauge := metrics.NewGauge("test_gauge")
 	gauge.SetValue(2.5)
-	err = svc.Counters().Set(context.TODO(), counter.ID, counter)
+	err = svc.Counters().Set(context.Background(), counter.ID, counter)
 	if err != nil {
 		t.Fatalf("Failed to set counter: %v", err)
 	}
-	err = svc.Gauges().Set(context.TODO(), gauge.ID, gauge)
+	err = svc.Gauges().Set(context.Background(), gauge.ID, gauge)
 	if err != nil {
 		t.Fatalf("Failed to set gauge: %v", err)
 	}
-	metricsList := svc.GetAllMetrics(context.TODO())
+	metricsList := svc.GetAllMetrics(context.Background())
 	if len(metricsList) != 2 {
 		t.Errorf("GetAllMetrics() returned %d metrics, want 2", len(metricsList))
 	}
@@ -163,7 +163,7 @@ func TestBackupService_ReadBackup(t *testing.T) {
 	}
 	defer storage.Close()
 	svc := NewBackupService(storage)
-	err = svc.ReadBackup(context.TODO())
+	err = svc.ReadBackup(context.Background())
 	if err != nil {
 		t.Errorf("ReadBackup() error = %v", err)
 	}
@@ -186,11 +186,11 @@ func TestBackupService_WriteBackup(t *testing.T) {
 	svc := NewBackupService(storage)
 	counter := metrics.NewCounter("test_counter")
 	counter.SetValue(5)
-	err = svc.Counters().Set(context.TODO(), counter.ID, counter)
+	err = svc.Counters().Set(context.Background(), counter.ID, counter)
 	if err != nil {
 		t.Fatalf("Failed to set counter: %v", err)
 	}
-	err = svc.WriteBackup(context.TODO())
+	err = svc.WriteBackup(context.Background())
 	if err != nil {
 		t.Errorf("WriteBackup() error = %v", err)
 	}
