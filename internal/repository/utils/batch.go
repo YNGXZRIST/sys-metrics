@@ -31,7 +31,10 @@ func ApplyCounter(
 		if err := counters.Set(ctx, v.ID, c); err != nil {
 			return zero, fmt.Errorf("failed to batch counter %s: %w", v.ID, err)
 		}
-		current, _ := counters.Get(ctx, v.ID)
+		current, err := counters.Get(ctx, v.ID)
+		if err != nil {
+			return zero, fmt.Errorf("failed to get new batch counter %s: %w", v.ID, err)
+		}
 		if current != nil {
 			return current.Metrics, nil
 		}
@@ -40,7 +43,10 @@ func ApplyCounter(
 	if v.Delta != nil {
 		existing.SetValue(*v.Delta)
 	}
-	current, _ := counters.Get(ctx, v.ID)
+	current, err := counters.Get(ctx, v.ID)
+	if err != nil {
+		return zero, fmt.Errorf("failed to get new batch counter %s: %w", v.ID, err)
+	}
 	if current != nil {
 		return current.Metrics, nil
 	}
