@@ -116,7 +116,7 @@ func TestReporter_Send(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			collector := tt.setup()
-			if err := testReporter.Send(collector); (err != nil) != tt.wantErr {
+			if err := testReporter.sendMetricsToServer(collector); (err != nil) != tt.wantErr {
 				t.Errorf("Send() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

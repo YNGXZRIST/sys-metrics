@@ -61,7 +61,7 @@ func (a *Agent) StartPoll(ctx context.Context) {
 func (a *Agent) Report() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	err := a.reporter.Send(a.collector)
+	err := a.reporter.sendMetricsToServer(a.collector)
 	if err != nil {
 		return timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
 	}
