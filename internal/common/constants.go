@@ -60,3 +60,6 @@ const (
 	ContextDBKey     contextKey = "db"
 	ContextLoggerKey contextKey = "logger"
 )
+const (
+	SHA256 = "sha256"
+)
