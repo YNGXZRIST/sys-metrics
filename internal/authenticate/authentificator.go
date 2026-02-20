@@ -1,12 +1,20 @@
 package authenticate
 
-import "hash"
+import (
+	"hash"
+	"sync"
+)
 
 type authenticator struct {
-	hash     hash.Hash
-	hashType string
-	validator
+	hash          hash.Hash
+	hashType      string
+	hashHeaderKey string
+	mu            sync.Mutex
+	Authenticator
 }
-type validator interface {
-	validate(string) (bool, error)
+
+type Authenticator interface {
+	Validate(header string, bytes []byte) (bool, error)
+	GetHashHeaderKey() string
+	SignBody(data []byte) string
 }

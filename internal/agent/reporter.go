@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
@@ -25,14 +26,15 @@ type Response struct {
 	Result string
 }
 type Reporter struct {
-	httpClient *http.Client
-	serverAddr string
-	logger     *zap.Logger
+	httpClient    *http.Client
+	serverAddr    string
+	logger        *zap.Logger
+	authenticator authenticate.Authenticator
 }
 
-func NewReporter(serverAddr string, logger *zap.Logger) *Reporter {
+func NewReporter(serverAddr string, logger *zap.Logger, a authenticate.Authenticator) *Reporter {
 	httpClient := &http.Client{}
-	return &Reporter{httpClient, serverAddr, logger}
+	return &Reporter{httpClient, serverAddr, logger, a}
 }
 func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
@@ -58,7 +60,7 @@ func (r *Reporter) sendMetricsToServer(c *Collector) error {
 		reqData = append(reqData, &m.Metrics)
 	}
 	if len(reqData) == 0 {
-		return labelerrors.NewLabelError("SEND METRICS", fmt.Errorf("no metrics to send"))
+		return nil
 	}
 	jsonData, err := json.Marshal(reqData)
 	if err != nil {
@@ -96,6 +98,11 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	}
 	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
+	if r.authenticator != nil {
+		key := r.authenticator.GetHashHeaderKey()
+		req.Header.Set(key, r.authenticator.SignBody(reqData))
+		r.logger.Info("Authenticated request", zap.String("key", key), zap.String("url", url), zap.Any("headers", req.Header))
+	}
 	response, err := r.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error do request: %w", err)

@@ -61,5 +61,6 @@ const (
 	ContextLoggerKey contextKey = "logger"
 )
 const (
-	SHA256 = "sha256"
+	SHA256     = "sha256"
+	HashSHA256 = "HashSHA256"
 )

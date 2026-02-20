@@ -1,6 +1,7 @@
 package router
 
 import (
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/handler"
 	"sys-metrics/internal/middleware"
@@ -9,9 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func GetRouter(logger *zap.Logger, conn *db.DB) *chi.Mux {
+func GetRouter(logger *zap.Logger, conn *db.DB, authenticator authenticate.Authenticator) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.GzipMiddleware)
+	r.Use(middleware.WithAuthenticateMiddleware(logger, authenticator))
 	r.Use(middleware.WithDBContext(conn))
 	r.Use(middleware.WithRequestLogger(logger))
 	r.Use(middleware.WithLoggerContext(logger))

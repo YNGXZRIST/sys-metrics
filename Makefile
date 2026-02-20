@@ -243,6 +243,22 @@ iter13: build check-metricstest ## Автотесты итерации 13
 		-source-path=.; \
 	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 13 passed!$(NC)"
+iter14: build check-metricstest ## Автотесты итерации 14
+	@echo "$(GREEN)Running iteration 14 tests...$(NC)"
+	@SERVER_PORT=$$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()'); \
+	ADDRESS="localhost:$$SERVER_PORT"; \
+	TEMP_FILE=$$(mktemp); \
+	echo "$(YELLOW)Using random port: $$SERVER_PORT$(NC)"; \
+	$(METRICSTEST) -test.v -test.run='^TestIteration14$$' \
+		-agent-binary-path=$(AGENT_BINARY) \
+		-binary-path=$(SERVER_BINARY) \
+		-server-port=$$SERVER_PORT \
+		-database-dsn='$(DATABASE_DSN)' \
+		-file-storage-path=./backup \
+		-key='test'\
+		-source-path=.; \
+	rm -f $$TEMP_FILE
+	@echo "$(GREEN)✅ Iteration 14 passed!$(NC)"
 fmt: ## Форматировать код
 	@echo "$(GREEN)Formatting code...$(NC)"
 	gofmt -w .

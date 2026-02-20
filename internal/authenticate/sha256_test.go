@@ -9,7 +9,9 @@ import (
 )
 
 func TestNewSha256(t *testing.T) {
-	s := NewSha256(common.TypeModeTest)
+
+	secret := common.TypeModeTest
+	s := NewSha256(&secret)
 	if s == nil {
 		t.Fatalf("NewSHA256()=%v, want not nil", s)
 	}
@@ -23,22 +25,29 @@ func TestNewSha256(t *testing.T) {
 	}
 }
 
-func TestSha256_validate(t *testing.T) {
-	s := NewSha256(common.TypeModeTest)
-	expectedValid := hmac.New(sha256.New, []byte(common.TypeModeTest)).Sum(nil)
-	expectedInvalid := hmac.New(sha256.New, []byte("invalid")).Sum(nil)
-	validate, err := s.validate(hex.EncodeToString(expectedValid))
+func TestSha256_Validate(t *testing.T) {
+	secret := common.TypeModeTest
+	s := NewSha256(&secret)
+	body := []byte(common.PollCount)
+	hValid := hmac.New(sha256.New, []byte(common.TypeModeTest))
+	hValid.Write(body)
+	expectedValid := hValid.Sum(nil)
+	hInvalid := hmac.New(sha256.New, []byte("invalid"))
+	hInvalid.Write(body)
+	expectedInvalid := hInvalid.Sum(nil)
+
+	validate, err := s.Validate(hex.EncodeToString(expectedValid), body)
 	if err != nil {
-		t.Fatalf("Validate()=%v, want nil", err)
+		t.Fatalf("Validate() err = %v, want nil", err)
 	}
 	if !validate {
-		t.Errorf("Validate()=false, want true")
+		t.Errorf("Validate() = false, want true")
 	}
-	validate, err = s.validate(hex.EncodeToString(expectedInvalid))
+	validate, err = s.Validate(hex.EncodeToString(expectedInvalid), body)
 	if err != nil {
-		t.Fatalf("Validate()=%v, want nil", err)
+		t.Fatalf("Validate() err = %v, want nil", err)
 	}
 	if validate {
-		t.Fatalf("Validate()=true, want false")
+		t.Errorf("Validate() = true, want false")
 	}
 }

@@ -20,7 +20,7 @@ type Agent struct {
 }
 
 func NewAgent(cfg *agent.Config) *Agent {
-	return &Agent{cfg, sync.Mutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger)}
+	return &Agent{cfg, sync.Mutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator)}
 }
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()

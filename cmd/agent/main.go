@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"sys-metrics/internal/agent"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
@@ -45,7 +46,8 @@ func initAgent(opt *config.Options) (*agent.Agent, error) {
 		return nil, labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("error initializing logger: %w", err))
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)
+	validator := authenticate.NewSha256(&opt.HashKey)
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator)
 	a := agent.NewAgent(agentCfg)
 	return a, nil
 }

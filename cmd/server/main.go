@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/config/server"
@@ -116,7 +117,12 @@ func startBackupRoutine(ctx context.Context, service metricsiface.ServiceInterfa
 
 func startHTTPServer(opt *server.Options, logger *zap.Logger, backupConfig *file.Config, conn *db.DB) error {
 	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
-	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, conn)); err != nil {
+	sha := authenticate.NewSha256(opt.HashKey)
+	var a authenticate.Authenticator
+	if sha != nil {
+		a = sha
+	}
+	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, conn, a)); err != nil {
 		return labelerrors.NewLabelError("HTTP", fmt.Errorf("error starting HTTP server: %w", err))
 	}
 	return nil

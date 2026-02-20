@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"sys-metrics/internal/authenticate"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,13 +12,15 @@ type Config struct {
 	ReportInterval time.Duration
 	ServerAddr     string
 	Logger         *zap.Logger
+	Authenticator  authenticate.Authenticator
 }
 
-func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *zap.Logger) *Config {
+func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *zap.Logger, authenticator authenticate.Authenticator) *Config {
 	return &Config{
 		PollInterval:   pollInterval,
 		ReportInterval: reportInterval,
 		ServerAddr:     serverAddr,
 		Logger:         logger,
+		Authenticator:  authenticator,
 	}
 }
