@@ -1,4 +1,4 @@
-.PHONY: help build test test-integration test-coverpkg lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 download-metricstest coverage coverage-percent coverage-packages
+.PHONY: help build test test-integration test-coverpkg lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 iter10 iter11 iter12 iter13 iter14 download-metricstest coverage coverage-percent coverage-packages
 
 # Цвета для вывода
 GREEN=\033[0;32m
