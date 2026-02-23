@@ -23,7 +23,7 @@ func newSigningResponseWriter(w http.ResponseWriter, authenticator authenticate.
 		ResponseWriter: w,
 		authenticator:  authenticator,
 		buf:            &bytes.Buffer{},
-		statusCode:     http.StatusMultiStatus,
+		statusCode:     http.StatusOK,
 		headerWritten:  false,
 	}
 }
