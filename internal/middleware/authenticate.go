@@ -15,7 +15,6 @@ type signingResponseWriter struct {
 	authenticator authenticate.Authenticator
 	buf           *bytes.Buffer
 	statusCode    int
-	headerWritten bool
 }
 
 func newSigningResponseWriter(w http.ResponseWriter, authenticator authenticate.Authenticator) *signingResponseWriter {
@@ -24,7 +23,6 @@ func newSigningResponseWriter(w http.ResponseWriter, authenticator authenticate.
 		authenticator:  authenticator,
 		buf:            &bytes.Buffer{},
 		statusCode:     http.StatusOK,
-		headerWritten:  false,
 	}
 }
 
@@ -38,7 +36,6 @@ func (s *signingResponseWriter) Write(b []byte) (int, error) {
 
 func (s *signingResponseWriter) WriteHeader(statusCode int) {
 	s.statusCode = statusCode
-	s.headerWritten = true
 }
 
 func (s *signingResponseWriter) flush() error {
@@ -58,33 +55,26 @@ func WithAuthenticateMiddleware(logger *zap.Logger, authenticator authenticate.A
 				return
 			}
 			header := r.Header.Get(authenticator.GetHashHeaderKey())
-			if header == "" {
-				next.ServeHTTP(w, r)
-				return
-				//TODO : не понимаю,что нужно делать в 14 итерации,так тесты проходят
-				//logger.Info("headers:", zap.Any("header", r.Header))
-				//logger.Info("no authentication header", zap.String("header", authenticator.GetHashHeaderKey()))
-				//responsewriter.WriteBadRequest(w)
-				//return
-			}
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				logger.Error("failed to read body", zap.Error(err))
-				responsewriter.WriteBadRequest(w)
-				return
-			}
-			_ = r.Body.Close()
-			r.Body = io.NopCloser(bytes.NewReader(body))
-			valid, err := authenticator.Validate(header, body)
-			if err != nil {
-				logger.Error("failed to validate header", zap.String("header", authenticator.GetHashHeaderKey()), zap.Error(err))
-				responsewriter.WriteBadRequest(w)
-				return
-			}
-			if !valid {
-				logger.Info("invalid header", zap.String("header", authenticator.GetHashHeaderKey()))
-				responsewriter.WriteBadRequest(w)
-				return
+			if header != "" {
+				body, err := io.ReadAll(r.Body)
+				if err != nil {
+					logger.Error("failed to read body", zap.Error(err))
+					responsewriter.WriteBadRequest(w)
+					return
+				}
+				_ = r.Body.Close()
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				valid, err := authenticator.Validate(header, body)
+				if err != nil {
+					logger.Error("failed to validate header", zap.String("header", authenticator.GetHashHeaderKey()), zap.Error(err))
+					responsewriter.WriteBadRequest(w)
+					return
+				}
+				if !valid {
+					logger.Info("invalid header", zap.String("header", authenticator.GetHashHeaderKey()))
+					responsewriter.WriteBadRequest(w)
+					return
+				}
 			}
 			signingWriter := newSigningResponseWriter(w, authenticator)
 			next.ServeHTTP(signingWriter, r)
