@@ -22,6 +22,7 @@ type Options struct {
 	ReportSec      int    `env:"REPORT_INTERVAL"`
 	Mode           string `env:"MODE"`
 	HashKey        string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func (opt *Options) SetHostPort(host, port string) {
@@ -38,6 +39,7 @@ func parseArgs(args []string) (*Options, error) {
 	flags.IntVar(&opt.PollSec, "p", 2, "Poll interval in seconds")
 	flags.StringVar(&hashKey, "k", "", "Server Hash key")
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Agent mode. Possible values: production, development")
+	flags.IntVar(&opt.RateLimit, "l", 1, "agent rate limit")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
