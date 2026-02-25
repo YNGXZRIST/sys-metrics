@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a, err := initAgent(opt)
+	a, err := initAgent(opt, ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,14 +40,14 @@ func main() {
 	a.Logger.Info("Shutting down agent...")
 	cancel()
 }
-func initAgent(opt *config.Options) (*agent.Agent, error) {
+func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("error initializing logger: %w", err))
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
 	validator := authenticate.NewSha256(&opt.HashKey)
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator)
-	a := agent.NewAgent(agentCfg)
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, opt.RateLimit)
+	a := agent.NewAgent(agentCfg, ctx)
 	return a, nil
 }

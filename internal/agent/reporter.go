@@ -101,7 +101,6 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	if r.authenticator != nil {
 		key := r.authenticator.GetHashHeaderKey()
 		req.Header.Set(key, r.authenticator.SignBody(reqData))
-		r.logger.Info("Authenticated request", zap.String("key", key), zap.String("url", url), zap.Any("headers", req.Header))
 	}
 	response, err := r.httpClient.Do(req)
 	if err != nil {

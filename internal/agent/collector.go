@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -11,7 +12,9 @@ import (
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/stringsparser"
+	"sys-metrics/pkg/workerpool"
 
+	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
@@ -54,36 +57,78 @@ var runtimeMetricsMap = map[string]string{
 }
 
 type Collector struct {
-	Gauges   map[string]*metrics.Gauge
-	Counters map[string]*metrics.Counter
-	mu       sync.Mutex
+	Gauges        map[string]*metrics.Gauge
+	Counters      map[string]*metrics.Counter
+	collectorPool *workerpool.Pool
+	updaterPool   *workerpool.Pool
+	ctx           context.Context
+	mu            sync.Mutex
+	NeedResult    bool
 }
 
-func NewCollector() *Collector {
+func NewCollector(ctx context.Context, rateLimit int) *Collector {
+	collectorPool := workerpool.NewPool(rateLimit)
+	collectorPool.StartBg(ctx)
+	updaterPool := workerpool.NewPool(rateLimit)
+	updaterPool.StartBg(ctx)
 	return &Collector{
-		Gauges:   make(map[string]*metrics.Gauge, 27),
-		Counters: make(map[string]*metrics.Counter, 2),
+		Gauges:        make(map[string]*metrics.Gauge, 27),
+		Counters:      make(map[string]*metrics.Counter, 2),
+		collectorPool: collectorPool,
+		updaterPool:   updaterPool,
+		ctx:           ctx,
 	}
 }
+
 func (c *Collector) Update() error {
-	var s runtime.MemStats
-	runtime.ReadMemStats(&s)
-	valueOf := reflect.ValueOf(s)
-	maps := make(map[string]float64)
-	for _, name := range runtimeMetricsTypes {
-		v, ok := c.extractFieldValue(valueOf, name)
-		if !ok {
-			continue
+	sysTask := workerpool.NewTask(func(a any) (any, error) {
+		var s runtime.MemStats
+		runtime.ReadMemStats(&s)
+		valueOf := reflect.ValueOf(s)
+		m := make(map[string]float64)
+		for _, name := range runtimeMetricsTypes {
+			v, ok := c.extractFieldValue(valueOf, name)
+			if !ok {
+				continue
+			}
+			m[name] = v
 		}
-		maps[name] = v
+		c.UpdateFromStats(m)
+		return m, nil
+	})
+
+	memTask := workerpool.NewTask(func(a any) (any, error) {
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			err = labelerrors.NewLabelError("COLLECT", fmt.Errorf("error getting mem.VirtualMemory: %w", err))
+			return nil, err
+		}
+		m := make(map[string]float64)
+		m[common.TotalMemory] = float64(v.Total)
+		m[common.FreeMemory] = float64(v.Free)
+		cpuPercents, _ := cpu.Percent(0, true)
+		for i, p := range cpuPercents {
+			name := fmt.Sprintf("CPUutilization%d", i+1)
+			m[name] = p
+		}
+		c.UpdateFromStats(m)
+		return m, nil
+	})
+	sysTask.NeedResult = c.NeedResult
+	memTask.NeedResult = c.NeedResult
+	c.collectorPool.Add(sysTask)
+	c.collectorPool.Add(memTask)
+	if c.NeedResult {
+		sysRes := c.collectorPool.Get()
+		if sysRes.Err != nil {
+			return sysRes.Err
+		}
+		memRes := c.collectorPool.Get()
+		if memRes.Err != nil {
+			return memRes.Err
+		}
+
 	}
-	v, err := mem.VirtualMemory()
-	if err != nil {
-		return labelerrors.NewLabelError("COLLECT", fmt.Errorf("error getting mem.VirtualMemory: %w", err))
-	}
-	maps[common.TotalMemory] = float64(s.TotalAlloc)
-	maps[common.FreeMemory] = float64(v.Free)
-	c.UpdateFromStats(maps)
 	return nil
 }
 

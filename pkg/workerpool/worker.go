@@ -15,14 +15,18 @@ func NewWorker(ctx context.Context, tCh, rCh chan Task) *Worker {
 }
 
 func (w *Worker) StartBg() {
-	select {
-	case <-w.ctx.Done():
-		return
-	case t, ok := <-w.tCh:
-		if !ok {
+	for {
+		select {
+		case <-w.ctx.Done():
 			return
+		case t, ok := <-w.tCh:
+			if !ok {
+				return
+			}
+			t.process()
+			if t.NeedResult {
+				w.rCh <- t
+			}
 		}
-		t.process()
-		w.rCh <- t
 	}
 }

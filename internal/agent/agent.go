@@ -7,6 +7,7 @@ import (
 	"sys-metrics/internal/config/agent"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/timeerrors"
+	"sys-metrics/pkg/workerpool"
 	"time"
 
 	"go.uber.org/zap"
@@ -14,13 +15,16 @@ import (
 
 type Agent struct {
 	*agent.Config
-	mu        sync.Mutex
-	collector *Collector
-	reporter  *Reporter
+	mu         sync.Mutex
+	collector  *Collector
+	reporter   *Reporter
+	ReportPool *workerpool.Pool
 }
 
-func NewAgent(cfg *agent.Config) *Agent {
-	return &Agent{cfg, sync.Mutex{}, NewCollector(), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator)}
+func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
+	reportPool := workerpool.NewPool(cfg.RateLimit)
+	reportPool.StartBg(ctx)
+	return &Agent{cfg, sync.Mutex{}, NewCollector(ctx, cfg.RateLimit), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator), reportPool}
 }
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()
@@ -62,12 +66,16 @@ func (a *Agent) StartPoll(ctx context.Context) {
 	}
 }
 func (a *Agent) Report() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	err := a.reporter.sendMetricsToServer(a.collector)
-	if err != nil {
-		return timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
-	}
-	a.collector.ResetPollMetric()
-	return nil
+	task := workerpool.NewTask(func(x any) (any, error) {
+
+		err := a.reporter.sendMetricsToServer(a.collector)
+		if err != nil {
+			return nil, timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
+		}
+		a.collector.ResetPollMetric()
+		return nil, nil
+	})
+	a.ReportPool.Add(task)
+	res := a.ReportPool.Get()
+	return res.Err
 }
