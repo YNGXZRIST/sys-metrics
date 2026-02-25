@@ -36,6 +36,8 @@ const (
 	StackSys      = "StackSys"
 	Sys           = "Sys"
 	TotalAlloc    = "TotalAlloc"
+	TotalMemory   = "TotalMemory"
+	FreeMemory    = "FreeMemory"
 )
 const (
 	TypeModeDevelopment = "development"

@@ -1,14 +1,18 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/stringsparser"
+
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 var runtimeMetricsTypes = []string{
@@ -45,6 +49,8 @@ var runtimeMetricsMap = map[string]string{
 	strings.ToLower(common.MCacheInuse):   common.MCacheInuse,
 	strings.ToLower(common.MCacheSys):     common.MCacheSys,
 	strings.ToLower(common.MSpanInuse):    common.MSpanInuse,
+	strings.ToLower(common.TotalMemory):   common.TotalMemory,
+	strings.ToLower(common.FreeMemory):    common.FreeMemory,
 }
 
 type Collector struct {
@@ -59,21 +65,33 @@ func NewCollector() *Collector {
 		Counters: make(map[string]*metrics.Counter, 2),
 	}
 }
-func (c *Collector) Update() {
+func (c *Collector) Update() error {
 	var s runtime.MemStats
 	runtime.ReadMemStats(&s)
-	c.UpdateFromStats(&s)
-}
-
-func (c *Collector) UpdateFromStats(s *runtime.MemStats) {
-	valueOf := reflect.ValueOf(*s)
+	valueOf := reflect.ValueOf(s)
+	maps := make(map[string]float64)
 	for _, name := range runtimeMetricsTypes {
 		v, ok := c.extractFieldValue(valueOf, name)
 		if !ok {
 			continue
 		}
-		c.updateOrCreateGauge(name, v)
+		maps[name] = v
 	}
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		return labelerrors.NewLabelError("COLLECT", fmt.Errorf("error getting mem.VirtualMemory: %w", err))
+	}
+	maps[common.TotalMemory] = float64(s.TotalAlloc)
+	maps[common.FreeMemory] = float64(v.Free)
+	c.UpdateFromStats(maps)
+	return nil
+}
+
+func (c *Collector) UpdateFromStats(maps map[string]float64) {
+	for n, v := range maps {
+		c.updateOrCreateGauge(n, v)
+	}
+
 }
 func (c *Collector) updateOrCreateGauge(name string, value float64) {
 	c.mu.Lock()

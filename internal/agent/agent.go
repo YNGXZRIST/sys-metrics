@@ -51,7 +51,10 @@ func (a *Agent) StartPoll(ctx context.Context) {
 			return
 		case <-ticker.C:
 			a.mu.Lock()
-			a.collector.Update()
+			err := a.collector.Update()
+			if err != nil {
+				a.Logger.Error("update collector error", zap.Error(err))
+			}
 			a.collector.SetPollCounterMetric()
 			a.collector.SetRandomValueMetric()
 			a.mu.Unlock()
