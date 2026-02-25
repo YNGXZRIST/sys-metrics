@@ -10,8 +10,8 @@ import (
 )
 
 func TestAgent_Report(t *testing.T) {
-	cfg := agent.NewConfig(1, 1, testServer.URL, zap.NewExample(), nil)
-	a := NewAgent(cfg)
+	cfg := agent.NewConfig(1, 1, testServer.URL, zap.NewExample(), nil, 1)
+	a := NewAgent(cfg, context.Background())
 
 	err := a.Report()
 	if err != nil {
@@ -20,8 +20,8 @@ func TestAgent_Report(t *testing.T) {
 }
 
 func TestAgent_StartPoll(t *testing.T) {
-	cfg := agent.NewConfig(1, 2, testServer.URL, zap.NewExample(), nil)
-	newAgent := NewAgent(cfg)
+	cfg := agent.NewConfig(1, 2, testServer.URL, zap.NewExample(), nil, 1)
+	newAgent := NewAgent(cfg, context.Background())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -48,8 +48,8 @@ func TestAgent_StartPoll(t *testing.T) {
 }
 
 func TestAgent_StartReport(t *testing.T) {
-	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, zap.NewExample(), nil)
-	newAgent := NewAgent(cfg)
+	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, zap.NewExample(), nil, 1)
+	newAgent := NewAgent(cfg, context.Background())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -68,10 +68,10 @@ func TestAgent_StartReport(t *testing.T) {
 }
 
 func TestNewAgent(t *testing.T) {
-	cfg := agent.NewConfig(2, 2, "localhost", zap.NewExample(), nil)
+	cfg := agent.NewConfig(2, 2, "localhost", zap.NewExample(), nil, 1)
 
 	t.Run("creates agent with config", func(t *testing.T) {
-		got := NewAgent(cfg)
+		got := NewAgent(cfg, context.Background())
 
 		if got == nil {
 			t.Fatal("NewAgent() returned nil")

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sys-metrics/internal/common"
 	config "sys-metrics/internal/config/agent"
 	"testing"
@@ -50,7 +51,7 @@ func TestInitAgent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := initAgent(tt.opt)
+			a, err := initAgent(tt.opt, context.Background())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("initAgent() error = %v, wantErr %v", err, tt.wantErr)
 				return

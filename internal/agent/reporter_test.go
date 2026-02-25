@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"sys-metrics/internal/common"
 	models "sys-metrics/internal/model/metrics"
 	"testing"
@@ -91,7 +92,7 @@ func TestReporter_Send(t *testing.T) {
 		{
 			name: "success",
 			setup: func() *Collector {
-				c := NewCollector()
+				c := NewCollector(context.Background(), 1)
 				g := models.NewGauge("random")
 				g.SetValue(12.43)
 				c.Gauges["random"] = g
@@ -104,7 +105,7 @@ func TestReporter_Send(t *testing.T) {
 		{
 			name: "error",
 			setup: func() *Collector {
-				c := NewCollector()
+				c := NewCollector(context.Background(), 1)
 				g := models.NewGauge("")
 				g.SetValue(0)
 				c.Gauges[""] = g
