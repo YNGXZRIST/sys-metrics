@@ -10,7 +10,6 @@ type authenticator struct {
 	hashType      string
 	hashHeaderKey string
 	mu            sync.Mutex
-	Authenticator
 }
 
 type Authenticator interface {

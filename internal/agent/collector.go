@@ -63,7 +63,6 @@ type Collector struct {
 	updaterPool   *workerpool.Pool
 	ctx           context.Context
 	mu            sync.Mutex
-	NeedResult    bool
 }
 
 func NewCollector(ctx context.Context, rateLimit int) *Collector {
@@ -81,22 +80,33 @@ func NewCollector(ctx context.Context, rateLimit int) *Collector {
 }
 
 func (c *Collector) Update() error {
-	sysTask := workerpool.NewTask(func(a any) (any, error) {
-		var s runtime.MemStats
-		runtime.ReadMemStats(&s)
-		valueOf := reflect.ValueOf(s)
-		m := make(map[string]float64)
-		for _, name := range runtimeMetricsTypes {
-			v, ok := c.extractFieldValue(valueOf, name)
-			if !ok {
-				continue
-			}
-			m[name] = v
-		}
-		c.UpdateFromStats(m)
-		return m, nil
-	})
+	sysTask := c.getSysTask()
+	memTask := c.getMemTask()
+	sysTask.NeedResult = false
+	memTask.NeedResult = false
+	c.collectorPool.Add(sysTask)
+	c.collectorPool.Add(memTask)
+	return nil
+}
+func (c *Collector) UpdateSync() error {
+	sysTask := c.getSysTask()
+	memTask := c.getMemTask()
+	sysTask.NeedResult = true
+	memTask.NeedResult = true
+	c.collectorPool.Add(sysTask)
+	c.collectorPool.Add(memTask)
+	sysRes := c.collectorPool.Get()
+	if sysRes.Err != nil {
+		return sysRes.Err
+	}
+	memRes := c.collectorPool.Get()
+	if memRes.Err != nil {
+		return memRes.Err
+	}
+	return nil
 
+}
+func (c *Collector) getMemTask() *workerpool.Task {
 	memTask := workerpool.NewTask(func(a any) (any, error) {
 		v, err := mem.VirtualMemory()
 		if err != nil {
@@ -114,22 +124,25 @@ func (c *Collector) Update() error {
 		c.UpdateFromStats(m)
 		return m, nil
 	})
-	sysTask.NeedResult = c.NeedResult
-	memTask.NeedResult = c.NeedResult
-	c.collectorPool.Add(sysTask)
-	c.collectorPool.Add(memTask)
-	if c.NeedResult {
-		sysRes := c.collectorPool.Get()
-		if sysRes.Err != nil {
-			return sysRes.Err
+	return memTask
+}
+func (c *Collector) getSysTask() *workerpool.Task {
+	sysTask := workerpool.NewTask(func(a any) (any, error) {
+		var s runtime.MemStats
+		runtime.ReadMemStats(&s)
+		valueOf := reflect.ValueOf(s)
+		m := make(map[string]float64)
+		for _, name := range runtimeMetricsTypes {
+			v, ok := c.extractFieldValue(valueOf, name)
+			if !ok {
+				continue
+			}
+			m[name] = v
 		}
-		memRes := c.collectorPool.Get()
-		if memRes.Err != nil {
-			return memRes.Err
-		}
-
-	}
-	return nil
+		c.UpdateFromStats(m)
+		return m, nil
+	})
+	return sysTask
 }
 
 func (c *Collector) UpdateFromStats(maps map[string]float64) {
