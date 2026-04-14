@@ -11,6 +11,7 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/jingyugao/rowserrcheck v1.1.1
 	github.com/ory/dockertest/v3 v3.12.0
+	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/timakin/bodyclose v0.0.0-20241222091800-1db5c5ca4d67
 	go.uber.org/zap v1.27.1
 	golang.org/x/tools v0.40.0
@@ -56,7 +57,6 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runc v1.2.3 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
-	github.com/shirou/gopsutil/v4 v4.26.1 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/tklauser/go-sysconf v0.3.16 // indirect
 	github.com/tklauser/numcpus v0.11.0 // indirect

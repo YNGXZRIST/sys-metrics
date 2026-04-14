@@ -12,6 +12,7 @@ import (
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/file"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
@@ -156,6 +157,22 @@ func initServer(ctx context.Context, opt *server.Options) error {
 
 	cancel := startBackupRoutine(ctx, serviceInterface, logger)
 	defer cancel()
-
+	err = initMetricsObserver(ctx, opt)
+	if err != nil {
+		return err
+	}
 	return startHTTPServer(opt, logger, backupConfigForHTTP, conn)
+}
+func initMetricsObserver(ctx context.Context, opt *server.Options) error {
+	cfg := observer.MetricObserverConfig{
+		FilePath:  opt.AuditFile,
+		URL:       opt.AuditURL,
+		RateLimit: 1,
+	}
+	obs := observer.NewMetricsObserver(cfg)
+	err := obs.Register(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }

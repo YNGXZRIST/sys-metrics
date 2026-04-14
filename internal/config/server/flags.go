@@ -22,6 +22,8 @@ type Options struct {
 	Restore           bool    `env:"RESTORE" envDefault:"true"`
 	DNS               string  `env:"DATABASE_DSN"`
 	HashKey           *string `env:"KEY"`
+	AuditFile         string  `env:"AUDIT_FILE"`
+	AuditURL          string  `env:"AUDIT_URL"`
 }
 
 func (opt *Options) SetHostPort(host, port string) {
@@ -44,6 +46,8 @@ func parseArgs(args []string) (*Options, error) {
 	opt.StoreInterval = time.Duration(intervalSec) * time.Second
 	flags.StringVar(&opt.BackupStoragePath, "f", "./backups", "Backup storage path")
 	flags.BoolVar(&opt.Restore, "r", true, "Restore backups")
+	flags.StringVar(&opt.AuditFile, "audit-file", "", "File to store audit log")
+	flags.StringVar(&opt.AuditURL, "audit-url", "", "URL to store audit log in remote server")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
