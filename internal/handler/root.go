@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"sys-metrics/internal"
 	"sys-metrics/internal/common"
-	ctxsrv "sys-metrics/internal/context"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
 	svm "sys-metrics/internal/repository/metrics"
@@ -20,13 +19,11 @@ type PageData struct {
 	Counter map[string]*metrics.Counter
 }
 
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := ctxsrv.LoggerFromContext(ctx)
-
 	sub, err := fs.Sub(internal.StaticFS, "static")
 	if err != nil {
-		logger.Error("failed to sub static files", zap.Error(labelerrors.NewLabelError("FS", err)))
+		h.Logger.Error("failed to sub static files", zap.Error(labelerrors.NewLabelError("FS", err)))
 		responsewriter.WriteServerError(w)
 		return
 	}
@@ -41,7 +38,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set(common.ContentTypeHeader, common.TextHTMLUTF8)
 	if err := tmpl.Execute(w, data); err != nil {
-		logger.Error("failed to execute template", zap.Error(labelerrors.NewLabelError("TMPL", err)))
+		h.Logger.Error("failed to execute template", zap.Error(labelerrors.NewLabelError("TMPL", err)))
 		responsewriter.WriteServerError(w)
 		return
 	}

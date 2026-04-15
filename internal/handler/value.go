@@ -10,7 +10,6 @@ import (
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
-	ctxsrv "sys-metrics/internal/context"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/timeerrors"
 	models "sys-metrics/internal/model/metrics"
@@ -25,16 +24,15 @@ var (
 	ErrUnknownMetricType = fmt.Errorf("unknown metric type")
 )
 
-func ValueHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	logger := ctxsrv.LoggerFromContext(ctx)
 	metricType := r.PathValue("type")
 	name := r.PathValue("name")
 	metricType = strings.ToLower(metricType)
 	name = collector.GetMetricType(name)
 	v, err := getMetricFromStorage(ctx, metricType, name)
 	if err != nil {
-		logger.Error("Failed to get metric", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
+		h.Logger.Error("Failed to get metric", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
 		writeServerValueError(w, err)
 		return
 	}
@@ -52,12 +50,12 @@ func ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = w.Write([]byte(writtenValue))
 	if err != nil {
-		logger.Error("Failed to write response", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
+		h.Logger.Error("Failed to write response", zap.Error(labelerrors.NewLabelError("VALUE", timeerrors.NewTimeError(err))))
 		return
 	}
 }
 
-func ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)
 	ctx := r.Context()
