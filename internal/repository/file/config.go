@@ -1,3 +1,4 @@
+// Package file implements file-backed metric persistence and background sync configuration.
 package file
 
 import (
@@ -12,8 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// DefaultFileName is the default backup file name under StoragePath.
 const DefaultFileName = "backups.metrics"
 
+// Config describes flush interval, path, and whether file backup is enabled.
 type Config struct {
 	Interval    time.Duration
 	StoragePath string
@@ -22,6 +25,7 @@ type Config struct {
 	Logger      *zap.Logger
 }
 
+// NewConfig prepares backup config and logger; in test mode it uses temporary files.
 func NewConfig(mode string, storagePath string, interval time.Duration, enabled bool) (*Config, error) {
 	logger, err := lgr.Initialize(mode, common.TypeBackups)
 	if err != nil {

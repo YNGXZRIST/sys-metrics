@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// PingHandler checks database connectivity via PingContext; if Conn is nil it returns success without checking.
 func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := h.Logger

@@ -56,6 +56,7 @@ var runtimeMetricsMap = map[string]string{
 	strings.ToLower(common.FreeMemory):    common.FreeMemory,
 }
 
+// Collector stores gauges and counters in memory using pools for parallel OS and runtime sampling.
 type Collector struct {
 	Gauges        map[string]*metrics.Gauge
 	Counters      map[string]*metrics.Counter
@@ -65,6 +66,7 @@ type Collector struct {
 	mu            sync.Mutex
 }
 
+// NewCollector initializes metric maps and worker pools for CPU/memory and runtime collection.
 func NewCollector(ctx context.Context, rateLimit int) *Collector {
 	collectorPool := workerpool.NewPool(rateLimit)
 	collectorPool.StartBg(ctx)
@@ -79,6 +81,7 @@ func NewCollector(ctx context.Context, rateLimit int) *Collector {
 	}
 }
 
+// Update enqueues asynchronous memory, CPU, and runtime sampling without waiting for results.
 func (c *Collector) Update() error {
 	sysTask := c.getSysTask()
 	memTask := c.getMemTask()
@@ -88,6 +91,8 @@ func (c *Collector) Update() error {
 	c.collectorPool.Add(memTask)
 	return nil
 }
+
+// UpdateSync performs the same sampling as Update but waits for tasks to finish.
 func (c *Collector) UpdateSync() error {
 	sysTask := c.getSysTask()
 	memTask := c.getMemTask()
@@ -106,6 +111,7 @@ func (c *Collector) UpdateSync() error {
 	return nil
 
 }
+
 func (c *Collector) getMemTask() *workerpool.Task {
 	memTask := workerpool.NewTask(func(a any) (any, error) {
 		v, err := mem.VirtualMemory()
@@ -229,6 +235,8 @@ func (c *Collector) GetPollCountMetric() *metrics.Counter {
 func (c *Collector) SetRandomValueMetric() {
 	c.updateOrCreateGauge(common.RandomValue, rand.Float64())
 }
+
+// GetMetricType normalizes a metric name: known runtime names via map, otherwise Capitalize.
 func GetMetricType(metric string) string {
 	lowerMetric := strings.ToLower(metric)
 	metricType, ok := runtimeMetricsMap[lowerMetric]

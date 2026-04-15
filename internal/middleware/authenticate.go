@@ -47,6 +47,7 @@ func (s *signingResponseWriter) flush() error {
 	return err
 }
 
+// WithAuthenticateMiddleware validates the HMAC header on incoming requests and signs responses when authenticator is set.
 func WithAuthenticateMiddleware(logger *zap.Logger, authenticator authenticate.Authenticator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

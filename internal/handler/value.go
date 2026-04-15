@@ -21,9 +21,11 @@ import (
 )
 
 var (
+	// ErrUnknownMetricType is returned when the request uses an unsupported metric type.
 	ErrUnknownMetricType = fmt.Errorf("unknown metric type")
 )
 
+// ValueHandler handles GET /value/{type}/{name} and writes the value as plain text.
 func (h *Handler) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	metricType := r.PathValue("type")
@@ -55,6 +57,7 @@ func (h *Handler) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ValueHandlerJSON handles POST /value with a JSON body and returns the metric as JSON.
 func (h *Handler) ValueHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	dec := json.NewDecoder(r.Body)

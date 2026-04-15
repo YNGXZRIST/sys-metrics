@@ -14,11 +14,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// PageData is passed to the HTML template for the index page (gauges and counters).
 type PageData struct {
 	Gauge   map[string]*metrics.Gauge
 	Counter map[string]*metrics.Counter
 }
 
+// IndexHandler serves the HTML page listing all gauges and counters from storage.
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sub, err := fs.Sub(internal.StaticFS, "static")

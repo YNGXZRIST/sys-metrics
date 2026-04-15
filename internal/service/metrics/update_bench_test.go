@@ -36,7 +36,7 @@ func BenchmarkServiceMetrics_Update_Gauge(b *testing.B) {
 	}
 }
 
-// resetEveryNewName ограничивает рост map при уникальном имени на каждую итерацию (иначе b.N → гигабайты RAM).
+// resetEveryNewName caps map growth when each iteration uses a unique name (otherwise b.N can use gigabytes of RAM).
 const resetEveryNewName = 65536
 
 func BenchmarkServiceMetrics_Update_Gauge_NewNameEach(b *testing.B) {

@@ -16,15 +16,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// Request is a simplified metric view for debugging scenarios.
 type Request struct {
 	ID    string `json:"id"`
 	MType string `json:"type"`
 	Value string `json:"value"`
 }
+
+// Response holds status code and body from the server for manual sends.
 type Response struct {
 	Code   int
 	Result string
 }
+
+// Reporter posts metrics to the server HTTP API with gzip and optional body signing.
 type Reporter struct {
 	httpClient    *http.Client
 	serverAddr    string
@@ -32,10 +37,13 @@ type Reporter struct {
 	authenticator authenticate.Authenticator
 }
 
+// NewReporter creates a client that posts to serverAddr (metrics server base URL).
 func NewReporter(serverAddr string, logger *zap.Logger, a authenticate.Authenticator) *Reporter {
 	httpClient := &http.Client{}
 	return &Reporter{httpClient, serverAddr, logger, a}
 }
+
+// Send posts each metric with a separate POST to /update (legacy one-metric path).
 func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
 		err := r.sendMetricToServer(m.Metrics)
@@ -114,6 +122,8 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	}
 	return res, nil
 }
+
+// ConvertMetricValue formats a number as an integer for counters or float for gauges.
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	var s string
 	if m == common.Counter {
@@ -123,9 +133,13 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	}
 	return s
 }
+
+// BuildUpdateURL returns the single-metric update endpoint URL.
 func (r *Reporter) BuildUpdateURL() string {
 	return r.serverAddr + "/update"
 }
+
+// BuildUpdatesURL returns the batch update URL for /updates.
 func (r *Reporter) BuildUpdatesURL() string {
 	return r.serverAddr + "/updates"
 }

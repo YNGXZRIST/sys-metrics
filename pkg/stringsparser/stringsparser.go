@@ -1,7 +1,9 @@
+// Package stringsparser provides string parsing and normalization helpers.
 package stringsparser
 
 import "unicode"
 
+// Capitalize uppercases the first rune and lowercases the rest.
 func Capitalize(s string) string {
 	if s == "" {
 		return s

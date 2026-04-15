@@ -1,3 +1,4 @@
+// Package agent implements the system metrics collection loop and reporting to the server.
 package agent
 
 import (
@@ -13,6 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Agent ties together config, metric collection, reporting, and a report worker pool.
 type Agent struct {
 	*agent.Config
 	mu         sync.Mutex
@@ -21,11 +23,14 @@ type Agent struct {
 	ReportPool *workerpool.Pool
 }
 
+// NewAgent creates an agent with a report pool and collectors sized by cfg.RateLimit.
 func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	reportPool := workerpool.NewPool(cfg.RateLimit)
 	reportPool.StartBg(ctx)
 	return &Agent{cfg, sync.Mutex{}, NewCollector(ctx, cfg.RateLimit), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator), reportPool}
 }
+
+// StartReport calls Report on every ReportInterval tick until the context is canceled.
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report()
 	if err != nil {
@@ -46,6 +51,8 @@ func (a *Agent) StartReport(ctx context.Context) {
 		}
 	}
 }
+
+// StartPoll refreshes system metrics and auxiliary gauges on every PollInterval tick.
 func (a *Agent) StartPoll(ctx context.Context) {
 	ticker := time.NewTicker(a.PollInterval)
 	defer ticker.Stop()
@@ -65,6 +72,8 @@ func (a *Agent) StartPoll(ctx context.Context) {
 		}
 	}
 }
+
+// Report asynchronously sends buffered metrics to the server and resets the poll counter.
 func (a *Agent) Report() error {
 	task := workerpool.NewTask(func(x any) (any, error) {
 

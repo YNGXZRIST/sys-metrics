@@ -1,3 +1,4 @@
+// Package metrics implements single-metric and batch updates on top of the global storage service.
 package metrics
 
 import (
@@ -12,8 +13,10 @@ import (
 	mem "sys-metrics/pkg/storage"
 )
 
+// ErrUnknownMetricType is returned when Update receives an unknown metricType.
 var ErrUnknownMetricType = errors.New("unknown metric type")
 
+// Update parses value and updates a counter or gauge in storage by name.
 func Update(ctx context.Context, metricType, name, value string) error {
 	switch metricType {
 	case common.Counter:
@@ -62,6 +65,8 @@ func updateGauge(ctx context.Context, name string, value float64) error {
 	}
 	return nil
 }
+
+// BatchUpdateMetrics delegates batch persistence to the active metrics service.
 func BatchUpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
 	if len(metrics) == 0 {
 		return nil

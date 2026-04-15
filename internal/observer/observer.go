@@ -1,3 +1,4 @@
+// Package observer implements asynchronous audit of metric events (file and/or HTTP).
 package observer
 
 import (
@@ -19,16 +20,21 @@ const (
 	typeObserver = "observer"
 )
 
+// Observer receives event notifications and may require initialization with a context.
 type Observer interface {
 	Notify(data any)
 	Register(data any) error
 }
+
+// MetricObserverConfig sets audit file path, remote URL, worker limit, and logging mode.
 type MetricObserverConfig struct {
 	FilePath  string
 	URL       string
 	RateLimit int
 	Mode      string
 }
+
+// MetricsObserver writes audit lines to a file and/or posts JSON to a remote URL via a task pool.
 type MetricsObserver struct {
 	cfg              MetricObserverConfig
 	ReportWorkerPool *workerpool.Pool
@@ -37,13 +43,17 @@ type MetricsObserver struct {
 	client           *http.Client
 }
 
+// MetricsEvent is the audit payload: timestamp, client IP, and affected metric names.
 type MetricsEvent struct {
 	TS      int64    `json:"ts"`
 	IP      string   `json:"ip"`
 	Metrics []string `json:"metrics"`
 }
+
+// MetricObserverOptions is an optional MetricsObserver hook (reserved for extensions).
 type MetricObserverOptions func(*MetricsObserver)
 
+// NewMetricsObserver builds an observer with logger, optional audit file, and HTTP client when URL is set.
 func NewMetricsObserver(cfg MetricObserverConfig) (*MetricsObserver, error) {
 	log, err := logger.Initialize(cfg.Mode, typeObserver)
 	if err != nil {
@@ -79,6 +89,8 @@ func (c *MetricObserverConfig) openAuditFile() (*os.File, error) {
 	}
 	return file, nil
 }
+
+// CreateClient returns an HTTP client if URL is set in config, otherwise nil.
 func (c *MetricObserverConfig) CreateClient() *http.Client {
 	if c.URL == "" {
 		return nil
@@ -86,6 +98,8 @@ func (c *MetricObserverConfig) CreateClient() *http.Client {
 	client := &http.Client{}
 	return client
 }
+
+// Register expects a context.Context, starts a worker pool sized by RateLimit, and stores it on the observer.
 func (o *MetricsObserver) Register(data any) error {
 	ctx, ok := data.(context.Context)
 	if !ok {
@@ -97,6 +111,8 @@ func (o *MetricsObserver) Register(data any) error {
 	o.ReportWorkerPool = reportPool
 	return nil
 }
+
+// Notify enqueues a MetricsEvent for asynchronous handling.
 func (o *MetricsObserver) Notify(data any) {
 	if o.ReportWorkerPool == nil {
 		return
@@ -108,6 +124,8 @@ func (o *MetricsObserver) Notify(data any) {
 	task := o.ReportTask(event)
 	o.ReportWorkerPool.Add(task)
 }
+
+// ReportTask builds a pool task that writes to file and/or POSTs the event.
 func (o *MetricsObserver) ReportTask(event MetricsEvent) *workerpool.Task {
 	task := workerpool.NewTask(func(a any) (any, error) {
 		if o.file != nil {
@@ -120,6 +138,8 @@ func (o *MetricsObserver) ReportTask(event MetricsEvent) *workerpool.Task {
 	})
 	return task
 }
+
+// SaveToFilePath appends a JSON line for the event to the audit file.
 func (o *MetricsObserver) SaveToFilePath(event MetricsEvent) {
 	marshal, err := json.Marshal(event)
 	if err != nil {
@@ -134,6 +154,8 @@ func (o *MetricsObserver) SaveToFilePath(event MetricsEvent) {
 		return
 	}
 }
+
+// SendEventToAccrualServer POSTs the JSON event to cfg.URL.
 func (o *MetricsObserver) SendEventToAccrualServer(event MetricsEvent) {
 	marshal, err := json.Marshal(event)
 	if err != nil {

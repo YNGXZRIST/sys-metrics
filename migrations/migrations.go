@@ -1,3 +1,4 @@
+// Package migrations applies embedded SQL migrations to PostgreSQL using golang-migrate.
 package migrations
 
 import (
@@ -12,8 +13,11 @@ import (
 )
 
 //go:embed *sql
+
+// FS holds migration SQL files embedded in the binary.
 var FS embed.FS
 
+// Migrate opens a connection with dns and runs migrate.Up(); an empty dns is an error.
 func Migrate(dns string) error {
 	if dns == "" {
 		return fmt.Errorf("database DSN is not set")

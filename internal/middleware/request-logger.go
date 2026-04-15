@@ -15,7 +15,7 @@ type (
 		size   int
 	}
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
+		http.ResponseWriter // embeds the underlying ResponseWriter
 		responseData        *responseData
 	}
 )
@@ -31,6 +31,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
+// WithRequestLogger logs method, URI, status, duration, and for POST requests the body.
 func WithRequestLogger(logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

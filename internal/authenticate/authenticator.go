@@ -1,3 +1,4 @@
+// Package authenticate defines signing and verification of HTTP request bodies (HMAC, etc.).
 package authenticate
 
 import (
@@ -12,6 +13,7 @@ type authenticator struct {
 	mu            sync.Mutex
 }
 
+// Authenticator signs response bodies and validates the hash header on incoming requests.
 type Authenticator interface {
 	Validate(header string, bytes []byte) (bool, error)
 	GetHashHeaderKey() string

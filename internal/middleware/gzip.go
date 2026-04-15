@@ -1,3 +1,4 @@
+// Package middleware wires gzip, request logging, JSON validation, DB in context, and request signing.
 package middleware
 
 import (
@@ -6,6 +7,7 @@ import (
 	"sys-metrics/pkg/httpcompressor"
 )
 
+// GzipMiddleware compresses the response when Accept-Encoding includes gzip and decompresses the request body when Content-Encoding is gzip.
 func GzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ow := w

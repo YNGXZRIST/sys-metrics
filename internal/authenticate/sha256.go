@@ -10,10 +10,12 @@ import (
 	"sys-metrics/internal/errors/labelerrors"
 )
 
+// SHA256 implements Authenticator using HMAC-SHA256 with a secret key.
 type SHA256 struct {
 	authenticator
 }
 
+// NewSha256 builds an HMAC-SHA256 signer; it returns nil if secretKey is nil.
 func NewSha256(secretKey *string) *SHA256 {
 	if secretKey == nil {
 		return nil
@@ -29,10 +31,13 @@ func NewSha256(secretKey *string) *SHA256 {
 		},
 	}
 }
+
+// GetHashHeaderKey returns the HTTP header name that carries the signature (Authenticator).
 func (s *SHA256) GetHashHeaderKey() string {
 	return s.hashHeaderKey
 }
 
+// SignBody returns the hex-encoded HMAC of data.
 func (s *SHA256) SignBody(data []byte) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -41,6 +46,7 @@ func (s *SHA256) SignBody(data []byte) string {
 	return hex.EncodeToString(s.hash.Sum(nil))
 }
 
+// Validate compares the hex header with the HMAC of body.
 func (s *SHA256) Validate(header string, body []byte) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

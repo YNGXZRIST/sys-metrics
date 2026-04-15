@@ -12,6 +12,7 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
 	ServerAddress  string `env:"ADDRESS"`
 	Host           string
@@ -25,6 +26,7 @@ type Options struct {
 	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
+// SetHostPort implements config.HostPortSetter.
 func (opt *Options) SetHostPort(host, port string) {
 	opt.Host = host
 	opt.Port = port
@@ -77,6 +79,8 @@ func (opt *Options) parseEnv() error {
 
 	return nil
 }
+
+// NewOption parses the agent argv and environment and validates logging mode.
 func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {

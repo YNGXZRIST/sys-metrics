@@ -11,6 +11,7 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `env:"ADDRESS"`
 	Host              string
@@ -26,6 +27,7 @@ type Options struct {
 	AuditURL          string  `env:"AUDIT_URL"`
 }
 
+// SetHostPort implements config.HostPortSetter.
 func (opt *Options) SetHostPort(host, port string) {
 	opt.Host = host
 	opt.Port = port
@@ -78,6 +80,8 @@ func (opt *Options) parseEnv() error {
 
 	return nil
 }
+
+// NewOption parses argv and environment, validates mode, and returns Options.
 func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {

@@ -1,3 +1,4 @@
+// Package logger constructs zap loggers for production or development modes.
 package logger
 
 import (
@@ -12,6 +13,7 @@ import (
 
 const logDir = "logs/"
 
+// Initialize creates a logger for mode (production / development / test) and cmdType for log file names.
 func Initialize(mode, cmdType string) (*zap.Logger, error) {
 	var err error
 	var log *zap.Logger

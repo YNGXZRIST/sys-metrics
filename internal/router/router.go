@@ -1,3 +1,4 @@
+// Package router wires chi.Mux with middleware and metrics HTTP API routes.
 package router
 
 import (
@@ -8,6 +9,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
+// GetRouter configures gzip, request logging, pprof, authentication, and handler h routes.
 func GetRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(imw.GzipMiddleware)

@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// UpdateHandler handles POST /update/{type}/{name}/{value} (plain-text update of one metric).
 func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := r.PathValue("type")
 	id := r.PathValue("name")
@@ -43,6 +44,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	responsewriter.WriteSuccess(w)
 }
 
+// UpdateHandlerJSON handles POST /update with a JSON body (one metric) and returns the current state in the response.
 func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req models.Metrics
 	ctx := r.Context()
@@ -105,6 +107,8 @@ func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+// UpdatesMetricsHandlerJSON handles POST /updates with a JSON array of metrics (batch update).
 func (h *Handler) UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	var req []models.Metrics
 	ctx := r.Context()
