@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -80,19 +79,14 @@ func TestValueHandler(t *testing.T) {
 				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/value", nil)
+			req := httptest.NewRequest(http.MethodGet, "/value/"+tt.args.metricType+"/"+tt.args.name, nil)
 			req.SetPathValue("type", tt.args.metricType)
 			req.SetPathValue("name", tt.args.name)
 			w := httptest.NewRecorder()
-			ValueHandler(w, req)
+			h := newTestHandler(t)
+			h.ValueHandler(w, req)
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("ValueHandler() status = %v, want %v", res.StatusCode, tt.wantStatus)
@@ -178,15 +172,10 @@ func TestValueHandlerJSON(t *testing.T) {
 			reqBody := bytes.NewReader(payload)
 			req := httptest.NewRequest(http.MethodPost, "/value", reqBody)
 			w := httptest.NewRecorder()
-			ValueHandlerJSON(w, req)
+			h := newTestHandler(t)
+			h.ValueHandlerJSON(w, req)
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("ValueHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)

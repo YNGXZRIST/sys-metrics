@@ -5,10 +5,8 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
-	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/config/server"
 	"testing"
@@ -88,13 +86,10 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	}(conn)
 
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, common.ContextLoggerKey, logger)
-	ctx = context.WithValue(ctx, common.ContextDBKey, conn)
-	r = r.WithContext(ctx)
 	w := httptest.NewRecorder()
 
-	PingHandler(w, r)
+	h := NewHandler(conn, nil, logger, nil)
+	h.PingHandler(w, r)
 
 	resp := w.Result()
 	defer resp.Body.Close()
@@ -112,13 +107,10 @@ func TestPingHandler_DBError(t *testing.T) {
 	conn, _ := db.NewConn(cfg)
 
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, common.ContextLoggerKey, logger)
-	ctx = context.WithValue(ctx, common.ContextDBKey, conn)
-	r = r.WithContext(ctx)
 	w := httptest.NewRecorder()
 
-	PingHandler(w, r)
+	h := NewHandler(conn, nil, logger, nil)
+	h.PingHandler(w, r)
 
 	resp := w.Result()
 	defer resp.Body.Close()
@@ -130,11 +122,12 @@ func TestPingHandler_EmptyContext(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	PingHandler(w, r)
+	h := NewHandler(nil, nil, zap.NewNop(), nil)
+	h.PingHandler(w, r)
 
 	resp := w.Result()
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusInternalServerError {
-		t.Errorf("PingHandler returned status %d, want %d", resp.StatusCode, http.StatusInternalServerError)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("PingHandler returned status %d, want %d", resp.StatusCode, http.StatusOK)
 	}
 }

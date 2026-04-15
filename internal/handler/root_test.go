@@ -12,9 +12,10 @@ import (
 
 func TestIndexHandler(t *testing.T) {
 	svm.Init(memory.NewService())
-	h := http.NewServeMux()
-	h.HandleFunc("/", IndexHandler)
-	srv := httptest.NewServer(h)
+	h := newTestHandler(t)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", h.IndexHandler)
+	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	req := resty.New().R()
 	req.URL = srv.URL

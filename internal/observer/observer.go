@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/logger"
 	"sys-metrics/pkg/workerpool"
 
@@ -50,7 +51,7 @@ func NewMetricsObserver(cfg MetricObserverConfig) (*MetricsObserver, error) {
 	}
 	file, err := cfg.openAuditFile()
 	if err != nil {
-		return nil, err
+		return nil, labelerrors.NewLabelError(typeObserver, err)
 	}
 	client := cfg.CreateClient()
 	obs := &MetricsObserver{

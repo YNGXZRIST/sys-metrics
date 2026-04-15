@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"sys-metrics/internal/common"
 	"testing"
 	"time"
@@ -147,16 +146,17 @@ func TestMetricsObserver_Notify_WritesToFile(t *testing.T) {
 }
 
 func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
-	var called int32
-	var gotBody []byte
+	received := make(chan []byte, 1)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&called, 1)
 		defer r.Body.Close()
 		body, err := io.ReadAll(r.Body)
-		if err == nil {
-			gotBody = body
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		// copy: handler runs on server goroutine; channel handoff avoids races with the test.
+		received <- append([]byte(nil), body...)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -179,21 +179,16 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 	ev := MetricsEvent{Ts: 555, IP: "1.2.3.4", Metrics: []string{"m"}}
 	obs.Notify(ev)
 
-	deadline := time.Now().Add(750 * time.Millisecond)
-	for {
-		if atomic.LoadInt32(&called) > 0 {
-			var got MetricsEvent
-			if err := json.Unmarshal(gotBody, &got); err != nil {
-				t.Fatalf("unmarshal request body err = %v; body=%q", err, string(gotBody))
-			}
-			if got.Ts != ev.Ts || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
-				t.Fatalf("sent event = %#v, want %#v", got, ev)
-			}
-			return
+	select {
+	case gotBody := <-received:
+		var got MetricsEvent
+		if err := json.Unmarshal(gotBody, &got); err != nil {
+			t.Fatalf("unmarshal request body err = %v; body=%q", err, string(gotBody))
 		}
-		if time.Now().After(deadline) {
-			t.Fatalf("timeout waiting observer to call server")
+		if got.Ts != ev.Ts || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
+			t.Fatalf("sent event = %#v, want %#v", got, ev)
 		}
-		time.Sleep(10 * time.Millisecond)
+	case <-time.After(750 * time.Millisecond):
+		t.Fatal("timeout waiting observer to call server")
 	}
 }

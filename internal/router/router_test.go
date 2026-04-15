@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 	"net/http/httptest"
+	"sys-metrics/internal/handler"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
 	"testing"
@@ -12,8 +13,9 @@ import (
 
 func TestGetRouter(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	router := GetRouter(logger, nil, nil)
-	if router == nil {
+	h := handler.NewHandler(nil, nil, logger, nil)
+	r := GetRouter(h)
+	if r == nil {
 		t.Fatal("GetRouter() returned nil")
 	}
 }
@@ -22,7 +24,8 @@ func TestRoutes(t *testing.T) {
 	svc.Init(memory.NewService())
 
 	logger, _ := zap.NewDevelopment()
-	router := GetRouter(logger, nil, nil)
+	h := handler.NewHandler(nil, nil, logger, nil)
+	router := GetRouter(h)
 
 	tests := []struct {
 		name       string

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -51,22 +49,17 @@ func TestUpdateHandler(t *testing.T) {
 
 			svc.Init(memory.NewService())
 
-			req := httptest.NewRequest(http.MethodGet, "/update", nil)
+			req := httptest.NewRequest(http.MethodPost, "/update/"+tt.args.metricType+"/"+tt.args.name+"/"+tt.args.value, nil)
 			req.SetPathValue("type", tt.args.metricType)
 			req.SetPathValue("name", tt.args.name)
 			req.SetPathValue("value", tt.args.value)
 
 			w := httptest.NewRecorder()
-			UpdateHandler(w, req)
+			h := newTestHandler(t)
+			h.UpdateHandler(w, req)
 
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.want {
 				t.Errorf("UpdateHandler() = %v, want %v", res.StatusCode, tt.want)
@@ -117,17 +110,12 @@ func TestUpdateHandlerJSON(t *testing.T) {
 				t.Fatalf("failed to marshal request body: %v", err)
 			}
 			reqBody := bytes.NewReader(payload)
-			req := httptest.NewRequest(http.MethodPost, "/value", reqBody)
+			req := httptest.NewRequest(http.MethodPost, "/update", reqBody)
 			w := httptest.NewRecorder()
-			UpdateHandlerJSON(w, req)
+			h := newTestHandler(t)
+			h.UpdateHandlerJSON(w, req)
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("UpdateHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)
