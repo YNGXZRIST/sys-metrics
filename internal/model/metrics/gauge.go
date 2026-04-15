@@ -7,7 +7,10 @@ type Gauge struct {
 }
 
 func (g *Gauge) SetValue(v float64) float64 {
-	g.Value = &v
+	if g.Value == nil {
+		g.Value = new(float64)
+	}
+	*g.Value = v
 	return *g.Value
 }
 
