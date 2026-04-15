@@ -140,7 +140,7 @@ func TestReporter_sendMetricToServer(t *testing.T) {
 			metric: &models.Metrics{
 				ID:    common.Gauge,
 				MType: common.Gauge,
-				Value: func() *float64 { v := 10.43; return &v }(),
+				Value: func() *float64 { ; return new(10.43) }(),
 			},
 			wantErr: false,
 		},

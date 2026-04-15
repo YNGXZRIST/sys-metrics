@@ -84,12 +84,10 @@ func TestMemory(t *testing.T) {
 			counters := storage.NewMemStorage[string, *metrics.Counter]()
 
 			for id, v := range tt.gaugesBefore {
-				val := v
-				_ = gauges.Set(ctx, id, &metrics.Gauge{Metrics: metrics.Metrics{ID: id, MType: common.Gauge, Value: &val}})
+				_ = gauges.Set(ctx, id, &metrics.Gauge{Metrics: metrics.Metrics{ID: id, MType: common.Gauge, Value: new(v)}})
 			}
 			for id, d := range tt.countersBefore {
-				delta := d
-				_ = counters.Set(ctx, id, &metrics.Counter{Metrics: metrics.Metrics{ID: id, MType: common.Counter, Delta: &delta}})
+				_ = counters.Set(ctx, id, &metrics.Counter{Metrics: metrics.Metrics{ID: id, MType: common.Counter, Delta: new(d)}})
 			}
 
 			Memory(ctx, gauges, counters, tt.snapshot, tt.newMetrics)

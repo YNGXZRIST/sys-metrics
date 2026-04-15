@@ -117,7 +117,7 @@ func TestWriter_Close(t *testing.T) {
 			testMetric := &metrics.Metrics{
 				ID:    "test_close",
 				MType: "gauge",
-				Value: func() *float64 { v := 42.0; return &v }(),
+				Value: func() *float64 { ; return new(42.0) }(),
 			}
 			err = storage.MetricsHandler.Write(context.Background(), testMetric)
 			if err != nil {

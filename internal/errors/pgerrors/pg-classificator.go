@@ -31,8 +31,7 @@ func (c *PostgresErrorClassifier) Classify(err error) PGErrorClassification {
 	}
 
 	// Проверяем и конвертируем в pgconn.PgError, если это возможно
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
+	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
 		return СlassifyPgError(pgErr)
 	}
 

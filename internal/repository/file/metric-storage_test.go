@@ -94,7 +94,7 @@ func TestBackupMemoryService_ReadBackup(t *testing.T) {
 				metric: &metrics.Metrics{
 					ID:    "test_gauge",
 					MType: "gauge",
-					Value: func() *float64 { v := 123.45; return &v }(),
+					Value: func() *float64 { ; return new(123.45) }(),
 				},
 			},
 			wantErr: false,

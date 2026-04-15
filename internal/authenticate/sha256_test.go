@@ -10,8 +10,7 @@ import (
 
 func TestNewSha256(t *testing.T) {
 
-	secret := common.TypeModeTest
-	s := NewSha256(&secret)
+	s := NewSha256(new(common.TypeModeTest))
 	if s == nil {
 		t.Fatalf("NewSHA256()=%v, want not nil", s)
 	}
@@ -26,8 +25,7 @@ func TestNewSha256(t *testing.T) {
 }
 
 func TestSha256_Validate(t *testing.T) {
-	secret := common.TypeModeTest
-	s := NewSha256(&secret)
+	s := NewSha256(new(common.TypeModeTest))
 	body := []byte(common.PollCount)
 	hValid := hmac.New(sha256.New, []byte(common.TypeModeTest))
 	hValid.Write(body)

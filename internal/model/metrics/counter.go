@@ -16,13 +16,11 @@ func (c *Counter) SetValue(v int64) int64 {
 }
 func (c *Counter) Reset() {
 	if c.Delta == nil {
-		zero := int64(0)
-		c.Delta = &zero
+		c.Delta = new(int64(0))
 
 	}
 	*c.Delta = 0
 }
 func NewCounter(name string) *Counter {
-	delta := int64(0)
-	return &Counter{Metrics{ID: name, MType: common.Counter, Delta: &delta}}
+	return &Counter{Metrics{ID: name, MType: common.Counter, Delta: new(int64(0))}}
 }
