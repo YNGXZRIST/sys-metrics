@@ -51,7 +51,7 @@ func TestMetricsObserver_RegisterAndNotify_Table(t *testing.T) {
 		},
 		{
 			name:       "notify without register does nothing",
-			notifyWith: MetricsEvent{Ts: 1, IP: "127.0.0.1", Metrics: []string{"m1"}},
+			notifyWith: MetricsEvent{TS: 1, IP: "127.0.0.1", Metrics: []string{"m1"}},
 		},
 		{
 			name:                "notify invalid type does nothing",
@@ -63,7 +63,7 @@ func TestMetricsObserver_RegisterAndNotify_Table(t *testing.T) {
 			name:                "notify valid event after register",
 			registerWith:        ctx,
 			wantWorkerPoolAfter: true,
-			notifyWith:          MetricsEvent{Ts: 2, IP: "127.0.0.2", Metrics: []string{"m2"}},
+			notifyWith:          MetricsEvent{TS: 2, IP: "127.0.0.2", Metrics: []string{"m2"}},
 		},
 	}
 
@@ -121,7 +121,7 @@ func TestMetricsObserver_Notify_WritesToFile(t *testing.T) {
 		t.Fatalf("Register() err = %v, want nil", err)
 	}
 
-	ev := MetricsEvent{Ts: 123, IP: "10.0.0.1", Metrics: []string{"A", "B"}}
+	ev := MetricsEvent{TS: 123, IP: "10.0.0.1", Metrics: []string{"A", "B"}}
 	obs.Notify(ev)
 
 	deadline := time.Now().Add(750 * time.Millisecond)
@@ -133,7 +133,7 @@ func TestMetricsObserver_Notify_WritesToFile(t *testing.T) {
 			if err := json.Unmarshal([]byte(line), &got); err != nil {
 				t.Fatalf("unmarshal audit line err = %v; line=%q", err, line)
 			}
-			if got.Ts != ev.Ts || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
+			if got.TS != ev.TS || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
 				t.Fatalf("audit event = %#v, want %#v", got, ev)
 			}
 			return
@@ -176,7 +176,7 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 		t.Fatalf("Register() err = %v, want nil", err)
 	}
 
-	ev := MetricsEvent{Ts: 555, IP: "1.2.3.4", Metrics: []string{"m"}}
+	ev := MetricsEvent{TS: 555, IP: "1.2.3.4", Metrics: []string{"m"}}
 	obs.Notify(ev)
 
 	select {
@@ -185,7 +185,7 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 		if err := json.Unmarshal(gotBody, &got); err != nil {
 			t.Fatalf("unmarshal request body err = %v; body=%q", err, string(gotBody))
 		}
-		if got.Ts != ev.Ts || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
+		if got.TS != ev.TS || got.IP != ev.IP || strings.Join(got.Metrics, ",") != strings.Join(ev.Metrics, ",") {
 			t.Fatalf("sent event = %#v, want %#v", got, ev)
 		}
 	case <-time.After(750 * time.Millisecond):

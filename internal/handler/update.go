@@ -34,7 +34,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		h.Logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
 	} else {
 		event := observer.MetricsEvent{
-			Ts:      time.Now().UTC().Unix(),
+			TS:      time.Now().UTC().Unix(),
 			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{id},
 		}
@@ -90,7 +90,7 @@ func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		h.Logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
 	} else {
 		event := observer.MetricsEvent{
-			Ts:      time.Now().UTC().Unix(),
+			TS:      time.Now().UTC().Unix(),
 			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{req.ID},
 		}
@@ -130,7 +130,7 @@ func (h *Handler) UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Reque
 			mNames = append(mNames, m.ID)
 		}
 		event := observer.MetricsEvent{
-			Ts:      time.Now().UTC().Unix(),
+			TS:      time.Now().UTC().Unix(),
 			IP:      h.GetIPFromRequest(r),
 			Metrics: mNames,
 		}

@@ -38,7 +38,7 @@ type MetricsObserver struct {
 }
 
 type MetricsEvent struct {
-	Ts      int64    `json:"ts"`
+	TS      int64    `json:"ts"`
 	IP      string   `json:"ip"`
 	Metrics []string `json:"metrics"`
 }
