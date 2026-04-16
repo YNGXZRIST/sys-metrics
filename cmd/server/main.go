@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
@@ -24,7 +25,6 @@ import (
 
 	"go.uber.org/zap"
 )
-import _ "net/http/pprof"
 
 func main() {
 	err := run(os.Args[1:])
