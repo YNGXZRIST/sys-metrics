@@ -129,10 +129,10 @@ func (o *MetricsObserver) Notify(data any) {
 func (o *MetricsObserver) ReportTask(event MetricsEvent) *workerpool.Task {
 	task := workerpool.NewTask(func(a any) (any, error) {
 		if o.file != nil {
-			go o.SaveToFilePath(event)
+			o.SaveToFilePath(event)
 		}
 		if o.client != nil {
-			go o.SendEventToAccrualServer(event)
+			o.SendEventToAccrualServer(event)
 		}
 		return nil, nil
 	})
