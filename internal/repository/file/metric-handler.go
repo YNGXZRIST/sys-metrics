@@ -26,8 +26,8 @@ func (h *BackupHandler) Read(ctx context.Context) ([]metrics.Metrics, error) {
 
 		if len(line) > 0 {
 			metric := metrics.Metrics{}
-			if err := json.Unmarshal([]byte(line), &metric); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal metric line: %w", err)
+			if errU := json.Unmarshal([]byte(line), &metric); errU != nil {
+				return nil, fmt.Errorf("failed to unmarshal metric line: %w", errU)
 			}
 			m = append(m, metric)
 		}

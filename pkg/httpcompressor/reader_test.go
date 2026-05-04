@@ -35,8 +35,8 @@ func TestCompressReader_Read(t *testing.T) {
 			if err != nil {
 				t.Fatalf("gzip.Write() error = %v", err)
 			}
-			if err := gw.Close(); err != nil {
-				t.Fatalf("gzip.Close() error = %v", err)
+			if errC := gw.Close(); errC != nil {
+				t.Fatalf("gzip.Close() error = %v", errC)
 			}
 			cr, err := NewGzipReader(io.NopCloser(bytes.NewReader(buf.Bytes())))
 			if err != nil {
@@ -61,15 +61,15 @@ func TestCompressReader_Close(t *testing.T) {
 	if err != nil {
 		t.Fatalf("gzip.Write() error = %v", err)
 	}
-	if err := gw.Close(); err != nil {
-		t.Fatalf("gzip.Close() error = %v", err)
+	if errC := gw.Close(); errC != nil {
+		t.Fatalf("gzip.Close() error = %v", errC)
 	}
 	cr, err := NewGzipReader(io.NopCloser(bytes.NewReader(buf.Bytes())))
 	if err != nil {
 		t.Fatalf("NewGzipReader() error = %v", err)
 	}
-	if err := cr.Close(); err != nil {
-		t.Errorf("Close() error = %v", err)
+	if errC := cr.Close(); errC != nil {
+		t.Errorf("Close() error = %v", errC)
 	}
 	_, err = cr.Read(make([]byte, 10))
 	if err == nil {
