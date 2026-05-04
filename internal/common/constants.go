@@ -1,3 +1,5 @@
+// Package common holds shared constants used across the whole module:
+// metric type names, runtime mode strings, HTTP headers, and context keys.
 package common
 
 const (

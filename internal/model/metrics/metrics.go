@@ -1,3 +1,5 @@
+// Package metrics defines the core metric domain types (Metrics, Gauge, Counter)
+// used by the JSON API and all storage backends.
 package metrics
 
 // Metrics is the metric DTO for the JSON API and internal repositories.

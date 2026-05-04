@@ -1,3 +1,5 @@
+// Package rollback provides helpers that restore in-memory metric storage
+// to a previous snapshot when a batch update fails partway through.
 package rollback
 
 import (

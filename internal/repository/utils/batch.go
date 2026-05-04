@@ -1,3 +1,5 @@
+// Package utils provides shared helpers for applying gauge and counter metric
+// batches to generic MetricStorage backends.
 package utils
 
 import (
