@@ -1,4 +1,4 @@
-.PHONY: help build test test-integration test-coverpkg lint statictest fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 iter10 iter11 iter12 iter13 iter14 download-metricstest coverage coverage-percent coverage-packages
+.PHONY: help build test test-integration test-coverpkg lint statictest staticlint staticcheck fmt vet check pre-commit clean install-hooks autotest iter1 iter2 iter3 iter4 iter5 iter6 iter7 iter8 iter9 iter10 iter11 iter12 iter13 iter14 download-metricstest coverage coverage-percent coverage-packages
 
 # Цвета для вывода
 GREEN=\033[0;32m
@@ -10,6 +10,7 @@ NC=\033[0m # No Color
 SERVER_BINARY=cmd/server/server
 AGENT_BINARY=cmd/agent/agent
 METRICSTEST=metricstest
+STATICLINT_BINARY=bin/staticlint
 
 # DSN для локального запуска iter10/11/12 (переопредели: make iter12 DATABASE_DSN='...')
 DATABASE_DSN ?= postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
@@ -23,6 +24,7 @@ build: ## Собрать все бинарники
 	go build -o $(SERVER_BINARY) ./cmd/server
 	go build -o $(AGENT_BINARY) ./cmd/agent
 	go build -o ./bin/statictest ./cmd/statictest
+	go build -o ./$(STATICLINT_BINARY) ./cmd/staticlint
 	@echo "$(GREEN)✅ Build complete!$(NC)"
 
 COVER_EXCLUDE ?= cmd/statictest
@@ -289,6 +291,24 @@ statictest: ## Запустить statictest
 	go vet -vettool=./bin/statictest ./...
 	@echo "$(GREEN)✅ statictest passed!$(NC)"
 
+staticlint: ## Запустить собственный multichecker (cmd/staticlint)
+	@echo "$(GREEN)Running staticlint...$(NC)"
+	@if [ ! -f "./$(STATICLINT_BINARY)" ]; then \
+		echo "$(YELLOW)Building staticlint...$(NC)"; \
+		go build -o ./$(STATICLINT_BINARY) ./cmd/staticlint; \
+	fi
+	./$(STATICLINT_BINARY) ./...
+	@echo "$(GREEN)✅ staticlint passed!$(NC)"
+
+staticcheck: ## Запустить staticcheck (honnef.co/go/tools)
+	@echo "$(GREEN)Running staticcheck...$(NC)"
+	@if ! command -v staticcheck >/dev/null 2>&1; then \
+		echo "$(YELLOW)Installing staticcheck...$(NC)"; \
+		go install honnef.co/go/tools/cmd/staticcheck@latest; \
+	fi
+	staticcheck ./...
+	@echo "$(GREEN)✅ staticcheck passed!$(NC)"
+
 lint: fmt-check vet statictest ## Запустить все линтеры
 
 check: lint test-short ## Полная проверка перед коммитом (быстрая)
@@ -309,6 +329,7 @@ clean: ## Очистить сгенерированные файлы
 	rm -f $(SERVER_BINARY)
 	rm -f $(AGENT_BINARY)
 	rm -f ./bin/statictest
+	rm -f ./$(STATICLINT_BINARY)
 	@echo "$(GREEN)✅ Cleaned!$(NC)"
 
 .DEFAULT_GOAL := help
