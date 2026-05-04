@@ -14,9 +14,9 @@ func Test_parseArgs(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
+		want    *Options
 		name    string
 		args    args
-		want    *Options
 		wantErr bool
 	}{
 		{
@@ -129,9 +129,9 @@ func Test_newOption(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
+		want    *Options
 		name    string
 		args    args
-		want    *Options
 		wantErr bool
 	}{
 		{

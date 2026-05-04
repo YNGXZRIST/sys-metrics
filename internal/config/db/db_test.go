@@ -39,10 +39,10 @@ func TestNewCfg(t *testing.T) {
 
 func TestNewConn(t *testing.T) {
 	tests := []struct {
-		name    string
 		cfg     *internal.Config
-		wantErr bool
+		name    string
 		errText string
+		wantErr bool
 	}{
 		{
 			name:    "nil config returns error",

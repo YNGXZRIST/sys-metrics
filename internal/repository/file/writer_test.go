@@ -14,9 +14,9 @@ func Test_newBackupWriter(t *testing.T) {
 		filename string
 	}
 	tests := []struct {
+		want    *Writer
 		name    string
 		args    args
-		want    *Writer
 		wantErr bool
 	}{
 		{

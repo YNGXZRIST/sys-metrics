@@ -10,9 +10,9 @@ import (
 
 // PgErrors holds SQLSTATE, server message, and the original error.
 type PgErrors struct {
-	Code    string // SQLSTATE, e.g. "23505", "42P01"
-	Message string
 	Err     error
+	Code    string
+	Message string
 }
 
 func (e PgErrors) Error() string {

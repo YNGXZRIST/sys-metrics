@@ -16,8 +16,8 @@ func TestMetricBackupStorage_NeedSync(t *testing.T) {
 		Config        *Config
 	}
 	tests := []struct {
-		name   string
 		fields fields
+		name   string
 		want   bool
 	}{
 		{
@@ -84,8 +84,8 @@ func TestBackupMemoryService_ReadBackup(t *testing.T) {
 		metric *metrics.Metrics
 	}
 	tests := []struct {
-		name    string
 		args    args
+		name    string
 		wantErr bool
 	}{
 		{

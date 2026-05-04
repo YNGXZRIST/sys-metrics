@@ -10,9 +10,9 @@ func TestParseServerAddress(t *testing.T) {
 		address string
 	}
 	tests := []struct {
+		want    *ServerAddress
 		name    string
 		args    args
-		want    *ServerAddress
 		wantErr bool
 	}{
 		{

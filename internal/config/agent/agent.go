@@ -10,11 +10,11 @@ import (
 
 // Config sets poll/report intervals, metrics ingest address, and parallelism limit.
 type Config struct {
+	Authenticator  authenticate.Authenticator
+	Logger         *zap.Logger
+	ServerAddr     string
 	PollInterval   time.Duration
 	ReportInterval time.Duration
-	ServerAddr     string
-	Logger         *zap.Logger
-	Authenticator  authenticate.Authenticator
 	RateLimit      int
 }
 

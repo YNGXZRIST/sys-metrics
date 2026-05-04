@@ -25,22 +25,22 @@ type Request struct {
 
 // Response holds status code and body from the server for manual sends.
 type Response struct {
-	Code   int
 	Result string
+	Code   int
 }
 
 // Reporter posts metrics to the server HTTP API with gzip and optional body signing.
 type Reporter struct {
-	httpClient    *http.Client
-	serverAddr    string
-	logger        *zap.Logger
 	authenticator authenticate.Authenticator
+	httpClient    *http.Client
+	logger        *zap.Logger
+	serverAddr    string
 }
 
 // NewReporter creates a client that posts to serverAddr (metrics server base URL).
-func NewReporter(serverAddr string, logger *zap.Logger, a authenticate.Authenticator) *Reporter {
-	httpClient := &http.Client{}
-	return &Reporter{httpClient, serverAddr, logger, a}
+func NewReporter(addr string, l *zap.Logger, a authenticate.Authenticator) *Reporter {
+	c := &http.Client{}
+	return &Reporter{a, c, l, addr}
 }
 
 // Send posts each metric with a separate POST to /update (legacy one-metric path).

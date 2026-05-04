@@ -17,17 +17,17 @@ import (
 // Agent ties together config, metric collection, reporting, and a report worker pool.
 type Agent struct {
 	*agent.Config
-	mu         sync.Mutex
 	collector  *Collector
 	reporter   *Reporter
 	ReportPool *workerpool.Pool
+	mu         sync.Mutex
 }
 
 // NewAgent creates an agent with a report pool and collectors sized by cfg.RateLimit.
 func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	reportPool := workerpool.NewPool(cfg.RateLimit)
 	reportPool.StartBg(ctx)
-	return &Agent{cfg, sync.Mutex{}, NewCollector(ctx, cfg.RateLimit), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator), reportPool}
+	return &Agent{cfg, NewCollector(ctx, cfg.RateLimit), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator), reportPool, sync.Mutex{}}
 }
 
 // StartReport calls Report on every ReportInterval tick until the context is canceled.

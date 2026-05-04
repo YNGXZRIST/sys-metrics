@@ -18,11 +18,11 @@ const DefaultFileName = "backups.metrics"
 
 // Config describes flush interval, path, and whether file backup is enabled.
 type Config struct {
-	Interval    time.Duration
+	Logger      *zap.Logger
 	StoragePath string
 	filePath    string
+	Interval    time.Duration
 	Enabled     bool
-	Logger      *zap.Logger
 }
 
 // NewConfig prepares backup config and logger; in test mode it uses temporary files.

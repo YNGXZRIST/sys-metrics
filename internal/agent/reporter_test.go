@@ -48,8 +48,8 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		args args
 		want string
+		args args
 	}{
 		{
 			name: "empty",
@@ -85,8 +85,8 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 
 func TestReporter_Send(t *testing.T) {
 	tests := []struct {
-		name    string
 		setup   func() *Collector
+		name    string
 		wantErr bool
 	}{
 		{
@@ -126,8 +126,8 @@ func TestReporter_Send(t *testing.T) {
 
 func TestReporter_sendMetricToServer(t *testing.T) {
 	tests := []struct {
-		name    string
 		metric  *models.Metrics
+		name    string
 		wantErr bool
 	}{
 		{

@@ -9,10 +9,10 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	type args struct {
+		logger         *zap.Logger
+		serverAddr     string
 		pollInterval   time.Duration
 		reportInterval time.Duration
-		serverAddr     string
-		logger         *zap.Logger
 	}
 	tests := []struct {
 		name string

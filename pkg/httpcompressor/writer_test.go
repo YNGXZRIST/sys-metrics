@@ -86,8 +86,8 @@ func TestCompressWriter_Write(t *testing.T) {
 func TestCompressWriter_WriteHeader(t *testing.T) {
 	tests := []struct {
 		name       string
-		statusCode int
 		encoding   string
+		statusCode int
 	}{
 		{
 			name:       "status 200",

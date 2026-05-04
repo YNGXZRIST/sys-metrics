@@ -17,13 +17,13 @@ type Options struct {
 	ServerAddress  string `env:"ADDRESS"`
 	Host           string
 	Port           string
-	PollInterval   time.Duration
-	ReportInterval time.Duration
-	PollSec        int    `env:"POLL_INTERVAL"`
-	ReportSec      int    `env:"REPORT_INTERVAL"`
 	Mode           string `env:"MODE"`
 	HashKey        string `env:"KEY"`
-	RateLimit      int    `env:"RATE_LIMIT"`
+	PollInterval   time.Duration
+	ReportInterval time.Duration
+	PollSec        int `env:"POLL_INTERVAL"`
+	ReportSec      int `env:"REPORT_INTERVAL"`
+	RateLimit      int `env:"RATE_LIMIT"`
 }
 
 // SetHostPort implements config.HostPortSetter.

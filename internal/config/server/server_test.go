@@ -9,10 +9,10 @@ import (
 
 func TestConfig_InternalAddr(t *testing.T) {
 	type fields struct {
+		logger *zap.Logger
 		scheme string
 		host   string
 		port   string
-		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -47,10 +47,10 @@ func TestConfig_InternalAddr(t *testing.T) {
 
 func TestConfig_ServerAddr(t *testing.T) {
 	type fields struct {
+		logger *zap.Logger
 		scheme string
 		host   string
 		port   string
-		logger *zap.Logger
 	}
 	tests := []struct {
 		name   string
@@ -85,15 +85,15 @@ func TestConfig_ServerAddr(t *testing.T) {
 
 func TestNewConfig(t *testing.T) {
 	type args struct {
+		logger       *zap.Logger
+		backupConfig *file.Config
 		s            string
 		h            string
 		p            string
-		logger       *zap.Logger
-		backupConfig *file.Config
 	}
 	tests := []struct {
-		name string
 		args args
+		name string
 	}{
 		{
 			name: "default",

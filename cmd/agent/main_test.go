@@ -10,8 +10,8 @@ import (
 
 func TestInitAgent(t *testing.T) {
 	tests := []struct {
-		name    string
 		opt     *config.Options
+		name    string
 		wantErr bool
 	}{
 		{

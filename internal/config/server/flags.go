@@ -14,17 +14,17 @@ import (
 // Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `env:"ADDRESS"`
+	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
+	HashKey           *string `env:"KEY"`
 	Host              string
 	Port              string
 	Mode              string `env:"MODE"`
-	StoreIntervalSec  *int   `env:"STORE_INTERVAL" default:"300"`
+	BackupStoragePath string `env:"STORE_FILE" envDefault:"./backups"`
+	DNS               string `env:"DATABASE_DSN"`
+	AuditFile         string `env:"AUDIT_FILE"`
+	AuditURL          string `env:"AUDIT_URL"`
 	StoreInterval     time.Duration
-	BackupStoragePath string  `env:"STORE_FILE" envDefault:"./backups"`
-	Restore           bool    `env:"RESTORE" envDefault:"true"`
-	DNS               string  `env:"DATABASE_DSN"`
-	HashKey           *string `env:"KEY"`
-	AuditFile         string  `env:"AUDIT_FILE"`
-	AuditURL          string  `env:"AUDIT_URL"`
+	Restore           bool `env:"RESTORE" envDefault:"true"`
 }
 
 // SetHostPort implements config.HostPortSetter.

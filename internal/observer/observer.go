@@ -30,24 +30,24 @@ type Observer interface {
 type MetricObserverConfig struct {
 	FilePath  string
 	URL       string
-	RateLimit int
 	Mode      string
+	RateLimit int
 }
 
 // MetricsObserver writes audit lines to a file and/or posts JSON to a remote URL via a task pool.
 type MetricsObserver struct {
-	cfg              MetricObserverConfig
 	ReportWorkerPool *workerpool.Pool
 	logger           *zap.Logger
 	file             *os.File
 	client           *http.Client
+	cfg              MetricObserverConfig
 }
 
 // MetricsEvent is the audit payload: timestamp, client IP, and affected metric names.
 type MetricsEvent struct {
-	TS      int64    `json:"ts"`
 	IP      string   `json:"ip"`
 	Metrics []string `json:"metrics"`
+	TS      int64    `json:"ts"`
 }
 
 // MetricObserverOptions is an optional MetricsObserver hook (reserved for extensions).
@@ -65,11 +65,11 @@ func NewMetricsObserver(cfg MetricObserverConfig) (*MetricsObserver, error) {
 	}
 	client := cfg.CreateClient()
 	obs := &MetricsObserver{
-		cfg,
 		nil,
 		log,
 		file,
 		client,
+		cfg,
 	}
 	return obs, nil
 }

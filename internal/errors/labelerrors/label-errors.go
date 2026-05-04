@@ -5,8 +5,8 @@ import "fmt"
 
 // LabelError attaches a label to an underlying error.
 type LabelError struct {
-	Label string
 	Err   error
+	Label string
 }
 
 func (e LabelError) Error() string {

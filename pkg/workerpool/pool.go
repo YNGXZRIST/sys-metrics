@@ -7,10 +7,10 @@ import (
 
 // Pool runs a fixed number of workers that pull tasks from tCh and send results to rCh.
 type Pool struct {
-	workers []*Worker
 	rCh     chan Task
 	tCh     chan Task
 	tRes    *[]Task
+	workers []*Worker
 }
 
 // NewPool creates a pool with buffered channels of size c (worker count is fixed in StartBg).

@@ -27,11 +27,11 @@ func TestMetricsObserver_Register_InvalidType(t *testing.T) {
 
 func TestMetricsObserver_RegisterAndNotify_Table(t *testing.T) {
 	type testCase struct {
-		name                string
 		registerWith        any
+		notifyWith          any
+		name                string
 		wantRegisterErr     bool
 		wantWorkerPoolAfter bool
-		notifyWith          any
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

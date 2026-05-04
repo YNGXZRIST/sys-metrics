@@ -9,11 +9,11 @@ import (
 
 // Config stores scheme, host, port, logger, and optional file backup settings.
 type Config struct {
+	logger       *zap.Logger
+	BackupConfig *file.Config
 	scheme       string
 	host         string
 	port         string
-	logger       *zap.Logger
-	BackupConfig *file.Config
 }
 
 // DefaultPort is the default HTTP listen port.
@@ -26,8 +26,8 @@ const DefaultHost = "localhost"
 const SchemeHTTP = "http"
 
 // NewConfig builds a Config for listening and optional on-disk backup.
-func NewConfig(s, h, p string, logger *zap.Logger, backupConfig *file.Config) *Config {
-	return &Config{s, h, p, logger, backupConfig}
+func NewConfig(s, h, p string, l *zap.Logger, b *file.Config) *Config {
+	return &Config{l, b, s, h, p}
 }
 
 // ServerAddr returns the full server URL (scheme://host:port).

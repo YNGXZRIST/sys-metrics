@@ -197,9 +197,9 @@ func Test_getMetricFromStorage(t *testing.T) {
 		isWantSet  bool
 	}
 	tests := []struct {
+		want    metrics.Metrics
 		name    string
 		args    args
-		want    metrics.Metrics
 		wantErr bool
 	}{
 		{
