@@ -8,6 +8,8 @@ import (
 	"sys-metrics/internal/common"
 )
 
+// generate:reset
+
 // ServerAddress is a parsed host:port pair.
 type ServerAddress struct {
 	Full string

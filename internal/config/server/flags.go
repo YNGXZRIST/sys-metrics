@@ -11,6 +11,8 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// generate:reset
+
 // Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `env:"ADDRESS"`

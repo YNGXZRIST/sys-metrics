@@ -12,6 +12,8 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// generate:reset
+
 // Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
 	ServerAddress  string `env:"ADDRESS"`

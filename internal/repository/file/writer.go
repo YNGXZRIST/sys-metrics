@@ -7,6 +7,8 @@ import (
 	"sys-metrics/internal/errors/labelerrors"
 )
 
+// generate:reset
+
 type Writer struct {
 	file   *os.File
 	writer *bufio.Writer

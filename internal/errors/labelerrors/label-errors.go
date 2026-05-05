@@ -3,6 +3,8 @@ package labelerrors
 
 import "fmt"
 
+// generate:reset
+
 // LabelError attaches a label to an underlying error.
 type LabelError struct {
 	Err   error

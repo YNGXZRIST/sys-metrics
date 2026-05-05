@@ -13,6 +13,8 @@ import (
 	"sys-metrics/pkg/storage"
 )
 
+// generate:reset
+
 // Service stores counters and gauges in memory with a mutex for batch updates.
 type Service struct {
 	counters metricsiface.MetricStorage[*models.Counter]

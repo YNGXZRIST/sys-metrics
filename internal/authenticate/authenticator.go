@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// generate:reset
 type authenticator struct {
 	hash          hash.Hash
 	hashType      string

@@ -7,6 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
 // Config stores scheme, host, port, logger, and optional file backup settings.
 type Config struct {
 	logger       *zap.Logger

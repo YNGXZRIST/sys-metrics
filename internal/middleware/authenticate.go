@@ -10,6 +10,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
 type signingResponseWriter struct {
 	http.ResponseWriter
 	authenticator authenticate.Authenticator

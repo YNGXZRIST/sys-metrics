@@ -13,6 +13,8 @@ import (
 const limit = 100
 const batchSize = 100
 
+// generate:reset
+
 // Handler runs SQL upserts and batch operations on the metrics table.
 type Handler struct {
 	dbConn *db.DB

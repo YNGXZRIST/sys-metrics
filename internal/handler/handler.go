@@ -20,6 +20,8 @@ const (
 	ObserverAudit ObserverKey = "audit"
 )
 
+// generate:reset
+
 // Handler holds dependencies for HTTP handlers: DB, auth, logging, and observers.
 type Handler struct {
 	Logger    *zap.Logger

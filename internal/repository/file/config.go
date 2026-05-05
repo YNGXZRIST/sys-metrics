@@ -16,6 +16,8 @@ import (
 // DefaultFileName is the default backup file name under StoragePath.
 const DefaultFileName = "backups.metrics"
 
+// generate:reset
+
 // Config describes flush interval, path, and whether file backup is enabled.
 type Config struct {
 	Logger      *zap.Logger

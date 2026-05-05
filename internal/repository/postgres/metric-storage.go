@@ -15,6 +15,8 @@ import (
 	"sys-metrics/internal/repository/utils"
 )
 
+// generate:reset
+
 // MetricStorage combines in-memory BackupStorage with DB writes and rollback on errors.
 type MetricStorage struct {
 	*metrics.BackupStorage

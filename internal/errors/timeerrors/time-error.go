@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// generate:reset
+
 // TimeError pairs an error with the time it was created.
 type TimeError struct {
 	Time time.Time

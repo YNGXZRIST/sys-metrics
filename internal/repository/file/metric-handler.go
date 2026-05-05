@@ -7,6 +7,8 @@ import (
 	"sys-metrics/internal/model/metrics"
 )
 
+// generate:reset
+
 type BackupHandler struct {
 	reader *Reader
 	writer *Writer

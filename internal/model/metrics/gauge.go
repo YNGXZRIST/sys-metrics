@@ -2,6 +2,8 @@ package metrics
 
 import "sys-metrics/internal/common"
 
+// generate:reset
+
 // Gauge is a gauge metric embedding Metrics for ID and serialization.
 type Gauge struct {
 	Metrics

@@ -8,6 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// generate:reset
+
 // PgErrors holds SQLSTATE, server message, and the original error.
 type PgErrors struct {
 	Err     error

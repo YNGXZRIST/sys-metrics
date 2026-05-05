@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
 // Request is a simplified metric view for debugging scenarios.
 type Request struct {
 	ID    string `json:"id"`
@@ -23,11 +25,15 @@ type Request struct {
 	Value string `json:"value"`
 }
 
+// generate:reset
+
 // Response holds status code and body from the server for manual sends.
 type Response struct {
 	Result string
 	Code   int
 }
+
+// generate:reset
 
 // Reporter posts metrics to the server HTTP API with gzip and optional body signing.
 type Reporter struct {

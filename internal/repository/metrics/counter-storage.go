@@ -9,6 +9,8 @@ import (
 	"sys-metrics/pkg/storage"
 )
 
+// generate:reset
+
 type CounterBackupStorage struct {
 	*storage.MemStorage[string, *metrics.Counter]
 	Config         metricsiface.BackupConfig

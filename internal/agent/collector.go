@@ -56,6 +56,8 @@ var runtimeMetricsMap = map[string]string{
 	strings.ToLower(common.FreeMemory):    common.FreeMemory,
 }
 
+// generate:reset
+
 // Collector stores gauges and counters in memory using pools for parallel OS and runtime sampling.
 type Collector struct {
 	Gauges        map[string]*metrics.Gauge

@@ -2,6 +2,8 @@ package metrics
 
 import "sys-metrics/internal/common"
 
+// generate:reset
+
 // Counter is a counter metric; delta accumulates via SetValue.
 type Counter struct {
 	Metrics

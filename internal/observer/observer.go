@@ -43,6 +43,8 @@ type MetricsObserver struct {
 	cfg              MetricObserverConfig
 }
 
+// generate:reset
+
 // MetricsEvent is the audit payload: timestamp, client IP, and affected metric names.
 type MetricsEvent struct {
 	IP      string   `json:"ip"`

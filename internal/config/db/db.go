@@ -16,10 +16,14 @@ import (
 
 const maxRetries = 3
 
+// generate:reset
+
 // Tx wraps sql.Tx with retries on retriable PostgreSQL errors.
 type Tx struct {
 	*sql.Tx
 }
+
+// generate:reset
 
 // DB extends the pgx connection pool with DSN from config.
 type DB struct {

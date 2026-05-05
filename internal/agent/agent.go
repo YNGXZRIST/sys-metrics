@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
 // Agent ties together config, metric collection, reporting, and a report worker pool.
 type Agent struct {
 	*agent.Config

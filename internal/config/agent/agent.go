@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
 // Config sets poll/report intervals, metrics ingest address, and parallelism limit.
 type Config struct {
 	Authenticator  authenticate.Authenticator

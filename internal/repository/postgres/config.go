@@ -5,6 +5,8 @@ import (
 	"sys-metrics/internal/repository/metricsiface"
 )
 
+// generate:reset
+
 // Config binds the DB pool to metricsiface.Handler and sync readiness.
 type Config struct {
 	handler     metricsiface.Handler

@@ -7,6 +7,8 @@ import (
 	"sys-metrics/internal/errors/labelerrors"
 )
 
+// generate:reset
+
 type Reader struct {
 	file   *os.File
 	Reader *bufio.Reader
