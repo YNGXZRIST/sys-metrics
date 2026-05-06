@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -37,7 +36,7 @@ func main() {
 	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	err := run(os.Args[1:])
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("fatal error: %v\n", err)
 	}
 }
 func run(args []string) error {

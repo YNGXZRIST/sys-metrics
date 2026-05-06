@@ -1,4 +1,4 @@
-// Command staticlint is a multichecker binary: it wires many
+// Command linter is a multichecker binary: it wires many
 // golang.org/x/tools/go/analysis passes plus the project osexit analyzer
 // and runs them over packages you name on the command line.
 //
@@ -11,7 +11,7 @@
 // unitchecker). For normal package arguments it delegates to the shared checker,
 // which loads typed syntax via go/packages, runs analyzers in an order that
 // respects Requires edges, merges diagnostics, and exits non-zero if issues
-// were found (unless only warnings, depending on flags). Run "staticlint help"
+// were found (unless only warnings, depending on flags). Run "linter help"
 // for built-in help and per-analyzer flags (e.g. findcall uses -name).
 package main
 

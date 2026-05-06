@@ -3,6 +3,7 @@ package workerpool
 
 import (
 	"context"
+	"errors"
 )
 
 // Pool runs a fixed number of workers that pull tasks from tCh and send results to rCh.
@@ -40,6 +41,17 @@ func (p *Pool) Add(task *Task) {
 }
 
 // Get blocks until a task with NeedResult is received from the result channel.
-func (p *Pool) Get() Task {
-	return <-p.rCh
+func (p *Pool) Get(ctx context.Context) Task {
+	t := Task{}
+	select {
+	case <-ctx.Done():
+		t.Err = ctx.Err()
+		return t
+	case t, ok := <-p.rCh:
+		if !ok {
+			t.Err = errors.New("pool closed")
+		}
+		return t
+
+	}
 }

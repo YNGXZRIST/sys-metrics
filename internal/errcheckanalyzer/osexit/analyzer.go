@@ -1,7 +1,7 @@
 // Package osexit provides a go/analysis Analyzer that reports calls to
-// os.Exit inside func main in a package whose name is "main". Only
-// non-test .go sources are considered (*_test.go files are skipped) so
-// test mains may still terminate the process with os.Exit.
+// os.Exit, log.Fatal*, and panic inside func main in a package whose name is "main".
+// Only non-test .go sources are considered (*_test.go files are skipped) so
+// test mains may still terminate the process.
 package osexit
 
 import (
@@ -13,18 +13,24 @@ import (
 )
 
 const (
-	Main       = "main" // package name and func main identifier
-	PkgOS      = "os"   // import name for os.Exit selector
-	FuncExit   = "Exit"
-	ExtGo      = ".go"
-	SuffixTest = "_test" + ExtGo // skip *_test.go
+	Main        = "main" // package name and func main identifier
+	Run         = "run"  //package run main func identifier
+	PkgOS       = "os"   // import name for os.Exit selector
+	FuncExit    = "Exit"
+	PkgLog      = "log" // import name for log.Fatal selector
+	FuncFatal   = "Fatal"
+	FuncFatalf  = "Fatalf"
+	FuncFatalln = "Fatalln"
+	FuncPanic   = "panic" // builtin
+	ExtGo       = ".go"
+	SuffixTest  = "_test" + ExtGo // skip *_test.go
 )
 
-// Analyzer flags os.Exit(...) in func main of package main (non-test files).
+// Analyzer flags os.Exit(...), log.Fatal*(...), and panic(...) in func main of package main (non-test files).
 // Prefer returning from main or signaling shutdown another way so defer runs.
 var Analyzer = &analysis.Analyzer{
 	Name: "osexit",
-	Doc:  "forbid os.Exit inside func main in package main (excluding *_test.go)",
+	Doc:  "forbid os.Exit/log.Fatal*/panic inside func main in package main (excluding *_test.go)",
 	Run:  run,
 }
 
@@ -52,7 +58,7 @@ func isMainPkg(file *ast.File) bool {
 	return isMain(pkgName)
 }
 func isMain(name string) bool {
-	return name == Main
+	return name == Main || name == Run
 }
 func isMainFunc(fn *ast.FuncDecl) bool {
 	return isMain(fn.Name.Name)
@@ -63,28 +69,37 @@ func inspectFile(pass *analysis.Pass, file *ast.File) {
 			if !isMainFunc(fn) {
 				return true
 			}
-			inspectFunc(pass, fn)
+			inspectMainFunc(pass, fn)
 			return false
 		}
 		return true
 	})
 }
-func inspectFunc(pass *analysis.Pass, fn *ast.FuncDecl) {
+func inspectMainFunc(pass *analysis.Pass, fn *ast.FuncDecl) {
 	ast.Inspect(fn.Body, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
 		}
+		if id, okIdent := call.Fun.(*ast.Ident); okIdent && id.Name == FuncPanic {
+			pass.Reportf(call.Pos(), "returning panic")
+			return false
+		}
+
 		sel, ok := call.Fun.(*ast.SelectorExpr)
 		if !ok {
 			return true
 		}
-		id, ok := sel.X.(*ast.Ident)
+		recv, ok := sel.X.(*ast.Ident)
 		if !ok {
 			return true
 		}
-		if id.Name == PkgOS && sel.Sel.Name == FuncExit {
+		if recv.Name == PkgOS && sel.Sel.Name == FuncExit {
 			pass.Reportf(call.Pos(), "returning os.Exit")
+			return false
+		}
+		if recv.Name == PkgLog && (sel.Sel.Name == FuncFatal || sel.Sel.Name == FuncFatalf || sel.Sel.Name == FuncFatalln) {
+			pass.Reportf(call.Pos(), "returning log.%s", sel.Sel.Name)
 			return false
 		}
 		return true

@@ -29,12 +29,18 @@ type Agent struct {
 func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	reportPool := workerpool.NewPool(cfg.RateLimit)
 	reportPool.StartBg(ctx)
-	return &Agent{cfg, NewCollector(ctx, cfg.RateLimit), NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator), reportPool, sync.Mutex{}}
+	return &Agent{
+		Config:     cfg,
+		collector:  NewCollector(ctx, cfg.RateLimit),
+		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator),
+		ReportPool: reportPool,
+		mu:         sync.Mutex{},
+	}
 }
 
 // StartReport calls Report on every ReportInterval tick until the context is canceled.
 func (a *Agent) StartReport(ctx context.Context) {
-	err := a.Report()
+	err := a.Report(ctx)
 	if err != nil {
 		a.Logger.Error("report error", zap.Error(err))
 	}
@@ -46,7 +52,7 @@ func (a *Agent) StartReport(ctx context.Context) {
 			return
 
 		case <-ticker.C:
-			err := a.Report()
+			err := a.Report(ctx)
 			if err != nil {
 				a.Logger.Error("report error", zap.Error(err))
 			}
@@ -76,7 +82,7 @@ func (a *Agent) StartPoll(ctx context.Context) {
 }
 
 // Report asynchronously sends buffered metrics to the server and resets the poll counter.
-func (a *Agent) Report() error {
+func (a *Agent) Report(ctx context.Context) error {
 	task := workerpool.NewTask(func(x any) (any, error) {
 
 		err := a.reporter.sendMetricsToServer(a.collector)
@@ -87,6 +93,6 @@ func (a *Agent) Report() error {
 		return nil, nil
 	})
 	a.ReportPool.Add(task)
-	res := a.ReportPool.Get()
+	res := a.ReportPool.Get(ctx)
 	return res.Err
 }

@@ -28,7 +28,11 @@ func (w *Worker) StartBg() {
 			}
 			t.process()
 			if t.NeedResult {
-				w.rCh <- t
+				select {
+				case <-w.ctx.Done():
+					return
+				case w.rCh <- t:
+				}
 			}
 		}
 	}

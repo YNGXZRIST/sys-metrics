@@ -13,7 +13,7 @@ func TestAgent_Report(t *testing.T) {
 	cfg := agent.NewConfig(1, 1, testServer.URL, zap.NewExample(), nil, 1)
 	a := NewAgent(cfg, context.Background())
 
-	err := a.Report()
+	err := a.Report(context.Background())
 	if err != nil {
 		t.Fatalf("report failed %v", err)
 	}

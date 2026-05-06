@@ -21,6 +21,6 @@ func BenchmarkPool_AddGet(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		p.Add(task)
-		_ = p.Get()
+		_ = p.Get(ctx)
 	}
 }

@@ -102,11 +102,11 @@ func (c *Collector) UpdateSync() error {
 	memTask.NeedResult = true
 	c.collectorPool.Add(sysTask)
 	c.collectorPool.Add(memTask)
-	sysRes := c.collectorPool.Get()
+	sysRes := c.collectorPool.Get(c.ctx)
 	if sysRes.Err != nil {
 		return sysRes.Err
 	}
-	memRes := c.collectorPool.Get()
+	memRes := c.collectorPool.Get(c.ctx)
 	if memRes.Err != nil {
 		return memRes.Err
 	}
