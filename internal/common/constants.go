@@ -58,13 +58,8 @@ const (
 	TextHTMLUTF8      = "text/html; charset=utf-8"
 )
 
-type contextKey string
-
-const (
-	ContextDBKey     contextKey = "db"
-	ContextLoggerKey contextKey = "logger"
-)
 const (
 	SHA256     = "sha256"
 	HashSHA256 = "HashSHA256"
 )
+const NotApplicable = "N/A"

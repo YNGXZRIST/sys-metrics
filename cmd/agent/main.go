@@ -13,13 +13,20 @@ import (
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/utils"
 	"syscall"
 
 	"go.uber.org/zap"
 )
 
-func main() {
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
 
+func main() {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	opt, err := config.NewOption(os.Args[1:])

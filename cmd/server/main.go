@@ -21,12 +21,20 @@ import (
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/postgres"
 	"sys-metrics/internal/router"
+	"sys-metrics/internal/utils"
 	"sys-metrics/migrations"
 
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	err := run(os.Args[1:])
 	if err != nil {
 		log.Fatal(err)
