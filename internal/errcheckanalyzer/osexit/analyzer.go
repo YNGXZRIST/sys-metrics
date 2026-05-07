@@ -1,5 +1,6 @@
 // Package osexit provides a go/analysis Analyzer that reports calls to
-// os.Exit, log.Fatal*, and panic inside func main in a package whose name is "main".
+// os.Exit, log.Fatal*, and panic inside any function of package "main",
+// except the entrypoint func main itself.
 // Only non-test .go sources are considered (*_test.go files are skipped) so
 // test mains may still terminate the process.
 package osexit
@@ -14,7 +15,6 @@ import (
 
 const (
 	Main        = "main" // package name and func main identifier
-	Run         = "run"  //package run main func identifier
 	PkgOS       = "os"   // import name for os.Exit selector
 	FuncExit    = "Exit"
 	PkgLog      = "log" // import name for log.Fatal selector
@@ -26,11 +26,16 @@ const (
 	SuffixTest  = "_test" + ExtGo // skip *_test.go
 )
 
-// Analyzer flags os.Exit(...), log.Fatal*(...), and panic(...) in func main of package main (non-test files).
-// Prefer returning from main or signaling shutdown another way so defer runs.
+// Analyzer flags os.Exit(...), log.Fatal*(...), and panic(...) in any function of
+// package main, except the entrypoint func main itself (non-test files).
+//
+// Rationale:
+// Calling these APIs outside the entrypoint makes control flow harder to reason about,
+// breaks defers in the calling stack, and complicates tests. Prefer returning errors up
+// to main and exiting in one place.
 var Analyzer = &analysis.Analyzer{
 	Name: "osexit",
-	Doc:  "forbid os.Exit/log.Fatal*/panic inside func main in package main (excluding *_test.go)",
+	Doc:  "forbid os.Exit/log.Fatal*/panic in package main outside the entrypoint main() (excluding *_test.go)",
 	Run:  run,
 }
 
@@ -58,24 +63,24 @@ func isMainPkg(file *ast.File) bool {
 	return isMain(pkgName)
 }
 func isMain(name string) bool {
-	return name == Main || name == Run
+	return name == Main
 }
 func isMainFunc(fn *ast.FuncDecl) bool {
-	return isMain(fn.Name.Name)
+	return fn.Recv == nil && fn.Name != nil && fn.Name.Name == Main
 }
 func inspectFile(pass *analysis.Pass, file *ast.File) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		if fn, ok := n.(*ast.FuncDecl); ok {
-			if !isMainFunc(fn) {
+			if isMainFunc(fn) {
 				return true
 			}
-			inspectMainFunc(pass, fn)
+			inspectNonMainFunc(pass, fn)
 			return false
 		}
 		return true
 	})
 }
-func inspectMainFunc(pass *analysis.Pass, fn *ast.FuncDecl) {
+func inspectNonMainFunc(pass *analysis.Pass, fn *ast.FuncDecl) {
 	ast.Inspect(fn.Body, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
 		if !ok {
