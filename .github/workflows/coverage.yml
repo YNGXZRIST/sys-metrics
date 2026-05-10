@@ -3,10 +3,6 @@ name: coverage
 on:
   pull_request:
   push:
-    branches:
-      - main
-      - master
-      - v2
 
 permissions:
   contents: write
@@ -38,10 +34,10 @@ jobs:
           config: .testcoverage.yml
           profile: cover.out
 
-      # Один путь на всех ветках: .badges/coverage.svg — тогда в README можно относительную ссылку,
-      # GitHub покажет файл той ветки, которую смотрите (не только default).
+      # При push в любую ветку: бейдж коммитится в эту же ветку (.badges/coverage.svg).
+      # На pull_request не публикуем — нет push в репозиторий (и в fork PR токен только read).
       - name: Publish coverage badge to repository
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/v2')
+        if: github.event_name == 'push'
         uses: vladopajic/go-test-coverage@v2
         with:
           config: .testcoverage.yml
