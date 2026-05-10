@@ -1,0 +1,9 @@
+# Конфиг для github.com/vladopajic/go-test-coverage (workflow coverage.yml).
+# В CI путь к профилю задаётся входом action; для локально: go test ... -coverprofile=cover.out
+profile: cover.out
+
+threshold:
+  file: 0
+  package: 0
+  # Локально total ~54%; порог чуть ниже, чтобы не ломать CI из‑за мелких колебаний.
+  total: 50
