@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - master
+      - v2
 
 permissions:
   contents: write
@@ -40,7 +41,7 @@ jobs:
       # Один путь на всех ветках: .badges/coverage.svg — тогда в README можно относительную ссылку,
       # GitHub покажет файл той ветки, которую смотрите (не только default).
       - name: Publish coverage badge to repository
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/v2')
         uses: vladopajic/go-test-coverage@v2
         with:
           config: .testcoverage.yml
