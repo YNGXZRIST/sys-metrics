@@ -11,18 +11,25 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// generate:reset
+
+// Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `env:"ADDRESS"`
+	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
+	HashKey           *string `env:"KEY"`
 	Host              string
 	Port              string
 	Mode              string `env:"MODE"`
-	StoreIntervalSec  *int   `env:"STORE_INTERVAL" default:"300"`
-	StoreInterval     time.Duration
 	BackupStoragePath string `env:"STORE_FILE" envDefault:"./backups"`
-	Restore           bool   `env:"RESTORE" envDefault:"true"`
 	DNS               string `env:"DATABASE_DSN"`
+	AuditFile         string `env:"AUDIT_FILE"`
+	AuditURL          string `env:"AUDIT_URL"`
+	StoreInterval     time.Duration
+	Restore           bool `env:"RESTORE" envDefault:"true"`
 }
 
+// SetHostPort implements config.HostPortSetter.
 func (opt *Options) SetHostPort(host, port string) {
 	opt.Host = host
 	opt.Port = port
@@ -33,17 +40,24 @@ func parseArgs(args []string) (*Options, error) {
 	opt := new(Options)
 	var intervalSec int
 	var serverAddr string
+	var hashKey string
 	flags.StringVar(&serverAddr, "a", "localhost:8080", "Address of the server")
 	opt.ServerAddress = &serverAddr
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Server mode. Possible values: production, development")
 	flags.IntVar(&intervalSec, "i", 300, "Storage interval in seconds")
 	flags.StringVar(&opt.DNS, "d", "", "Database DSN for backup storage")
+	flags.StringVar(&hashKey, "k", "", "Hash key")
 	opt.StoreInterval = time.Duration(intervalSec) * time.Second
 	flags.StringVar(&opt.BackupStoragePath, "f", "./backups", "Backup storage path")
 	flags.BoolVar(&opt.Restore, "r", true, "Restore backups")
+	flags.StringVar(&opt.AuditFile, "audit-file", "", "File to store audit log")
+	flags.StringVar(&opt.AuditURL, "audit-url", "", "URL to store audit log in remote server")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
+	}
+	if hashKey != "" {
+		opt.HashKey = &hashKey
 	}
 	err = config.ParseAndSetHostPort(serverAddr, opt)
 	if err != nil {
@@ -68,6 +82,8 @@ func (opt *Options) parseEnv() error {
 
 	return nil
 }
+
+// NewOption parses argv and environment, validates mode, and returns Options.
 func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {

@@ -9,8 +9,8 @@ func TestMigrate(t *testing.T) {
 	tests := []struct {
 		name            string
 		dsn             string
-		wantErr         bool
 		wantErrContains string
+		wantErr         bool
 	}{
 		{
 			name:            "empty DSN returns error",

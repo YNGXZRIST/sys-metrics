@@ -1,3 +1,5 @@
+// Package common holds shared constants used across the whole module:
+// metric type names, runtime mode strings, HTTP headers, and context keys.
 package common
 
 const (
@@ -36,6 +38,8 @@ const (
 	StackSys      = "StackSys"
 	Sys           = "Sys"
 	TotalAlloc    = "TotalAlloc"
+	TotalMemory   = "TotalMemory"
+	FreeMemory    = "FreeMemory"
 )
 const (
 	TypeModeDevelopment = "development"
@@ -54,9 +58,8 @@ const (
 	TextHTMLUTF8      = "text/html; charset=utf-8"
 )
 
-type contextKey string
-
 const (
-	ContextDBKey     contextKey = "db"
-	ContextLoggerKey contextKey = "logger"
+	SHA256     = "sha256"
+	HashSHA256 = "HashSHA256"
 )
+const NotApplicable = "N/A"

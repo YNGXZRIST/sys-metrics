@@ -1,33 +1,37 @@
+// Package router wires chi.Mux with middleware and metrics HTTP API routes.
 package router
 
 import (
-	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/handler"
-	"sys-metrics/internal/middleware"
+	imw "sys-metrics/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
+	chimw "github.com/go-chi/chi/v5/middleware"
 )
 
-func GetRouter(logger *zap.Logger, conn *db.DB) *chi.Mux {
+// GetRouter configures gzip, request logging, pprof, authentication, and handler h routes.
+func GetRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.GzipMiddleware)
-	r.Use(middleware.WithDBContext(conn))
-	r.Use(middleware.WithRequestLogger(logger))
-	r.Use(middleware.WithLoggerContext(logger))
-	r.Use(middleware.WithDBContext(conn))
-	r.Get("/", handler.IndexHandler)
-	r.Get("/ping", handler.PingHandler)
-	r.Group(func(gr chi.Router) {
-		gr.Use(middleware.ContentTypeJSON)
-		gr.Post("/value", handler.ValueHandlerJSON)
-		gr.Post("/update", handler.UpdateHandlerJSON)
-		gr.Post("/value/", handler.ValueHandlerJSON)
-		gr.Post("/update/", handler.UpdateHandlerJSON)
-		gr.Post("/updates", handler.UpdatesMetricsHandlerJSON)
-		gr.Post("/updates/", handler.UpdatesMetricsHandlerJSON)
+	r.Use(imw.GzipMiddleware)
+	r.Use(imw.WithRequestLogger(h.Logger))
+	r.Mount("/debug", chimw.Profiler())
+
+	r.Group(func(ar chi.Router) {
+		ar.Use(imw.WithAuthenticateMiddleware(h.Logger, h.Auth))
+
+		ar.Get("/", h.IndexHandler)
+		ar.Get("/ping", h.PingHandler)
+		ar.Group(func(gr chi.Router) {
+			gr.Use(imw.ContentTypeJSON)
+			gr.Post("/value", h.ValueHandlerJSON)
+			gr.Post("/value/", h.ValueHandlerJSON)
+			gr.Post("/update", h.UpdateHandlerJSON)
+			gr.Post("/update/", h.UpdateHandlerJSON)
+			gr.Post("/updates", h.UpdatesMetricsHandlerJSON)
+			gr.Post("/updates/", h.UpdatesMetricsHandlerJSON)
+		})
+		ar.Post("/update/{type}/{name}/{value}", h.UpdateHandler)
+		ar.Get("/value/{type}/{name}", h.ValueHandler)
 	})
-	r.Post("/update/{type}/{name}/{value}", handler.UpdateHandler)
-	r.Get("/value/{type}/{name}", handler.ValueHandler)
 	return r
 }

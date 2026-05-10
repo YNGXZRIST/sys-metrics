@@ -21,8 +21,8 @@ func TestNewGzipWriter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Write() error = %v", err)
 	}
-	if err := cw.Close(); err != nil {
-		t.Fatalf("Close() error = %v", err)
+	if errC := cw.Close(); errC != nil {
+		t.Fatalf("Close() error = %v", errC)
 	}
 	if got := recorder.Header().Get(ContentEncodingHeader); got != GzipEncoding {
 		t.Errorf("Content-Encoding = %v, want %v", got, GzipEncoding)
@@ -56,8 +56,8 @@ func TestNewGzipReader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("gzip.Write() error = %v", err)
 	}
-	if err := gw.Close(); err != nil {
-		t.Fatalf("gzip.Close() error = %v", err)
+	if errC := gw.Close(); errC != nil {
+		t.Fatalf("gzip.Close() error = %v", errC)
 	}
 	cr, err := NewGzipReader(io.NopCloser(bytes.NewReader(buf.Bytes())))
 	if err != nil {

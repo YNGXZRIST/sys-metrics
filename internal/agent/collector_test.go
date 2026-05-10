@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"runtime"
+	"context"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
 	"testing"
@@ -19,7 +19,7 @@ func TestCollector_ResetPollMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
+			c := NewCollector(context.Background(), 1)
 			c.SetCounter(common.PollCount, tt.initial)
 			c.ResetPollMetric()
 			counter, ok := c.Counters[common.PollCount]
@@ -46,7 +46,7 @@ func TestCollector_SetPollCounterMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
+			c := NewCollector(context.Background(), 1)
 			c.SetCounter(common.PollCount, tt.initial)
 			for i := 0; i < tt.increments; i++ {
 				c.SetPollCounterMetric()
@@ -73,7 +73,7 @@ func TestCollector_GetPollCountMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
+			c := NewCollector(context.Background(), 1)
 			c.SetCounter(common.PollCount, tt.initial)
 			counter, ok := c.Counters[common.PollCount]
 			if !ok || counter == nil || counter.Delta == nil {
@@ -89,20 +89,45 @@ func TestCollector_GetPollCountMetric(t *testing.T) {
 func TestUpdateFromStats(t *testing.T) {
 	tests := []struct {
 		name      string
-		stats     *runtime.MemStats
+		values    map[string]float64
 		checkName string
 		want      float64
 	}{
-		{"Alloc metric", &runtime.MemStats{Alloc: 1024}, common.Alloc, 1024},
-		{"HeapAlloc metric", &runtime.MemStats{HeapAlloc: 2048}, common.HeapAlloc, 2048},
-		{"TotalAlloc metric", &runtime.MemStats{TotalAlloc: 4096}, common.TotalAlloc, 4096},
-		{"Sys metric", &runtime.MemStats{Sys: 8192}, common.Sys, 8192},
-		{"zero value", &runtime.MemStats{Alloc: 0}, common.Alloc, 0},
+		{
+			name:      "Alloc metric",
+			values:    map[string]float64{common.Alloc: 1024},
+			checkName: common.Alloc,
+			want:      1024,
+		},
+		{
+			name:      "HeapAlloc metric",
+			values:    map[string]float64{common.HeapAlloc: 2048},
+			checkName: common.HeapAlloc,
+			want:      2048,
+		},
+		{
+			name:      "TotalAlloc metric",
+			values:    map[string]float64{common.TotalAlloc: 4096},
+			checkName: common.TotalAlloc,
+			want:      4096,
+		},
+		{
+			name:      "Sys metric",
+			values:    map[string]float64{common.Sys: 8192},
+			checkName: common.Sys,
+			want:      8192,
+		},
+		{
+			name:      "zero value",
+			values:    map[string]float64{common.Alloc: 0},
+			checkName: common.Alloc,
+			want:      0,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
-			c.UpdateFromStats(tt.stats)
+			c := NewCollector(context.Background(), 1)
+			c.UpdateFromStats(tt.values)
 			gauge, ok := c.Gauges[tt.checkName]
 			if !ok || gauge == nil || gauge.Value == nil {
 				t.Fatalf("Gauge %s not found or nil after UpdateFromStats", tt.checkName)
@@ -115,7 +140,7 @@ func TestUpdateFromStats(t *testing.T) {
 }
 
 func TestNewCollector(t *testing.T) {
-	c := NewCollector()
+	c := NewCollector(context.Background(), 1)
 	if c == nil {
 		t.Fatal("NewCollector() returned nil")
 	}
@@ -139,7 +164,7 @@ func TestCollector_SetGauge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
+			c := NewCollector(context.Background(), 1)
 			g := metrics.NewGauge(tt.key)
 			g.SetValue(tt.value)
 			c.Gauges[tt.key] = g
@@ -155,7 +180,7 @@ func TestCollector_SetGauge(t *testing.T) {
 }
 
 func TestCollector_GetGauge_NotFound(t *testing.T) {
-	c := NewCollector()
+	c := NewCollector(context.Background(), 1)
 	gauge, ok := c.Gauges["nonexistent"]
 	if ok && gauge != nil && gauge.Value != nil {
 		t.Error("GetGauge(nonexistent) returned value, want nil")
@@ -173,7 +198,7 @@ func TestCollector_SetCounter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewCollector()
+			c := NewCollector(context.Background(), 1)
 			c.SetCounter(tt.key, tt.value)
 			counter, ok := c.Counters[tt.key]
 			if !ok || counter == nil || counter.Delta == nil {
@@ -187,7 +212,7 @@ func TestCollector_SetCounter(t *testing.T) {
 }
 
 func TestCollector_GetCounter_NotFound(t *testing.T) {
-	c := NewCollector()
+	c := NewCollector(context.Background(), 1)
 	counter, ok := c.Counters["nonexistent"]
 	if ok && counter != nil && counter.Delta != nil {
 		t.Error("GetCounter(nonexistent) returned value, want nil")
@@ -195,8 +220,11 @@ func TestCollector_GetCounter_NotFound(t *testing.T) {
 }
 
 func TestCollector_Update(t *testing.T) {
-	c := NewCollector()
-	c.Update()
+	c := NewCollector(context.Background(), 1)
+	err := c.UpdateSync()
+	if err != nil {
+		t.Errorf("Update() returned %v, want nil", err)
+	}
 	metricsToCheck := []string{common.Alloc, common.HeapAlloc, common.Sys, common.TotalAlloc}
 	for _, name := range metricsToCheck {
 		gauge, ok := c.Gauges[name]

@@ -7,27 +7,41 @@ import (
 	"os"
 	"os/signal"
 	"sys-metrics/internal/agent"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	config "sys-metrics/internal/config/agent"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/utils"
 	"syscall"
 
 	"go.uber.org/zap"
 )
 
-func main() {
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
 
+func main() {
+	if err := run(); err != nil {
+		log.Printf("fatal: %v", err)
+		return
+	}
+}
+func run() error {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	opt, err := config.NewOption(os.Args[1:])
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("new option: %w", err)
 	}
-	a, err := initAgent(opt)
+	a, err := initAgent(opt, ctx)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("agent initialization failed: %w", err)
 	}
 	defer a.Logger.Sync()
 	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
@@ -38,14 +52,16 @@ func main() {
 	<-quit
 	a.Logger.Info("Shutting down agent...")
 	cancel()
+	return nil
 }
-func initAgent(opt *config.Options) (*agent.Agent, error) {
+func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("error initializing logger: %w", err))
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger)
-	a := agent.NewAgent(agentCfg)
+	validator := authenticate.NewSha256(&opt.HashKey)
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, opt.RateLimit)
+	a := agent.NewAgent(agentCfg, ctx)
 	return a, nil
 }

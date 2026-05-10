@@ -1,3 +1,4 @@
+// Package memory implements metricsiface.ServiceInterface entirely in memory (MemStorage).
 package memory
 
 import (
@@ -12,6 +13,9 @@ import (
 	"sys-metrics/pkg/storage"
 )
 
+// generate:reset
+
+// Service stores counters and gauges in memory with a mutex for batch updates.
 type Service struct {
 	counters metricsiface.MetricStorage[*models.Counter]
 	gauges   metricsiface.MetricStorage[*models.Gauge]
@@ -35,6 +39,7 @@ func (s *Service) InitRoutine(ctx context.Context) error {
 	return nil
 }
 
+// NewService creates separate MemStorage instances for counters and gauges.
 func NewService() *Service {
 	counters := storage.NewMemStorage[string, *models.Counter]()
 	gauges := storage.NewMemStorage[string, *models.Gauge]()

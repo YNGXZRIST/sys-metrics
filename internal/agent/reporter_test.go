@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"sys-metrics/internal/common"
 	models "sys-metrics/internal/model/metrics"
 	"testing"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestNewReporter(t *testing.T) {
-	reporter := NewReporter(testServer.URL, zap.NewExample())
+	reporter := NewReporter(testServer.URL, zap.NewExample(), nil)
 	if reporter == nil {
 		t.Fatal("NewReporter() returned nil")
 	}
@@ -47,8 +48,8 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		args args
 		want string
+		args args
 	}{
 		{
 			name: "empty",
@@ -84,14 +85,14 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 
 func TestReporter_Send(t *testing.T) {
 	tests := []struct {
-		name    string
 		setup   func() *Collector
+		name    string
 		wantErr bool
 	}{
 		{
 			name: "success",
 			setup: func() *Collector {
-				c := NewCollector()
+				c := NewCollector(context.Background(), 1)
 				g := models.NewGauge("random")
 				g.SetValue(12.43)
 				c.Gauges["random"] = g
@@ -104,7 +105,7 @@ func TestReporter_Send(t *testing.T) {
 		{
 			name: "error",
 			setup: func() *Collector {
-				c := NewCollector()
+				c := NewCollector(context.Background(), 1)
 				g := models.NewGauge("")
 				g.SetValue(0)
 				c.Gauges[""] = g
@@ -116,7 +117,7 @@ func TestReporter_Send(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			collector := tt.setup()
-			if err := testReporter.Send(collector); (err != nil) != tt.wantErr {
+			if err := testReporter.sendMetricsToServer(collector); (err != nil) != tt.wantErr {
 				t.Errorf("Send() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -125,8 +126,8 @@ func TestReporter_Send(t *testing.T) {
 
 func TestReporter_sendMetricToServer(t *testing.T) {
 	tests := []struct {
-		name    string
 		metric  *models.Metrics
+		name    string
 		wantErr bool
 	}{
 		{
@@ -139,7 +140,7 @@ func TestReporter_sendMetricToServer(t *testing.T) {
 			metric: &models.Metrics{
 				ID:    common.Gauge,
 				MType: common.Gauge,
-				Value: func() *float64 { v := 10.43; return &v }(),
+				Value: func() *float64 { ; return new(10.43) }(),
 			},
 			wantErr: false,
 		},

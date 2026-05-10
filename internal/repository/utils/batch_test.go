@@ -35,8 +35,7 @@ func TestApplyGauge(t *testing.T) {
 func TestApplyCounter_New(t *testing.T) {
 	ctx := context.Background()
 	_, counters := newTestStorages()
-	delta := int64(10)
-	v := models.Metrics{ID: "PollCount", MType: common.Counter, Delta: &delta}
+	v := models.Metrics{ID: "PollCount", MType: common.Counter, Delta: new(int64(10))}
 
 	m, err := ApplyCounter(ctx, v, counters)
 	if err != nil {
@@ -58,8 +57,7 @@ func TestApplyCounter_Accumulate(t *testing.T) {
 	c.SetValue(5)
 	_ = counters.Set(ctx, c.ID, c)
 
-	delta := int64(3)
-	v := models.Metrics{ID: "PollCount", MType: common.Counter, Delta: &delta}
+	v := models.Metrics{ID: "PollCount", MType: common.Counter, Delta: new(int64(3))}
 
 	m, err := ApplyCounter(ctx, v, counters)
 	if err != nil {
@@ -82,13 +80,11 @@ func TestApplyBatchToStorages(t *testing.T) {
 	ctx := context.Background()
 	gauges, counters := newTestStorages()
 
-	val1 := 1.0
-	val2 := 2.0
 	m := []models.Metrics{
-		{ID: "g1", MType: common.Gauge, Value: &val1},
+		{ID: "g1", MType: common.Gauge, Value: new(1.0)},
 		{ID: "c1", MType: common.Counter, Delta: ptrInt64(1)},
 		{ID: "c1", MType: common.Counter, Delta: ptrInt64(2)},
-		{ID: "g2", MType: common.Gauge, Value: &val2},
+		{ID: "g2", MType: common.Gauge, Value: new(2.0)},
 	}
 
 	byID, err := ApplyBatchToStorages(ctx, m, gauges, counters)

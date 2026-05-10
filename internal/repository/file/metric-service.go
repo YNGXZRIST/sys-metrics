@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+// generate:reset
+
 type BackupService struct {
 	BackupStorage *MetricBackupStorage
 	mu            sync.Mutex

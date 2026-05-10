@@ -16,8 +16,8 @@ func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
 		metricsHandler metricsiface.Handler
 	}
 	tests := []struct {
-		name   string
 		fields fields
+		name   string
 		want   bool
 	}{
 		{
@@ -55,12 +55,12 @@ func Test_gaugeBackupStorage_NeedSync(t *testing.T) {
 
 func Test_gaugeBackupStorage_Set(t *testing.T) {
 	type args struct {
-		key   string
 		value *metrics.Gauge
+		key   string
 	}
 	tests := []struct {
-		name    string
 		args    args
+		name    string
 		wantErr bool
 	}{
 		{

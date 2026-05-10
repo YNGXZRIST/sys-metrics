@@ -15,10 +15,10 @@ func TestGzipMiddleware(t *testing.T) {
 		name               string
 		acceptEncoding     string
 		contentEncoding    string
+		wantRespEncoding   string
 		reqBody            []byte
 		wantStatus         int
 		wantNextCalled     bool
-		wantRespEncoding   string
 		wantRespBodyDecode bool
 	}{
 		{

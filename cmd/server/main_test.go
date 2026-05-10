@@ -36,12 +36,12 @@ func TestInitLogger(t *testing.T) {
 
 func TestIsDSNSet(t *testing.T) {
 	tests := []struct {
-		name string
 		opt  *server.Options
+		name string
 		want bool
 	}{
-		{"empty DSN", &server.Options{DNS: ""}, false},
-		{"DSN set", &server.Options{DNS: "postgres://localhost/db"}, true},
+		{&server.Options{DNS: ""}, "empty DSN", false},
+		{&server.Options{DNS: "postgres://localhost/db"}, "DSN set", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

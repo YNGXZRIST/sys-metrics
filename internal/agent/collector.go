@@ -1,14 +1,21 @@
 package agent
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/stringsparser"
+	"sys-metrics/pkg/workerpool"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 var runtimeMetricsTypes = []string{
@@ -45,35 +52,112 @@ var runtimeMetricsMap = map[string]string{
 	strings.ToLower(common.MCacheInuse):   common.MCacheInuse,
 	strings.ToLower(common.MCacheSys):     common.MCacheSys,
 	strings.ToLower(common.MSpanInuse):    common.MSpanInuse,
+	strings.ToLower(common.TotalMemory):   common.TotalMemory,
+	strings.ToLower(common.FreeMemory):    common.FreeMemory,
 }
 
+// generate:reset
+
+// Collector stores gauges and counters in memory using pools for parallel OS and runtime sampling.
 type Collector struct {
-	Gauges   map[string]*metrics.Gauge
-	Counters map[string]*metrics.Counter
-	mu       sync.Mutex
+	Gauges        map[string]*metrics.Gauge
+	Counters      map[string]*metrics.Counter
+	collectorPool *workerpool.Pool
+	updaterPool   *workerpool.Pool
+	ctx           context.Context
+	mu            sync.Mutex
 }
 
-func NewCollector() *Collector {
+// NewCollector initializes metric maps and worker pools for CPU/memory and runtime collection.
+func NewCollector(ctx context.Context, rateLimit int) *Collector {
+	collectorPool := workerpool.NewPool(rateLimit)
+	collectorPool.StartBg(ctx)
+	updaterPool := workerpool.NewPool(rateLimit)
+	updaterPool.StartBg(ctx)
 	return &Collector{
-		Gauges:   make(map[string]*metrics.Gauge, 27),
-		Counters: make(map[string]*metrics.Counter, 2),
+		Gauges:        make(map[string]*metrics.Gauge, 27),
+		Counters:      make(map[string]*metrics.Counter, 2),
+		collectorPool: collectorPool,
+		updaterPool:   updaterPool,
+		ctx:           ctx,
 	}
-}
-func (c *Collector) Update() {
-	var s runtime.MemStats
-	runtime.ReadMemStats(&s)
-	c.UpdateFromStats(&s)
 }
 
-func (c *Collector) UpdateFromStats(s *runtime.MemStats) {
-	valueOf := reflect.ValueOf(*s)
-	for _, name := range runtimeMetricsTypes {
-		v, ok := c.extractFieldValue(valueOf, name)
-		if !ok {
-			continue
-		}
-		c.updateOrCreateGauge(name, v)
+// Update enqueues asynchronous memory, CPU, and runtime sampling without waiting for results.
+func (c *Collector) Update() error {
+	sysTask := c.getSysTask()
+	memTask := c.getMemTask()
+	sysTask.NeedResult = false
+	memTask.NeedResult = false
+	c.collectorPool.Add(sysTask)
+	c.collectorPool.Add(memTask)
+	return nil
+}
+
+// UpdateSync performs the same sampling as Update but waits for tasks to finish.
+func (c *Collector) UpdateSync() error {
+	sysTask := c.getSysTask()
+	memTask := c.getMemTask()
+	sysTask.NeedResult = true
+	memTask.NeedResult = true
+	c.collectorPool.Add(sysTask)
+	c.collectorPool.Add(memTask)
+	sysRes := c.collectorPool.Get(c.ctx)
+	if sysRes.Err != nil {
+		return sysRes.Err
 	}
+	memRes := c.collectorPool.Get(c.ctx)
+	if memRes.Err != nil {
+		return memRes.Err
+	}
+	return nil
+
+}
+
+func (c *Collector) getMemTask() *workerpool.Task {
+	memTask := workerpool.NewTask(func(a any) (any, error) {
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			err = labelerrors.NewLabelError("COLLECT", fmt.Errorf("error getting mem.VirtualMemory: %w", err))
+			return nil, err
+		}
+		m := make(map[string]float64)
+		m[common.TotalMemory] = float64(v.Total)
+		m[common.FreeMemory] = float64(v.Free)
+		cpuPercents, _ := cpu.Percent(0, true)
+		for i, p := range cpuPercents {
+			name := fmt.Sprintf("CPUutilization%d", i+1)
+			m[name] = p
+		}
+		c.UpdateFromStats(m)
+		return m, nil
+	})
+	return memTask
+}
+func (c *Collector) getSysTask() *workerpool.Task {
+	sysTask := workerpool.NewTask(func(a any) (any, error) {
+		var s runtime.MemStats
+		runtime.ReadMemStats(&s)
+		valueOf := reflect.ValueOf(s)
+		m := make(map[string]float64)
+		for _, name := range runtimeMetricsTypes {
+			v, ok := c.extractFieldValue(valueOf, name)
+			if !ok {
+				continue
+			}
+			m[name] = v
+		}
+		c.UpdateFromStats(m)
+		return m, nil
+	})
+	return sysTask
+}
+
+func (c *Collector) UpdateFromStats(maps map[string]float64) {
+	for n, v := range maps {
+		c.updateOrCreateGauge(n, v)
+	}
+
 }
 func (c *Collector) updateOrCreateGauge(name string, value float64) {
 	c.mu.Lock()
@@ -153,6 +237,8 @@ func (c *Collector) GetPollCountMetric() *metrics.Counter {
 func (c *Collector) SetRandomValueMetric() {
 	c.updateOrCreateGauge(common.RandomValue, rand.Float64())
 }
+
+// GetMetricType normalizes a metric name: known runtime names via map, otherwise Capitalize.
 func GetMetricType(metric string) string {
 	lowerMetric := strings.ToLower(metric)
 	metricType, ok := runtimeMetricsMap[lowerMetric]

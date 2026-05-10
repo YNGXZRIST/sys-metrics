@@ -12,32 +12,45 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// generate:reset
+
+// Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
 	ServerAddress  string `env:"ADDRESS"`
 	Host           string
 	Port           string
+	Mode           string `env:"MODE"`
+	HashKey        string `env:"KEY"`
 	PollInterval   time.Duration
 	ReportInterval time.Duration
-	PollSec        int    `env:"POLL_INTERVAL"`
-	ReportSec      int    `env:"REPORT_INTERVAL"`
-	Mode           string `env:"MODE"`
+	PollSec        int `env:"POLL_INTERVAL"`
+	ReportSec      int `env:"REPORT_INTERVAL"`
+	RateLimit      int `env:"RATE_LIMIT"`
 }
 
+// SetHostPort implements config.HostPortSetter.
 func (opt *Options) SetHostPort(host, port string) {
 	opt.Host = host
 	opt.Port = port
 }
 
 func parseArgs(args []string) (*Options, error) {
+	var hashKey string
 	flags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	opt := new(Options)
 	flags.StringVar(&opt.ServerAddress, "a", fmt.Sprintf("%v:%v", server.DefaultHost, server.DefaultPort), "Address of agent server")
 	flags.IntVar(&opt.ReportSec, "r", 10, "Reporting interval in seconds")
 	flags.IntVar(&opt.PollSec, "p", 2, "Poll interval in seconds")
+	flags.StringVar(&hashKey, "k", "", "Server Hash key")
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Agent mode. Possible values: production, development")
+	flags.IntVar(&opt.RateLimit, "l", 1, "agent rate limit")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err
+	}
+
+	if hashKey != "" {
+		opt.HashKey = hashKey
 	}
 	opt.PollInterval = time.Duration(opt.PollSec) * time.Second
 	opt.ReportInterval = time.Duration(opt.ReportSec) * time.Second
@@ -68,6 +81,8 @@ func (opt *Options) parseEnv() error {
 
 	return nil
 }
+
+// NewOption parses the agent argv and environment and validates logging mode.
 func NewOption(args []string) (*Options, error) {
 	opt, err := parseArgs(args)
 	if err != nil {

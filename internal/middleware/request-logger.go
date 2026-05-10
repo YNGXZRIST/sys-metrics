@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"sys-metrics/pkg/pool"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,7 +16,7 @@ type (
 		size   int
 	}
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
+		http.ResponseWriter // embeds the underlying ResponseWriter
 		responseData        *responseData
 	}
 )
@@ -31,13 +32,16 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode
 }
 
+// WithRequestLogger logs method, URI, status, duration, and for POST requests the body.
 func WithRequestLogger(logger *zap.Logger) func(http.Handler) http.Handler {
+	bufPool := pool.New(func() *bytes.Buffer { return new(bytes.Buffer) })
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sugar := logger.Sugar()
+			var buf *bytes.Buffer
 			if r.Method == http.MethodPost {
-				var buf bytes.Buffer
-				tee := io.TeeReader(r.Body, &buf)
+				buf = bufPool.Get()
+				tee := io.TeeReader(r.Body, buf)
 				body, err := io.ReadAll(tee)
 				if err != nil {
 					w.WriteHeader(http.StatusBadRequest)
@@ -48,7 +52,8 @@ func WithRequestLogger(logger *zap.Logger) func(http.Handler) http.Handler {
 					"method", r.Method,
 					"request body", string(body),
 				)
-				r.Body = io.NopCloser(&buf)
+				r.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
+				defer bufPool.Put(buf)
 			}
 			start := time.Now()
 			responseData := &responseData{

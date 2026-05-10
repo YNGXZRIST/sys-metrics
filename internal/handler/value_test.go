@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -69,30 +68,23 @@ func TestValueHandler(t *testing.T) {
 
 			svc.Init(memory.NewService())
 
-			gaugeVal := 123.456
-			err := svc.Gauges().Set(context.Background(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
+			err := svc.Gauges().Set(context.Background(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: new(123.456)}})
 			if err != nil {
 				t.Errorf("gauges.Set(%s): expected %v, got %v", common.Alloc, nil, err)
 			}
-			counterVal := int64(42)
-			err = svc.Counters().Set(context.Background(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
+			err = svc.Counters().Set(context.Background(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: new(int64(42))}})
 			if err != nil {
 				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/value", nil)
+			req := httptest.NewRequest(http.MethodGet, "/value/"+tt.args.metricType+"/"+tt.args.name, nil)
 			req.SetPathValue("type", tt.args.metricType)
 			req.SetPathValue("name", tt.args.name)
 			w := httptest.NewRecorder()
-			ValueHandler(w, req)
+			h := newTestHandler(t)
+			h.ValueHandler(w, req)
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("ValueHandler() status = %v, want %v", res.StatusCode, tt.wantStatus)
@@ -161,13 +153,11 @@ func TestValueHandlerJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			svc.Init(memory.NewService())
 
-			gaugeVal := 123.456
-			err := svc.Gauges().Set(context.Background(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: &gaugeVal}})
+			err := svc.Gauges().Set(context.Background(), common.Alloc, &metrics.Gauge{Metrics: metrics.Metrics{ID: common.Alloc, MType: common.Gauge, Value: new(123.456)}})
 			if err != nil {
 				t.Errorf("gauges.Set(%s): expected %v, got %v", common.Alloc, nil, err)
 			}
-			counterVal := int64(42)
-			err = svc.Counters().Set(context.Background(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: &counterVal}})
+			err = svc.Counters().Set(context.Background(), common.PollCount, &metrics.Counter{Metrics: metrics.Metrics{ID: common.PollCount, MType: common.Counter, Delta: new(int64(42))}})
 			if err != nil {
 				t.Errorf("counters.Set(%s): expected %v, got %v", common.PollCount, nil, err)
 			}
@@ -178,15 +168,10 @@ func TestValueHandlerJSON(t *testing.T) {
 			reqBody := bytes.NewReader(payload)
 			req := httptest.NewRequest(http.MethodPost, "/value", reqBody)
 			w := httptest.NewRecorder()
-			ValueHandlerJSON(w, req)
+			h := newTestHandler(t)
+			h.ValueHandlerJSON(w, req)
 			res := w.Result()
-			res.Body.Close()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
-			}(res.Body)
+			defer res.Body.Close()
 
 			if res.StatusCode != tt.wantStatus {
 				t.Errorf("ValueHandlerJSON() status = %v, want %v", res.StatusCode, tt.wantStatus)
@@ -212,9 +197,9 @@ func Test_getMetricFromStorage(t *testing.T) {
 		isWantSet  bool
 	}
 	tests := []struct {
+		want    metrics.Metrics
 		name    string
 		args    args
-		want    metrics.Metrics
 		wantErr bool
 	}{
 		{
@@ -227,7 +212,7 @@ func Test_getMetricFromStorage(t *testing.T) {
 			want: metrics.Metrics{
 				ID:    "Alloc",
 				MType: common.Gauge,
-				Value: func() *float64 { v := 123.456; return &v }(),
+				Value: func() *float64 { return new(123.456) }(),
 			},
 			wantErr: false,
 		},
@@ -241,7 +226,7 @@ func Test_getMetricFromStorage(t *testing.T) {
 			want: metrics.Metrics{
 				ID:    "PollCount",
 				MType: common.Counter,
-				Delta: func() *int64 { v := int64(42); return &v }(),
+				Delta: func() *int64 { return new(int64(42)) }(),
 			},
 			wantErr: false,
 		},
@@ -272,14 +257,12 @@ func Test_getMetricFromStorage(t *testing.T) {
 			if tt.args.isWantSet {
 				switch tt.args.metricType {
 				case common.Counter:
-					counterVal := int64(42)
-					err := svc.Counters().Set(context.Background(), tt.args.name, &metrics.Counter{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Counter, Delta: &counterVal}})
+					err := svc.Counters().Set(context.Background(), tt.args.name, &metrics.Counter{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Counter, Delta: new(int64(42))}})
 					if err != nil {
 						t.Errorf("counters.Set(%s): expected %v, got %v", tt.args.name, nil, err)
 					}
 				case common.Gauge:
-					gaugeVal := 123.456
-					err := svc.Gauges().Set(context.Background(), tt.args.name, &metrics.Gauge{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Gauge, Value: &gaugeVal}})
+					err := svc.Gauges().Set(context.Background(), tt.args.name, &metrics.Gauge{Metrics: metrics.Metrics{ID: tt.args.name, MType: common.Gauge, Value: new(123.456)}})
 					if err != nil {
 						t.Errorf("gauges.Set(%s): expected %v, got %v", tt.args.name, nil, err)
 					}

@@ -1,10 +1,12 @@
+// Package metrics defines the core metric domain types (Metrics, Gauge, Counter)
+// used by the JSON API and all storage backends.
 package metrics
 
-// NOTE: Не усложняем пример, вводя иерархическую вложенность структур.
-// Органичиваясь плоской моделью.
-// Delta и Value объявлены через указатели,
-// что бы отличать значение "0", от не заданного значения
-// и соответственно не кодировать в структуру.
+// generate:reset
+
+// Metrics is the metric DTO for the JSON API and internal repositories.
+// It uses a flat model without nested structs.
+// Delta and Value are pointers so zero can be distinguished from "not set" in JSON.
 type Metrics struct {
 	ID    string   `json:"id"`
 	MType string   `json:"type"`

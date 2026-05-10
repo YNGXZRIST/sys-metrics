@@ -3,38 +3,49 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
+	"sys-metrics/internal/handler"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/file"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/postgres"
 	"sys-metrics/internal/router"
+	"sys-metrics/internal/utils"
 	"sys-metrics/migrations"
 
 	"go.uber.org/zap"
 )
 
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
 func main() {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	err := run(os.Args[1:])
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("fatal error: %v\n", err)
 	}
 }
 func run(args []string) error {
-	opt, err := server.NewOption(args)
+	o, err := server.NewOption(args)
 	if err != nil {
 		return labelerrors.NewLabelError("PARSE OPTIONS", fmt.Errorf("error parsing flags: %w", err))
 	}
 	ctx := context.Background()
-	err = initServer(ctx, opt)
+	err = initServer(ctx, o)
 	if err != nil {
 		return labelerrors.NewLabelError("INIT SERVER", fmt.Errorf("error initializing server: %w", err))
 	}
@@ -48,30 +59,30 @@ func initLogger(mode string) (*zap.Logger, error) {
 	return logger, nil
 }
 
-func isDSNSet(opt *server.Options) bool {
-	return opt.DNS != ""
+func isDSNSet(o *server.Options) bool {
+	return o.DNS != ""
 }
 
-func initDB(opt *server.Options) (*db.DB, error) {
-	cfg := db.NewCfg(opt)
+func initDB(o *server.Options) (*db.DB, error) {
+	cfg := db.NewCfg(o)
 	return db.NewConn(cfg)
 }
 
-func initBackupConfig(opt *server.Options) (*file.Config, error) {
-	return file.NewConfig(opt.Mode, opt.BackupStoragePath, opt.StoreInterval, opt.Restore)
+func initBackupConfig(o *server.Options) (*file.Config, error) {
+	return file.NewConfig(o.Mode, o.BackupStoragePath, o.StoreInterval, o.Restore)
 }
 
 func isDatabaseConnected(conn *db.DB) bool {
 	return conn != nil && conn.Ping() == nil
 }
 
-func createService(opt *server.Options) (metricsiface.ServiceInterface, *db.DB, *file.Config, bool, error) {
-	if isDSNSet(opt) {
-		err := migrations.Migrate(opt.DNS)
+func createService(o *server.Options) (metricsiface.ServiceInterface, *db.DB, *file.Config, bool, error) {
+	if isDSNSet(o) {
+		err := migrations.Migrate(o.DNS)
 		if err != nil {
 			return nil, nil, nil, false, labelerrors.NewLabelError("MIGRATE", fmt.Errorf("error initializing database connection: %w", err))
 		}
-		conn, err := initDB(opt)
+		conn, err := initDB(o)
 		if err != nil {
 			return nil, nil, nil, false, labelerrors.NewLabelError("INIT DB", fmt.Errorf("error initializing database connection: %w", err))
 		}
@@ -81,7 +92,7 @@ func createService(opt *server.Options) (metricsiface.ServiceInterface, *db.DB, 
 		}
 	}
 
-	backupConfig, err := initBackupConfig(opt)
+	backupConfig, err := initBackupConfig(o)
 	if err != nil {
 		return nil, nil, nil, false, labelerrors.NewLabelError("INIT BACKUP", fmt.Errorf("error initializing backup config: %w", err))
 	}
@@ -114,22 +125,22 @@ func startBackupRoutine(ctx context.Context, service metricsiface.ServiceInterfa
 	return cancel
 }
 
-func startHTTPServer(opt *server.Options, logger *zap.Logger, backupConfig *file.Config, conn *db.DB) error {
-	cfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, backupConfig)
-	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(logger, conn)); err != nil {
+func startHTTPServer(o *server.Options, h *handler.Handler, backupConfig *file.Config) error {
+	cfg := server.NewConfig(server.SchemeHTTP, o.Host, o.Port, h.Logger, backupConfig)
+	if err := http.ListenAndServe(cfg.InternalAddr(), router.GetRouter(h)); err != nil {
 		return labelerrors.NewLabelError("HTTP", fmt.Errorf("error starting HTTP server: %w", err))
 	}
 	return nil
 }
 
-func initServer(ctx context.Context, opt *server.Options) error {
-	logger, err := initLogger(opt.Mode)
+func initServer(ctx context.Context, o *server.Options) error {
+	logger, err := initLogger(o.Mode)
 	if err != nil {
 		return err
 	}
 	defer logger.Sync()
 
-	serviceInterface, conn, backupConfigForHTTP, needRestore, err := createService(opt)
+	serviceInterface, conn, backupConfigForHTTP, needRestore, err := createService(o)
 	if err != nil {
 		return err
 	}
@@ -150,6 +161,42 @@ func initServer(ctx context.Context, opt *server.Options) error {
 
 	cancel := startBackupRoutine(ctx, serviceInterface, logger)
 	defer cancel()
-
-	return startHTTPServer(opt, logger, backupConfigForHTTP, conn)
+	metricsObserver, err := initMetricsObserver(ctx, o)
+	if err != nil {
+		return err
+	}
+	observersMap := make(map[handler.ObserverKey]observer.Observer)
+	observersMap[handler.ObserverAudit] = metricsObserver
+	authenticator := initAuthenticator(o)
+	h := initHandler(conn, logger, authenticator, observersMap)
+	return startHTTPServer(o, h, backupConfigForHTTP)
+}
+func initMetricsObserver(ctx context.Context, o *server.Options) (*observer.MetricsObserver, error) {
+	cfg := observer.MetricObserverConfig{
+		FilePath:  o.AuditFile,
+		URL:       o.AuditURL,
+		Mode:      o.Mode,
+		RateLimit: 1,
+	}
+	obs, err := observer.NewMetricsObserver(cfg)
+	if err != nil {
+		return nil, err
+	}
+	err = obs.Register(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return obs, nil
+}
+func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, o map[handler.ObserverKey]observer.Observer) *handler.Handler {
+	newHandler := handler.NewHandler(c, a, l, o)
+	return newHandler
+}
+func initAuthenticator(o *server.Options) authenticate.Authenticator {
+	sha := authenticate.NewSha256(o.HashKey)
+	var a authenticate.Authenticator
+	if sha != nil {
+		a = sha
+	}
+	return a
 }

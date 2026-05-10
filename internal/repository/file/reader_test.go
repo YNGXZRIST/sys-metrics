@@ -12,9 +12,9 @@ func TestNewBackupReader(t *testing.T) {
 		filename string
 	}
 	tests := []struct {
+		want    *Reader
 		name    string
 		args    args
-		want    *Reader
 		wantErr bool
 	}{
 		{

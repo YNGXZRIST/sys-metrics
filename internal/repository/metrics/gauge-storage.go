@@ -9,6 +9,8 @@ import (
 	"sys-metrics/pkg/storage"
 )
 
+// generate:reset
+
 type GaugeBackupStorage struct {
 	*storage.MemStorage[string, *metrics.Gauge]
 	Config         metricsiface.BackupConfig

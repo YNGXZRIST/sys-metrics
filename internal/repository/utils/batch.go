@@ -1,3 +1,5 @@
+// Package utils provides shared helpers for applying gauge and counter metric
+// batches to generic MetricStorage backends.
 package utils
 
 import (
@@ -13,7 +15,24 @@ func ApplyGauge(
 	v models.Metrics,
 	gauges metricsiface.MetricStorage[*models.Gauge],
 ) error {
-	return gauges.Set(ctx, v.ID, &models.Gauge{Metrics: v})
+	existing, err := gauges.Get(ctx, v.ID)
+	if err == nil && existing != nil {
+		// Update existing gauge in-place to avoid allocating a new object.
+		if v.Value != nil {
+			existing.SetValue(*v.Value)
+		} else {
+			existing.SetValue(0)
+		}
+		return gauges.Set(ctx, v.ID, existing)
+	}
+
+	g := models.NewGauge(v.ID)
+	if v.Value != nil {
+		g.SetValue(*v.Value)
+	} else {
+		g.SetValue(0)
+	}
+	return gauges.Set(ctx, v.ID, g)
 }
 
 func ApplyCounter(
@@ -24,33 +43,22 @@ func ApplyCounter(
 	var zero models.Metrics
 	existing, getErr := counters.Get(ctx, v.ID)
 	if getErr != nil || existing == nil {
-		c := &models.Counter{Metrics: models.Metrics{ID: v.ID, MType: common.Counter}}
+		c := models.NewCounter(v.ID)
 		if v.Delta != nil {
 			c.SetValue(*v.Delta)
 		}
 		if err := counters.Set(ctx, v.ID, c); err != nil {
 			return zero, fmt.Errorf("failed to batch counter %s: %w", v.ID, err)
 		}
-		current, err := counters.Get(ctx, v.ID)
-		if err != nil {
-			return zero, fmt.Errorf("failed to get new batch counter %s: %w", v.ID, err)
-		}
-		if current != nil {
-			return current.Metrics, nil
-		}
-		return zero, nil
+		return c.Metrics, nil
 	}
 	if v.Delta != nil {
 		existing.SetValue(*v.Delta)
 	}
-	current, err := counters.Get(ctx, v.ID)
-	if err != nil {
-		return zero, fmt.Errorf("failed to get new batch counter %s: %w", v.ID, err)
+	if err := counters.Set(ctx, v.ID, existing); err != nil {
+		return zero, fmt.Errorf("failed to batch counter %s: %w", v.ID, err)
 	}
-	if current != nil {
-		return current.Metrics, nil
-	}
-	return zero, nil
+	return existing.Metrics, nil
 }
 
 func ApplyBatchToStorages(

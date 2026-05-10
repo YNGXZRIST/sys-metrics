@@ -8,18 +8,16 @@ import (
 
 	"go.uber.org/zap"
 )
-import ctxUtil "sys-metrics/internal/context"
 
-func PingHandler(w http.ResponseWriter, r *http.Request) {
+// PingHandler checks database connectivity via PingContext; if Conn is nil it returns success without checking.
+func (h *Handler) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	log := ctxUtil.LoggerFromContext(r.Context())
-	conn, err := ctxUtil.DBFromContext(r.Context())
-	if err != nil {
-		log.Error("failed to get db connection from context", zap.Error(labelerrors.NewLabelError("DB", pgerrors.NewPgError(err))))
-		responsewriter.WriteInternalServerError(w)
+	log := h.Logger
+	if h.Conn == nil {
+		responsewriter.WriteSuccess(w)
 		return
 	}
-	err = conn.PingContext(ctx)
+	err := h.Conn.PingContext(ctx)
 	if err != nil {
 		log.Error("failed to ping db connection from context", zap.Error(labelerrors.NewLabelError("DB", pgerrors.NewPgError(err))))
 		responsewriter.WriteInternalServerError(w)

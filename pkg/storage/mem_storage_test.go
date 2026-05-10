@@ -9,10 +9,10 @@ import (
 
 func TestMemStorage_Delete(t *testing.T) {
 	type testCase[K comparable, V any] struct {
-		name    string
-		s       *MemStorage[K, V]
 		key     K
 		wantErr error
+		s       *MemStorage[K, V]
+		name    string
 	}
 	tests := []testCase[string, int]{
 		{
@@ -47,11 +47,11 @@ func TestMemStorage_Delete(t *testing.T) {
 
 func TestMemStorage_Get(t *testing.T) {
 	type testCase[K comparable, V any] struct {
-		name    string
-		s       *MemStorage[K, V]
 		key     K
 		want    V
 		wantErr error
+		s       *MemStorage[K, V]
+		name    string
 	}
 	tests := []testCase[string, int]{
 		{
@@ -94,9 +94,9 @@ func TestMemStorage_Get(t *testing.T) {
 func TestMemStorage_Has(t *testing.T) {
 
 	type testCase[K string, V int] struct {
-		name string
-		s    *MemStorage[K, V]
 		key  K
+		s    *MemStorage[K, V]
+		name string
 		want bool
 	}
 	tests := []testCase[string, int]{
@@ -136,11 +136,11 @@ func TestMemStorage_Set(t *testing.T) {
 		value V
 	}
 	type testCase[K comparable, V any] struct {
-		name    string
-		s       *MemStorage[K, V]
 		args    args[K, V]
-		wantErr bool
 		wantVal V
+		s       *MemStorage[K, V]
+		name    string
+		wantErr bool
 	}
 	tests := []testCase[string, int]{
 		{
@@ -190,9 +190,9 @@ func TestNewMemStorage(t *testing.T) {
 
 func TestMemStorage_All(t *testing.T) {
 	type testCase[K comparable, V any] struct {
-		name string
 		s    *MemStorage[K, V]
 		want map[K]V
+		name string
 	}
 	tests := []testCase[string, int]{
 		{

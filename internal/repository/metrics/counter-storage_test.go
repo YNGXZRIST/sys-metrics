@@ -25,8 +25,8 @@ func Test_counterBackupStorage_NeedSync(t *testing.T) {
 		metricsHandler metricsiface.Handler
 	}
 	tests := []struct {
-		name   string
 		fields fields
+		name   string
 		want   bool
 	}{
 		{
@@ -63,18 +63,13 @@ func Test_counterBackupStorage_NeedSync(t *testing.T) {
 }
 
 func Test_counterBackupStorage_Set(t *testing.T) {
-	type fields struct {
-		MemStorage     *storage.MemStorage[string, *metrics.Counter]
-		config         metricsiface.BackupConfig
-		metricsHandler metricsiface.Handler
-	}
 	type args struct {
-		key   string
 		value *metrics.Counter
+		key   string
 	}
 	tests := []struct {
-		name    string
 		args    args
+		name    string
 		wantErr bool
 	}{
 		{

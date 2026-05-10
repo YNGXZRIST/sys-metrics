@@ -1,44 +1,74 @@
-# go-musthave-metrics-tpl
+![Покрытие тестами](.badges/coverage.svg)
 
-Шаблон репозитория для трека «Сервер сбора метрик и алертинга».
+## Итерация 17
 
-## Начало работы
+Правка функции батчей метрик: gauge/counter обновляются на месте, если метрика уже есть. У gauge `SetValue` не создаёт новый `*float64` каждый раз.
 
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` — адрес вашего репозитория на GitHub без префикса `https://`) для создания модуля.
+## Сервер,diff heap 
 
-## Обновление шаблона
-
-Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
 
 ```
-git remote add -m v2 template https://github.com/Yandex-Practicum/go-musthave-metrics-tpl.git
+      flat  flat%   sum%        cum   cum%
+ -516.01kB 11.71% 11.71%  -516.01kB 11.71%  io.init.func1
+ -512.05kB 11.62% 23.32%  -512.05kB 11.62%  net/textproto.NewReader (inline)
+         0     0% 23.32%  -516.01kB 11.71%  bufio.(*Writer).Flush
+         0     0% 23.32%  -516.01kB 11.71%  io.Copy (inline)
+         0     0% 23.32%  -516.01kB 11.71%  io.CopyN
+         0     0% 23.32%  -516.01kB 11.71%  io.copyBuffer
+         0     0% 23.32%  -516.01kB 11.71%  io.discard.ReadFrom
+         0     0% 23.32%  -516.01kB 11.71%  net/http.(*chunkWriter).Write
+         0     0% 23.32%  -516.01kB 11.71%  net/http.(*chunkWriter).writeHeader
+         0     0% 23.32%  -512.05kB 11.62%  net/http.(*conn).readRequest
+         0     0% 23.32% -1028.06kB 23.32%  net/http.(*conn).serve
+         0     0% 23.32%  -516.01kB 11.71%  net/http.(*response).finishRequest
+         0     0% 23.32%  -512.05kB 11.62%  net/http.newTextprotoReader
+         0     0% 23.32%  -512.05kB 11.62%  net/http.readRequest
+         0     0% 23.32%  -516.01kB 11.71%  sync.(*Pool).Get
 ```
 
-Для обновления кода автотестов выполните команду:
+## Бенч `BatchUpdateMetrics` (до и после)
+
+Было: 269 allocs/op, 90120 B/op. Стало: 141 allocs/op, 81928 B/op (darwin/arm64, 5 прогонов).
+
+Diff mem-профилей по alloc_space:
 
 ```
-git fetch template && git checkout template/v2 .github
+Showing nodes accounting for -2606.64MB, 9.21% of 28298.40MB total
+      flat  flat%   sum%        cum   cum%
+-2554.16MB  9.03%  9.03% -2554.16MB  9.03%  sys-metrics/internal/repository/utils.ApplyGauge
+  -89.05MB  0.31%  9.34%  -126.77MB  0.45%  sys-metrics/internal/repository/memory.(*Service).GetAllMetricsLocked
+   74.78MB  0.26%  9.08% -2479.87MB  8.76%  sys-metrics/internal/repository/utils.ApplyBatchToStorages
+  -37.72MB  0.13%  9.21%   -37.72MB  0.13%  sys-metrics/pkg/storage.(*MemStorage[go.shape.string,go.shape.*uint8]).All
 ```
 
-Затем добавьте полученные изменения в свой репозиторий.
+`-benchmem`, сервис, до:
 
-## Запуск автотестов
+```
+goos: darwin
+goarch: arm64
+pkg: sys-metrics/internal/service/metrics
+cpu: Apple M4 Pro
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   54140	     20458 ns/op	   90120 B/op	     269 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   58359	     21397 ns/op	   90120 B/op	     269 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   58044	     20536 ns/op	   90120 B/op	     269 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   58304	     20678 ns/op	   90120 B/op	     269 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   58587	     21010 ns/op	   90120 B/op	     269 allocs/op
+PASS
+ok  	sys-metrics/internal/service/metrics	7.249s
+```
 
-Для успешного запуска автотестов называйте ветки `iter<number>`, где `<number>` — порядковый номер инкремента. Например, в ветке с названием `iter4` запустятся автотесты для инкрементов с первого по четвёртый.
+после:
 
-При мёрже ветки с инкрементом в основную ветку `main` будут запускаться все автотесты.
-
-Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
-
-## Структура проекта
-
-Приведённая в этом репозитории структура проекта является рекомендуемой, но не обязательной.
-
-Это лишь пример организации кода, который поможет вам в реализации сервиса.
-
-При необходимости можно вносить изменения в структуру проекта, использовать любые библиотеки и предпочитаемые структурные паттерны организации кода приложения, например:
-- **DDD** (Domain-Driven Design)
-- **Clean Architecture**
-- **Hexagonal Architecture**
-- **Layered Architecture**
+```
+goos: darwin
+goarch: arm64
+pkg: sys-metrics/internal/service/metrics
+cpu: Apple M4 Pro
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   52008	     21158 ns/op	   81928 B/op	     141 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   56978	     21079 ns/op	   81928 B/op	     141 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   57106	     20994 ns/op	   81929 B/op	     141 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   57019	     21778 ns/op	   81929 B/op	     141 allocs/op
+BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed-12    	   55334	     21064 ns/op	   81928 B/op	     141 allocs/op
+PASS
+ok  	sys-metrics/internal/service/metrics	7.760s
+```

@@ -7,6 +7,8 @@ import (
 	"sys-metrics/internal/repository/metricsiface"
 )
 
+// generate:reset
+
 type MetricBackupStorage struct {
 	*m.BackupStorage
 	*Config

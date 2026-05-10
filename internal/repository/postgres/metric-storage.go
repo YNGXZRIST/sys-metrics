@@ -1,3 +1,4 @@
+// Package postgres implements metricsiface.ServiceInterface on top of PostgreSQL and BackupStorage.
 package postgres
 
 import (
@@ -14,6 +15,9 @@ import (
 	"sys-metrics/internal/repository/utils"
 )
 
+// generate:reset
+
+// MetricStorage combines in-memory BackupStorage with DB writes and rollback on errors.
 type MetricStorage struct {
 	*metrics.BackupStorage
 	Config *Config
@@ -40,6 +44,8 @@ func (s *MetricStorage) WriteBatchMetrics(ctx context.Context, m []models.Metric
 	}
 	return nil
 }
+
+// NewMetricStorage builds storage with a SQL handler backed by db.
 func NewMetricStorage(db *db.DB) *MetricStorage {
 	config := NewConfig(db)
 	storage := metrics.NewBackupStorage(config, config.handler)

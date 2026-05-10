@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/model/metrics"
@@ -15,25 +16,40 @@ import (
 	"go.uber.org/zap"
 )
 
+// generate:reset
+
+// Request is a simplified metric view for debugging scenarios.
 type Request struct {
 	ID    string `json:"id"`
 	MType string `json:"type"`
 	Value string `json:"value"`
 }
+
+// generate:reset
+
+// Response holds status code and body from the server for manual sends.
 type Response struct {
-	Code   int
 	Result string
-}
-type Reporter struct {
-	httpClient *http.Client
-	serverAddr string
-	logger     *zap.Logger
+	Code   int
 }
 
-func NewReporter(serverAddr string, logger *zap.Logger) *Reporter {
-	httpClient := &http.Client{}
-	return &Reporter{httpClient, serverAddr, logger}
+// generate:reset
+
+// Reporter posts metrics to the server HTTP API with gzip and optional body signing.
+type Reporter struct {
+	authenticator authenticate.Authenticator
+	httpClient    *http.Client
+	logger        *zap.Logger
+	serverAddr    string
 }
+
+// NewReporter creates a client that posts to serverAddr (metrics server base URL).
+func NewReporter(addr string, l *zap.Logger, a authenticate.Authenticator) *Reporter {
+	c := &http.Client{}
+	return &Reporter{a, c, l, addr}
+}
+
+// Send posts each metric with a separate POST to /update (legacy one-metric path).
 func (r *Reporter) Send(c *Collector) error {
 	for _, m := range c.Gauges {
 		err := r.sendMetricToServer(m.Metrics)
@@ -58,7 +74,7 @@ func (r *Reporter) sendMetricsToServer(c *Collector) error {
 		reqData = append(reqData, &m.Metrics)
 	}
 	if len(reqData) == 0 {
-		return labelerrors.NewLabelError("SEND METRICS", fmt.Errorf("no metrics to send"))
+		return nil
 	}
 	jsonData, err := json.Marshal(reqData)
 	if err != nil {
@@ -96,6 +112,10 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	}
 	req.Header.Set(common.ContentTypeHeader, common.ApplicationJSON)
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
+	if r.authenticator != nil {
+		key := r.authenticator.GetHashHeaderKey()
+		req.Header.Set(key, r.authenticator.SignBody(reqData))
+	}
 	response, err := r.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error do request: %w", err)
@@ -108,6 +128,8 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	}
 	return res, nil
 }
+
+// ConvertMetricValue formats a number as an integer for counters or float for gauges.
 func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	var s string
 	if m == common.Counter {
@@ -117,9 +139,13 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 	}
 	return s
 }
+
+// BuildUpdateURL returns the single-metric update endpoint URL.
 func (r *Reporter) BuildUpdateURL() string {
 	return r.serverAddr + "/update"
 }
+
+// BuildUpdatesURL returns the batch update URL for /updates.
 func (r *Reporter) BuildUpdatesURL() string {
 	return r.serverAddr + "/updates"
 }

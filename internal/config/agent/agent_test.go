@@ -9,10 +9,10 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	type args struct {
+		logger         *zap.Logger
+		serverAddr     string
 		pollInterval   time.Duration
 		reportInterval time.Duration
-		serverAddr     string
-		logger         *zap.Logger
 	}
 	tests := []struct {
 		name string
@@ -30,7 +30,7 @@ func TestNewConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewConfig(tt.args.pollInterval, tt.args.reportInterval, tt.args.serverAddr, tt.args.logger)
+			got := NewConfig(tt.args.pollInterval, tt.args.reportInterval, tt.args.serverAddr, tt.args.logger, nil, 1)
 			if got.PollInterval != tt.args.pollInterval {
 				t.Errorf("NewConfig().PollInterval = %v, want %v", got.PollInterval, tt.args.pollInterval)
 			}

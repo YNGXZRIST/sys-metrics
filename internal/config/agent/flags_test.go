@@ -14,9 +14,9 @@ func Test_parseArgs(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
+		want    *Options
 		name    string
 		args    args
-		want    *Options
 		wantErr bool
 	}{
 		{
@@ -38,6 +38,8 @@ func Test_parseArgs(t *testing.T) {
 				ReportSec:      4,
 				PollSec:        5,
 				Mode:           common.TypeModeDevelopment,
+				HashKey:        "",
+				RateLimit:      1,
 			},
 		},
 		{
@@ -54,6 +56,8 @@ func Test_parseArgs(t *testing.T) {
 				ReportSec:      10,
 				PollSec:        2,
 				Mode:           common.TypeModeDefault,
+				HashKey:        "",
+				RateLimit:      1,
 			},
 		},
 	}
@@ -125,9 +129,9 @@ func Test_newOption(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
+		want    *Options
 		name    string
 		args    args
-		want    *Options
 		wantErr bool
 	}{
 		{
@@ -149,6 +153,8 @@ func Test_newOption(t *testing.T) {
 				ReportSec:      15,
 				PollSec:        5,
 				Mode:           common.TypeModeDevelopment,
+				HashKey:        "",
+				RateLimit:      1,
 			},
 		},
 		{

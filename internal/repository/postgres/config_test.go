@@ -30,8 +30,8 @@ func TestNewConfig(t *testing.T) {
 		dbConn *db.DB
 	}
 	tests := []struct {
-		name string
 		args args
+		name string
 	}{
 		{
 			name: "nil dbConn",
