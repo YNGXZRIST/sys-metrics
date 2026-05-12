@@ -20,6 +20,7 @@ import (
 	"sys-metrics/internal/repository/metricsiface"
 	"sys-metrics/internal/repository/postgres"
 	"sys-metrics/internal/router"
+	"sys-metrics/internal/secure"
 	"sys-metrics/internal/utils"
 	"sys-metrics/migrations"
 
@@ -168,7 +169,11 @@ func initServer(ctx context.Context, o *server.Options) error {
 	observersMap := make(map[handler.ObserverKey]observer.Observer)
 	observersMap[handler.ObserverAudit] = metricsObserver
 	authenticator := initAuthenticator(o)
-	h := initHandler(conn, logger, authenticator, observersMap)
+	reqDecryptor, err := secure.NewRequestDecryptor(o.CryptoKeyPath)
+	if err != nil {
+		return fmt.Errorf("error initializing request decryptor: %w", err)
+	}
+	h := initHandler(conn, logger, authenticator, reqDecryptor, observersMap)
 	return startHTTPServer(o, h, backupConfigForHTTP)
 }
 func initMetricsObserver(ctx context.Context, o *server.Options) (*observer.MetricsObserver, error) {
@@ -188,8 +193,8 @@ func initMetricsObserver(ctx context.Context, o *server.Options) (*observer.Metr
 	}
 	return obs, nil
 }
-func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, o map[handler.ObserverKey]observer.Observer) *handler.Handler {
-	newHandler := handler.NewHandler(c, a, l, o)
+func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, d *secure.RequestDecryptor, o map[handler.ObserverKey]observer.Observer) *handler.Handler {
+	newHandler := handler.NewHandler(c, a, d, l, o)
 	return newHandler
 }
 func initAuthenticator(o *server.Options) authenticate.Authenticator {

@@ -26,7 +26,8 @@ type Options struct {
 	AuditFile         string `env:"AUDIT_FILE"`
 	AuditURL          string `env:"AUDIT_URL"`
 	StoreInterval     time.Duration
-	Restore           bool `env:"RESTORE" envDefault:"true"`
+	Restore           bool   `env:"RESTORE" envDefault:"true"`
+	CryptoKeyPath     string `env:"CRYPTO_KEY"`
 }
 
 // SetHostPort implements config.HostPortSetter.
@@ -52,6 +53,7 @@ func parseArgs(args []string) (*Options, error) {
 	flags.BoolVar(&opt.Restore, "r", true, "Restore backups")
 	flags.StringVar(&opt.AuditFile, "audit-file", "", "File to store audit log")
 	flags.StringVar(&opt.AuditURL, "audit-url", "", "URL to store audit log in remote server")
+	flags.StringVar(&opt.CryptoKeyPath, "crypto-key", "", "crypto key for decoding request")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err

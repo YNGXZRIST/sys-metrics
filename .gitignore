@@ -31,3 +31,5 @@ vendor/
 /logs/
 /backups/
 /internal/logger/logs/
+/private.pem
+/public.pem

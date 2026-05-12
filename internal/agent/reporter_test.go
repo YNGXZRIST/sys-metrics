@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewReporter(t *testing.T) {
-	reporter := NewReporter(testServer.URL, zap.NewExample(), nil)
+	reporter := NewReporter(testServer.URL, zap.NewExample(), nil, nil)
 	if reporter == nil {
 		t.Fatal("NewReporter() returned nil")
 	}

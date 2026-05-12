@@ -23,9 +23,10 @@ type Options struct {
 	HashKey        string `env:"KEY"`
 	PollInterval   time.Duration
 	ReportInterval time.Duration
-	PollSec        int `env:"POLL_INTERVAL"`
-	ReportSec      int `env:"REPORT_INTERVAL"`
-	RateLimit      int `env:"RATE_LIMIT"`
+	PollSec        int    `env:"POLL_INTERVAL"`
+	ReportSec      int    `env:"REPORT_INTERVAL"`
+	RateLimit      int    `env:"RATE_LIMIT"`
+	CryptoKeyPath  string `env:"CRYPTO_KEY"`
 }
 
 // SetHostPort implements config.HostPortSetter.
@@ -44,6 +45,7 @@ func parseArgs(args []string) (*Options, error) {
 	flags.StringVar(&hashKey, "k", "", "Server Hash key")
 	flags.StringVar(&opt.Mode, "m", common.TypeModeDefault, "Agent mode. Possible values: production, development")
 	flags.IntVar(&opt.RateLimit, "l", 1, "agent rate limit")
+	flags.StringVar(&opt.CryptoKeyPath, "crypto-key", "", "crypto key for encoding request")
 	err := flags.Parse(args)
 	if err != nil {
 		return nil, err

@@ -88,7 +88,7 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(conn, nil, logger, nil)
+	h := NewHandler(conn, nil, nil, logger, nil)
 	h.PingHandler(w, r)
 
 	resp := w.Result()
@@ -109,7 +109,7 @@ func TestPingHandler_DBError(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(conn, nil, logger, nil)
+	h := NewHandler(conn, nil, nil, logger, nil)
 	h.PingHandler(w, r)
 
 	resp := w.Result()
@@ -122,7 +122,7 @@ func TestPingHandler_EmptyContext(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(nil, nil, zap.NewNop(), nil)
+	h := NewHandler(nil, nil, nil, zap.NewNop(), nil)
 	h.PingHandler(w, r)
 
 	resp := w.Result()

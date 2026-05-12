@@ -32,7 +32,7 @@ func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	return &Agent{
 		Config:     cfg,
 		collector:  NewCollector(ctx, cfg.RateLimit),
-		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator),
+		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator, cfg.RequestEncryptor),
 		ReportPool: reportPool,
 		mu:         sync.Mutex{},
 	}

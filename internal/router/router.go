@@ -13,6 +13,7 @@ import (
 func GetRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(imw.GzipMiddleware)
+	r.Use(imw.SecureMiddleware(h.Logger, h.ReqDecryptor))
 	r.Use(imw.WithRequestLogger(h.Logger))
 	r.Mount("/debug", chimw.Profiler())
 

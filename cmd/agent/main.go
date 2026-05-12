@@ -13,6 +13,7 @@ import (
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	lgr "sys-metrics/internal/logger"
+	"sys-metrics/internal/secure"
 	"sys-metrics/internal/utils"
 	"syscall"
 
@@ -41,7 +42,7 @@ func run() error {
 	}
 	a, err := initAgent(opt, ctx)
 	if err != nil {
-		return fmt.Errorf("agent initialization failed: %w", err)
+		return labelerrors.NewLabelError("INIT AGENT", err)
 	}
 	defer a.Logger.Sync()
 	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
@@ -57,11 +58,15 @@ func run() error {
 func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	logger, err := lgr.Initialize(opt.Mode, common.TypeAgent)
 	if err != nil {
-		return nil, labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("error initializing logger: %w", err))
+		return nil, fmt.Errorf("error initializing logger: %w", err)
 	}
 	serverCfg := server.NewConfig(server.SchemeHTTP, opt.Host, opt.Port, logger, nil)
 	validator := authenticate.NewSha256(&opt.HashKey)
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, opt.RateLimit)
+	encryptor, err := secure.NewRequestEncryptor(opt.CryptoKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing encryptor: %w", err)
+	}
+	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, encryptor, opt.RateLimit)
 	a := agent.NewAgent(agentCfg, ctx)
 	return a, nil
 }

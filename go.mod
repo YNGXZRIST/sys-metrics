@@ -14,6 +14,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/timakin/bodyclose v0.0.0-20241222091800-1db5c5ca4d67
 	go.uber.org/zap v1.27.1
+	golang.org/x/crypto v0.46.0
 	golang.org/x/tools v0.40.0
 	honnef.co/go/tools v0.6.1
 )

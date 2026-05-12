@@ -8,6 +8,7 @@ import (
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/observer"
+	"sys-metrics/internal/secure"
 
 	"go.uber.org/zap"
 )
@@ -24,19 +25,21 @@ const (
 
 // Handler holds dependencies for HTTP handlers: DB, auth, logging, and observers.
 type Handler struct {
-	Logger    *zap.Logger
-	Conn      *db.DB
-	Auth      authenticate.Authenticator
-	Observers map[ObserverKey]observer.Observer
+	Logger       *zap.Logger
+	Conn         *db.DB
+	Auth         authenticate.Authenticator
+	ReqDecryptor *secure.RequestDecryptor
+	Observers    map[ObserverKey]observer.Observer
 }
 
 // NewHandler builds a Handler with optional DB connection (may be nil), authenticator, and observers map.
-func NewHandler(c *db.DB, a authenticate.Authenticator, l *zap.Logger, observersMap map[ObserverKey]observer.Observer) *Handler {
+func NewHandler(c *db.DB, a authenticate.Authenticator, d *secure.RequestDecryptor, l *zap.Logger, observersMap map[ObserverKey]observer.Observer) *Handler {
 	return &Handler{
-		Logger:    l,
-		Conn:      c,
-		Auth:      a,
-		Observers: observersMap,
+		Logger:       l,
+		Conn:         c,
+		Auth:         a,
+		ReqDecryptor: d,
+		Observers:    observersMap,
 	}
 }
 

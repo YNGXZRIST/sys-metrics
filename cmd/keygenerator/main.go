@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	BlockPublicKey  = "PUBLIC KEY"
-	BlockPrivateKey = "PRIVATE KEY"
+	BlockPublicKey  = "RSA PUBLIC KEY"
+	BlockPrivateKey = "RSA PRIVATE KEY"
 )
 
 func main() {
@@ -20,32 +20,26 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("error generating rsa key: %w", err))
 	}
-	err = writeRSAPrivateKeyPKCS8(key)
+	err = writeRSAPrivateKeyPKCS1(key)
 	if err != nil {
 		log.Fatal(fmt.Errorf("error generating rsa private key: %w", err))
 	}
-	err = writeRSAPublicKeyPEM(&key.PublicKey)
+	err = writeRSAPublicKeyPKCS1(&key.PublicKey)
 	if err != nil {
 		log.Fatal(fmt.Errorf("error generating rsa public key: %w", err))
 	}
 
 }
-func writeRSAPrivateKeyPKCS8(key *rsa.PrivateKey) error {
-	der, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		return err
-	}
+func writeRSAPrivateKeyPKCS1(key *rsa.PrivateKey) error {
+	der := x509.MarshalPKCS1PrivateKey(key)
 	block := &pem.Block{
 		Type:  BlockPrivateKey,
 		Bytes: der,
 	}
 	return os.WriteFile("private.pem", pem.EncodeToMemory(block), 0600)
 }
-func writeRSAPublicKeyPEM(key *rsa.PublicKey) error {
-	der, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return err
-	}
+func writeRSAPublicKeyPKCS1(key *rsa.PublicKey) error {
+	der := x509.MarshalPKCS1PublicKey(key)
 	block := &pem.Block{
 		Type:  BlockPublicKey,
 		Bytes: der,

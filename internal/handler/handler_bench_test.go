@@ -26,7 +26,7 @@ func (noopObserver) Register(any) error { return nil }
 
 func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
-	return NewHandler(nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
+	return NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
 		ObserverAudit: noopObserver{},
 	})
 }
