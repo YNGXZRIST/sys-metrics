@@ -83,7 +83,7 @@ func TestReporter_ConvertMetricValue(t *testing.T) {
 	}
 }
 
-func TestReporter_Send(t *testing.T) {
+func TestReporter_sendMetricsToServer(t *testing.T) {
 	tests := []struct {
 		setup   func() *Collector
 		name    string
@@ -151,5 +151,15 @@ func TestReporter_sendMetricToServer(t *testing.T) {
 				t.Errorf("sendMetricToServer() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestReporter_Send(t *testing.T) {
+	col := NewCollector(context.Background(), 1)
+	g := models.NewGauge("x")
+	g.SetValue(1)
+	col.Gauges["x"] = g
+	if err := testReporter.Send(col); err != nil {
+		t.Fatal(err)
 	}
 }

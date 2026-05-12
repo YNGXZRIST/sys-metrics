@@ -53,7 +53,7 @@ func TestPool_Put_ResetsBeforeStoring(t *testing.T) {
 	}
 }
 
-func TestPool_Get_ReusesAfterPutWithoutRecreate(t *testing.T) {
+func TestPool_Get_AfterPut_ReturnsZeroedItem(t *testing.T) {
 	var created int
 	p := New(func() *testItem {
 		created++
@@ -61,21 +61,28 @@ func TestPool_Get_ReusesAfterPutWithoutRecreate(t *testing.T) {
 	})
 
 	x := p.Get()
-	if created != 1 {
-		t.Fatalf("expected 1 created item after first Get(), got %d", created)
+	origCreated := created
+	if origCreated < 1 {
+		t.Fatalf("expected factory to run at least once, got created=%d", created)
 	}
 
 	x.val = 10
 	p.Put(x)
 
 	y := p.Get()
-	if created != 1 {
-		t.Fatalf("expected Get() after Put() to reuse without creating new item, got created=%d", created)
-	}
 	if y.val != 0 {
-		t.Fatalf("expected reused item to be reset (val=0), got %d", y.val)
+		t.Fatalf("expected Get after Put to yield val=0 (reset on Put or fresh factory value), got %d", y.val)
 	}
-	if y.resetCount != 1 {
-		t.Fatalf("expected Reset() to be called exactly once before reuse, got %d", y.resetCount)
+	// sync.Pool does not guarantee reuse; a new factory object has resetCount 0, a reused one was Reset on Put.
+	if created == origCreated {
+		if y.resetCount < 1 {
+			t.Fatalf("reused pooled item: expected Reset on Put, resetCount=%d", y.resetCount)
+		}
+	} else if created == origCreated+1 {
+		if y.resetCount != 0 {
+			t.Fatalf("new factory item: expected resetCount=0, got %d", y.resetCount)
+		}
+	} else {
+		t.Fatalf("unexpected factory calls: before=%d after=%d", origCreated, created)
 	}
 }

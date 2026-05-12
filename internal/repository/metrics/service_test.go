@@ -80,3 +80,11 @@ func TestGetAllMetrics(t *testing.T) {
 		t.Errorf("GetAllMetrics() returned %d metrics, expected 2", len(got))
 	}
 }
+
+func TestGetAllMetrics_empty(t *testing.T) {
+	Init(memory.NewService())
+	got := GetAllMetrics(context.Background())
+	if len(got) != 0 {
+		t.Fatalf("want empty, got %d", len(got))
+	}
+}

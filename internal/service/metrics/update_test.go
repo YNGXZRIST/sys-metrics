@@ -2,6 +2,8 @@ package metrics
 
 import (
 	"context"
+	"sys-metrics/internal/common"
+	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/repository/metrics"
 	"testing"
@@ -22,6 +24,42 @@ func TestUpdate(t *testing.T) {
 			name:    "empty",
 			args:    args{},
 			wantErr: true,
+		},
+		{
+			name: "unknown type",
+			args: args{
+				metricType: "histogram",
+				name:       "x",
+				value:      "1",
+			},
+			wantErr: true,
+		},
+		{
+			name: "bad counter value",
+			args: args{
+				metricType: common.Counter,
+				name:       "c",
+				value:      "nope",
+			},
+			wantErr: true,
+		},
+		{
+			name: "bad gauge value",
+			args: args{
+				metricType: "gauge",
+				name:       "g",
+				value:      "x.y.z",
+			},
+			wantErr: true,
+		},
+		{
+			name: "metric counter",
+			args: args{
+				metricType: common.Counter,
+				name:       "c1",
+				value:      "42",
+			},
+			wantErr: false,
 		},
 		{
 			name: "metric gauge",
@@ -112,5 +150,30 @@ func Test_updateGauge(t *testing.T) {
 				t.Errorf("updateGauge() Value got %v, want %v", *val.Delta, tt.args.value)
 			}
 		})
+	}
+}
+
+func TestBatchUpdateMetrics_empty(t *testing.T) {
+	metrics.Init(memory.NewService())
+	if err := BatchUpdateMetrics(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := BatchUpdateMetrics(context.Background(), []models.Metrics{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBatchUpdateMetrics_oneGauge(t *testing.T) {
+	metrics.Init(memory.NewService())
+	v := 3.0
+	err := BatchUpdateMetrics(context.Background(), []models.Metrics{
+		{ID: "g1", MType: "gauge", Value: &v},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := metrics.Gauges().Get(context.Background(), "g1")
+	if err != nil || g.Value == nil || *g.Value != v {
+		t.Fatalf("gauge: err=%v val=%v", err, g.Value)
 	}
 }

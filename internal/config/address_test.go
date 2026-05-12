@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -55,5 +56,38 @@ func TestParseServerAddress(t *testing.T) {
 				t.Errorf("ParseServerAddress() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+type hostPortRecorder struct {
+	host, port string
+}
+
+func (h *hostPortRecorder) SetHostPort(host, port string) {
+	h.host, h.port = host, port
+}
+
+func TestParseAndSetHostPort(t *testing.T) {
+	var rec hostPortRecorder
+	if err := ParseAndSetHostPort("api.example.com:443", &rec); err != nil {
+		t.Fatal(err)
+	}
+	if rec.host != "api.example.com" || rec.port != "443" {
+		t.Fatalf("got %q:%q", rec.host, rec.port)
+	}
+	if err := ParseAndSetHostPort("bad", &rec); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestValidateMode(t *testing.T) {
+	if err := ValidateMode(common.TypeModeDevelopment); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateMode(common.TypeModeProduction); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateMode("staging"); err == nil {
+		t.Fatal("expected error")
 	}
 }

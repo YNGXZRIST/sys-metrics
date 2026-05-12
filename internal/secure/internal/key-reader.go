@@ -1,3 +1,4 @@
+// Package internal loads RSA PEM keys (PKCS#1) for package secure.
 package internal
 
 import (
@@ -8,6 +9,7 @@ import (
 	"os"
 )
 
+// ReadPublicKey reads a PEM file and parses an RSA public key in PKCS#1 form.
 func ReadPublicKey(path string) (*rsa.PublicKey, error) {
 	publicKeyBytes, err := os.ReadFile(path)
 	if err != nil {
@@ -24,6 +26,7 @@ func ReadPublicKey(path string) (*rsa.PublicKey, error) {
 	return pub, nil
 }
 
+// ReadPrivateKey reads a PEM file and parses an RSA private key in PKCS#1 form.
 func ReadPrivateKey(path string) (*rsa.PrivateKey, error) {
 	privateKeyBytes, err := os.ReadFile(path)
 	if err != nil {

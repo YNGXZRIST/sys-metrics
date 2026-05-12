@@ -14,11 +14,14 @@ import (
 	"golang.org/x/crypto/chacha20"
 )
 
+// RequestEncryptor encrypts request bodies for transport to a server that has the matching private key.
+// NewRequestEncryptor loads a PKCS#1 PEM public key from path; an empty path yields a disabled encryptor.
 type RequestEncryptor struct {
 	IsEnabled bool
 	publicKey *rsa.PublicKey
 }
 
+// NewRequestEncryptor builds an encryptor. If path is empty, returns a disabled encryptor (IsEnabled false).
 func NewRequestEncryptor(path string) (*RequestEncryptor, error) {
 	encryptor := &RequestEncryptor{IsEnabled: false}
 	if path != "" {
@@ -33,6 +36,7 @@ func NewRequestEncryptor(path string) (*RequestEncryptor, error) {
 	return encryptor, nil
 }
 
+// Encrypt returns ciphertext: RSA-OAEP-wrapped AES key, nonce, and GCM-sealed plaintext.
 func (e *RequestEncryptor) Encrypt(plaintext []byte) ([]byte, error) {
 	if e.publicKey == nil {
 		return nil, fmt.Errorf("public key not set")
@@ -61,6 +65,8 @@ func (e *RequestEncryptor) Encrypt(plaintext []byte) ([]byte, error) {
 	out := bytes.Join([][]byte{cipherKey, nonce, sealed}, nil)
 	return out, nil
 }
+
+// generateKeyAES256 returns a random 32-byte key (AES-256); uses chacha20.KeySize for length constant.
 func generateKeyAES256() ([]byte, error) {
 	key := make([]byte, chacha20.KeySize)
 	if _, err := io.ReadFull(rand.Reader, key); err != nil {
@@ -68,6 +74,8 @@ func generateKeyAES256() ([]byte, error) {
 	}
 	return key, nil
 }
+
+// generateNonce returns a random nonce suitable for AES-GCM (12 bytes; chacha20.NonceSize matches GCM standard nonce length here).
 func generateNonce() ([]byte, error) {
 	nonce := make([]byte, chacha20.NonceSize)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {

@@ -192,3 +192,20 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 		t.Fatal("timeout waiting observer to call server")
 	}
 }
+
+func TestSaveToFilePath_writesLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit.log")
+	obs, err := NewMetricsObserver(MetricObserverConfig{Mode: common.TypeModeTest, RateLimit: 1, FilePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obs.file != nil {
+		defer obs.file.Close()
+	}
+	ev := MetricsEvent{TS: 9, IP: "10.0.0.1", Metrics: []string{"a", "b"}}
+	obs.SaveToFilePath(ev)
+	data, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(data), `"metrics":["a","b"]`) {
+		t.Fatalf("file: %q err=%v", data, err)
+	}
+}

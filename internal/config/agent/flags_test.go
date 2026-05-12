@@ -27,6 +27,31 @@ func Test_parseArgs(t *testing.T) {
 					"-r=4",
 					"-p=5",
 					"-m=development",
+					"-crypto-key=/tmp/none.pem",
+				},
+			},
+			want: &Options{
+				ServerAddress:  "127.0.0.1:1234",
+				Host:           "127.0.0.1",
+				Port:           "1234",
+				ReportInterval: 4 * time.Second,
+				PollInterval:   5 * time.Second,
+				ReportSec:      4,
+				PollSec:        5,
+				Mode:           common.TypeModeDevelopment,
+				HashKey:        "",
+				RateLimit:      1,
+				CryptoKeyPath:  "/tmp/none.pem",
+			},
+		},
+		{
+			name: "valid args without crypto",
+			args: args{
+				args: []string{
+					"-a=127.0.0.1:1234",
+					"-r=4",
+					"-p=5",
+					"-m=development",
 				},
 			},
 			want: &Options{
@@ -284,5 +309,39 @@ func TestOptions_parseEnv(t *testing.T) {
 				t.Errorf("ReportInterval = %v, want %v", opt.ReportInterval, tt.wantReport)
 			}
 		})
+	}
+}
+
+func TestNewOption_developmentDefaults(t *testing.T) {
+	for _, k := range []string{
+		"ADDRESS", "MODE", "KEY", "POLL_INTERVAL", "REPORT_INTERVAL", "RATE_LIMIT", "CRYPTO_KEY",
+	} {
+		t.Setenv(k, "")
+	}
+	got, err := NewOption([]string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Mode != common.TypeModeDevelopment {
+		t.Fatalf("mode %q", got.Mode)
+	}
+	if got.Host != "localhost" || got.Port != "8080" {
+		t.Fatalf("addr %s:%s", got.Host, got.Port)
+	}
+}
+
+func TestNewOption_withRateLimitEnv(t *testing.T) {
+	for _, k := range []string{
+		"ADDRESS", "MODE", "KEY", "POLL_INTERVAL", "REPORT_INTERVAL", "RATE_LIMIT", "CRYPTO_KEY",
+	} {
+		t.Setenv(k, "")
+	}
+	t.Setenv("RATE_LIMIT", "4")
+	got, err := NewOption([]string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.RateLimit != 4 {
+		t.Fatalf("RateLimit = %d", got.RateLimit)
 	}
 }

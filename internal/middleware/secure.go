@@ -10,6 +10,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// SecureMiddleware reads the entire request body, optionally decrypts it when decryptor is enabled,
+// then restores r.Body for the next handler. If decryptor is nil or IsEnabled is false, the body is
+// passed through unchanged. Decryption or body read failures yield HTTP 400.
 func SecureMiddleware(logger *zap.Logger, d *secure.RequestDecryptor) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
