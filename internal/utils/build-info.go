@@ -1,3 +1,4 @@
+// Package utils holds small shared helpers used by command entrypoints (e.g. build metadata printing).
 package utils
 
 import (

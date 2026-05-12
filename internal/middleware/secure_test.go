@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/secure"
 	"testing"
 
@@ -85,6 +86,7 @@ func TestSecureMiddleware_decryptFails(t *testing.T) {
 		t.Fatal("next should not run")
 	}))
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString("not-encrypted"))
+	req.Header.Set(common.EncryptHeader, common.RSA)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -110,9 +112,13 @@ func TestSecureMiddleware_decryptOK(t *testing.T) {
 	var got []byte
 	h := SecureMiddleware(zap.NewNop(), dec)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, _ = io.ReadAll(r.Body)
+		if r.Header.Get(common.EncryptHeader) != "" {
+			t.Fatal("encrypt header should be removed after decrypt")
+		}
 		w.WriteHeader(http.StatusCreated)
 	}))
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(blob))
+	req.Header.Set(common.EncryptHeader, common.RSA)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusCreated {
@@ -120,6 +126,29 @@ func TestSecureMiddleware_decryptOK(t *testing.T) {
 	}
 	if string(got) != string(payload) {
 		t.Fatalf("body = %q want %q", got, payload)
+	}
+}
+
+func TestSecureMiddleware_noEncryptHeader_passthrough(t *testing.T) {
+	_, privPath := writeTestRSAPEM(t)
+	dec, err := secure.NewRequestDecryptor(privPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []byte
+	h := SecureMiddleware(zap.NewNop(), dec)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	plain := []byte(`{"x":1}`)
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(plain))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if string(got) != string(plain) {
+		t.Fatalf("body = %q", got)
 	}
 }
 

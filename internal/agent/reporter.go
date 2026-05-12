@@ -125,9 +125,6 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 		key := r.authenticator.GetHashHeaderKey()
 		req.Header.Set(key, r.authenticator.SignBody(plain))
 	}
-	if r.requestEncryptor != nil && r.requestEncryptor.IsEnabled {
-
-	}
 	response, err := r.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error do request: %w", err)
