@@ -15,23 +15,23 @@ func TestWriteRSAPrivateKeyPKCS1_and_public(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(oldWD) })
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
+	if errChdir := os.Chdir(dir); errChdir != nil {
+		t.Fatal(errChdir)
 	}
 
 	key, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := writeRSAPrivateKeyPKCS1(key); err != nil {
-		t.Fatal(err)
+	if errWrPr := writeRSAPrivateKeyPKCS1(key); errWrPr != nil {
+		t.Fatal(errWrPr)
 	}
-	if err := writeRSAPublicKeyPKCS1(&key.PublicKey); err != nil {
-		t.Fatal(err)
+	if errWrPb := writeRSAPublicKeyPKCS1(&key.PublicKey); errWrPb != nil {
+		t.Fatal(errWrPb)
 	}
-	privData, err := os.ReadFile(filepath.Join(dir, "private.pem"))
-	if err != nil || len(privData) < 100 {
-		t.Fatalf("private.pem: len=%d err=%v", len(privData), err)
+	privateData, err := os.ReadFile(filepath.Join(dir, "private.pem"))
+	if err != nil || len(privateData) < 100 {
+		t.Fatalf("private.pem: len=%d err=%v", len(privateData), err)
 	}
 	pubData, err := os.ReadFile(filepath.Join(dir, "public.pem"))
 	if err != nil || len(pubData) < 50 {

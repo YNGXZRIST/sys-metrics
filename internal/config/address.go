@@ -50,7 +50,7 @@ func ValidateMode(mode string) error {
 	validModes := []string{common.TypeModeDevelopment, common.TypeModeProduction}
 	containsTen := slices.Contains(validModes, mode)
 	if !containsTen {
-		return fmt.Errorf("invalid mode: %s,valide types: %v", mode, validModes)
+		return fmt.Errorf("invalid mode: %s,valid types: %v", mode, validModes)
 	}
 	return nil
 }
