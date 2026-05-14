@@ -78,6 +78,34 @@ func TestCreateService_memory(t *testing.T) {
 	_ = svc.Close(context.Background())
 }
 
+func TestCreateService_fileBackup(t *testing.T) {
+	o := &server.Options{
+		Mode:              common.TypeModeTest,
+		DNS:               "",
+		Restore:           true,
+		StoreInterval:     time.Minute,
+		BackupStoragePath: t.TempDir(),
+		Host:              "localhost",
+		Port:              "8080",
+	}
+	svc, conn, cfg, need, err := createService(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cfg.Cleanup()
+	defer svc.Close(context.Background())
+
+	if conn != nil {
+		t.Fatal("expected no DB conn")
+	}
+	if cfg == nil {
+		t.Fatal("expected backup config")
+	}
+	if !need {
+		t.Fatal("expected restore flag for enabled backup")
+	}
+}
+
 type readBackupFailSvc struct {
 	*memory.Service
 }
@@ -146,6 +174,23 @@ func TestStartBackupRoutine_memory(t *testing.T) {
 	cancel()
 	time.Sleep(20 * time.Millisecond)
 	_ = lg.Sync()
+}
+
+func TestAppClose(t *testing.T) {
+	canceled := false
+	app := &App{
+		Service: memory.NewService(),
+		CancelBackup: func() {
+			canceled = true
+		},
+	}
+
+	if err := app.Close(context.Background()); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+	if !canceled {
+		t.Fatal("Close() did not call CancelBackup")
+	}
 }
 
 func TestInitHandler(t *testing.T) {

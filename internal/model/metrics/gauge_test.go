@@ -56,3 +56,24 @@ func TestNewGauge(t *testing.T) {
 		t.Fatalf("NewGauge() = %v, want %v", got, common.Gauge)
 	}
 }
+
+func TestMetrics_Reset(t *testing.T) {
+	m := &Metrics{
+		ID:    "metric",
+		MType: common.Gauge,
+		Delta: new(int64(7)),
+		Value: new(3.14),
+		Hash:  "hash",
+	}
+
+	m.Reset()
+
+	if m.ID != "" || m.MType != "" || m.Delta != nil || m.Value != nil || m.Hash != "" {
+		t.Fatalf("Reset() = %#v, want zeroed metric", m)
+	}
+}
+
+func TestGauge_Reset_NilSafe(t *testing.T) {
+	var g *Gauge
+	g.Reset()
+}

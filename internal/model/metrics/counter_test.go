@@ -56,3 +56,20 @@ func TestNewCounter(t *testing.T) {
 		t.Fatalf("NewCounter() = %v, want %v", got, common.Counter)
 	}
 }
+
+func TestCounter_Reset(t *testing.T) {
+	c := &Counter{}
+	c.Reset()
+	if c.Delta == nil {
+		t.Fatal("Reset() left Delta nil")
+	}
+	if *c.Delta != 0 {
+		t.Fatalf("Reset() Delta = %d, want 0", *c.Delta)
+	}
+
+	c.SetValue(10)
+	c.Reset()
+	if *c.Delta != 0 {
+		t.Fatalf("Reset() Delta after SetValue = %d, want 0", *c.Delta)
+	}
+}

@@ -158,3 +158,67 @@ func TestPool_AddAndGet_TasksProcessed(t *testing.T) {
 		t.Fatalf("pool results = %#v, want both \"first\" and \"second\"", results)
 	}
 }
+
+func TestPool_Get_ReturnsTask(t *testing.T) {
+	ctx := context.Background()
+	p := NewPool(1)
+	want := NewTask(func(x any) (any, error) {
+		return "done", nil
+	})
+	want.Result = "done"
+
+	p.rCh <- *want
+
+	got := p.Get(ctx)
+	if got.Err != nil {
+		t.Fatalf("Get() Err = %v, want nil", got.Err)
+	}
+	if got.Result != "done" {
+		t.Fatalf("Get() Result = %v, want %v", got.Result, "done")
+	}
+}
+
+func TestPool_Get_ContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	got := NewPool(1).Get(ctx)
+	if !errors.Is(got.Err, context.Canceled) {
+		t.Fatalf("Get() Err = %v, want context.Canceled", got.Err)
+	}
+}
+
+func TestPool_Get_ClosedResults(t *testing.T) {
+	p := NewPool(1)
+	close(p.rCh)
+
+	got := p.Get(context.Background())
+	if got.Err == nil || got.Err.Error() != "pool closed" {
+		t.Fatalf("Get() Err = %v, want pool closed", got.Err)
+	}
+}
+
+func TestPool_Shutdown(t *testing.T) {
+	ctx := context.Background()
+	p := NewPool(1)
+	p.StartBg(ctx)
+
+	if err := p.Shutdown(ctx); err != nil {
+		t.Fatalf("Shutdown() error = %v", err)
+	}
+
+	p.Add(ctx, NewTask(func(x any) (any, error) {
+		t.Fatal("task added after shutdown was executed")
+		return nil, nil
+	}))
+}
+
+func TestPool_Shutdown_ContextCanceled(t *testing.T) {
+	p := NewPool(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if err := p.Shutdown(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Shutdown() error = %v, want context.Canceled", err)
+	}
+}

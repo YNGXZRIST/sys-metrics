@@ -54,3 +54,13 @@ func TestWriteNotFound(t *testing.T) {
 		t.Fatalf("WriteNotFound error, want %v got %v", http.StatusNotFound, res.StatusCode)
 	}
 }
+
+func TestWriteInternalServerError(t *testing.T) {
+	w := httptest.NewRecorder()
+	WriteInternalServerError(w)
+	res := w.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("WriteInternalServerError error, want %v got %v", http.StatusInternalServerError, res.StatusCode)
+	}
+}
