@@ -20,7 +20,7 @@ func BenchmarkPool_AddGet(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		p.Add(task)
+		p.Add(ctx, task)
 		_ = p.Get(ctx)
 	}
 }

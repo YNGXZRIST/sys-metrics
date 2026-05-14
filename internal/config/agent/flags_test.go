@@ -27,9 +27,9 @@ func clearEnv(t *testing.T) {
 
 func Test_parseArgs(t *testing.T) {
 	tests := []struct {
+		want    *Options
 		name    string
 		args    []string
-		want    *Options
 		wantErr bool
 	}{
 		{
@@ -181,9 +181,9 @@ func TestOptions_ParseAndSetHostPort(t *testing.T) {
 
 func Test_newOption(t *testing.T) {
 	tests := []struct {
+		want    *Options
 		name    string
 		args    []string
-		want    *Options
 		wantErr bool
 	}{
 		{

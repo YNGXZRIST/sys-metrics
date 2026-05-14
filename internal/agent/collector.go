@@ -84,24 +84,24 @@ func NewCollector(ctx context.Context, rateLimit int) *Collector {
 }
 
 // Update enqueues asynchronous memory, CPU, and runtime sampling without waiting for results.
-func (c *Collector) Update() error {
+func (c *Collector) Update(ctx context.Context) error {
 	sysTask := c.getSysTask()
 	memTask := c.getMemTask()
 	sysTask.NeedResult = false
 	memTask.NeedResult = false
-	c.collectorPool.Add(sysTask)
-	c.collectorPool.Add(memTask)
+	c.collectorPool.Add(ctx, sysTask)
+	c.collectorPool.Add(ctx, memTask)
 	return nil
 }
 
 // UpdateSync performs the same sampling as Update but waits for tasks to finish.
-func (c *Collector) UpdateSync() error {
+func (c *Collector) UpdateSync(ctx context.Context) error {
 	sysTask := c.getSysTask()
 	memTask := c.getMemTask()
 	sysTask.NeedResult = true
 	memTask.NeedResult = true
-	c.collectorPool.Add(sysTask)
-	c.collectorPool.Add(memTask)
+	c.collectorPool.Add(ctx, sysTask)
+	c.collectorPool.Add(ctx, memTask)
 	sysRes := c.collectorPool.Get(c.ctx)
 	if sysRes.Err != nil {
 		return sysRes.Err

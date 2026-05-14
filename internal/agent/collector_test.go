@@ -220,8 +220,9 @@ func TestCollector_GetCounter_NotFound(t *testing.T) {
 }
 
 func TestCollector_Update(t *testing.T) {
-	c := NewCollector(context.Background(), 1)
-	err := c.UpdateSync()
+	ctx := context.Background()
+	c := NewCollector(ctx, 1)
+	err := c.UpdateSync(ctx)
 	if err != nil {
 		t.Errorf("Update() returned %v, want nil", err)
 	}

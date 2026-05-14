@@ -17,8 +17,8 @@ import (
 // RequestEncryptor encrypts request bodies for transport to a server that has the matching private key.
 // NewRequestEncryptor loads a PKCS#1 PEM public key from path; an empty path yields a disabled encryptor.
 type RequestEncryptor struct {
-	IsEnabled bool
 	publicKey *rsa.PublicKey
+	IsEnabled bool
 }
 
 // NewRequestEncryptor builds an encryptor. If path is empty, returns a disabled encryptor (IsEnabled false).

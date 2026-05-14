@@ -138,8 +138,8 @@ func TestPool_AddAndGet_TasksProcessed(t *testing.T) {
 		return "second", nil
 	})
 
-	p.Add(task1)
-	p.Add(task2)
+	p.Add(ctx, task1)
+	p.Add(ctx, task2)
 
 	results := make(map[any]bool)
 	for i := 0; i < 2; i++ {

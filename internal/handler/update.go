@@ -39,7 +39,7 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{id},
 		}
-		obs.Notify(event)
+		obs.Notify(ctx, event)
 	}
 	responsewriter.WriteSuccess(w)
 }
@@ -96,7 +96,7 @@ func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{req.ID},
 		}
-		obs.Notify(event)
+		obs.Notify(ctx, event)
 	}
 
 	responsewriter.WriteSuccessStatus(w)
@@ -138,7 +138,7 @@ func (h *Handler) UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Reque
 			IP:      h.GetIPFromRequest(r),
 			Metrics: mNames,
 		}
-		obs.Notify(event)
+		obs.Notify(ctx, event)
 	}
 	responsewriter.WriteSuccessStatus(w)
 

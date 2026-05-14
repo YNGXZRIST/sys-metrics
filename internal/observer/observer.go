@@ -22,7 +22,7 @@ const (
 
 // Observer receives event notifications and may require initialization with a context.
 type Observer interface {
-	Notify(data any)
+	Notify(ctx context.Context, data any)
 	Register(data any) error
 }
 
@@ -115,7 +115,7 @@ func (o *MetricsObserver) Register(data any) error {
 }
 
 // Notify enqueues a MetricsEvent for asynchronous handling.
-func (o *MetricsObserver) Notify(data any) {
+func (o *MetricsObserver) Notify(ctx context.Context, data any) {
 	if o.ReportWorkerPool == nil {
 		return
 	}
@@ -124,7 +124,7 @@ func (o *MetricsObserver) Notify(data any) {
 		return
 	}
 	task := o.ReportTask(event)
-	o.ReportWorkerPool.Add(task)
+	o.ReportWorkerPool.Add(ctx, task)
 }
 
 // ReportTask builds a pool task that writes to file and/or POSTs the event.

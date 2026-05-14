@@ -19,8 +19,8 @@ import (
 // NewRequestDecryptor loads a PKCS#1 PEM private key from path; an empty path yields a disabled
 // instance (IsEnabled false) suitable for servers that do not expect ciphertext.
 type RequestDecryptor struct {
-	IsEnabled  bool
 	privateKey *rsa.PrivateKey
+	IsEnabled  bool
 }
 
 // NewRequestDecryptor builds a decryptor. If path is empty, returns a disabled decryptor with no key loaded.

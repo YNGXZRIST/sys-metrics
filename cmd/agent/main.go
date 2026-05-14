@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"sys-metrics/internal/agent"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
@@ -16,6 +17,7 @@ import (
 	"sys-metrics/internal/secure"
 	"sys-metrics/internal/utils"
 	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -34,8 +36,13 @@ func main() {
 }
 func run() error {
 	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer stop()
 	opt, err := config.NewOption(os.Args[1:])
 	if err != nil {
 		return fmt.Errorf("new option: %w", err)
@@ -46,13 +53,25 @@ func run() error {
 	}
 	defer a.Logger.Sync()
 	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
-	go a.StartReport(ctx)
-	go a.StartPoll(ctx)
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		a.StartReport(ctx)
+	}()
+	go func() {
+		defer wg.Done()
+		a.StartPoll(ctx)
+	}()
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err = a.ReportPool.Shutdown(shutdownCtx); err != nil {
+		a.Logger.Error("report shutdown error", zap.Error(err))
+	}
+	wg.Wait()
 	a.Logger.Info("Shutting down agent...")
-	cancel()
 	return nil
 }
 func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {

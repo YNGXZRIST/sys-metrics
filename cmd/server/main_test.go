@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"testing"
-	"time"
-
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/secure"
+	"testing"
+	"time"
 )
 
 func TestInitDB_emptyDSN(t *testing.T) {
@@ -96,14 +95,14 @@ func TestRestoreFromBackup_error(t *testing.T) {
 }
 
 func TestRun_invalidMode(t *testing.T) {
-	err := run([]string{"-m", "not-a-valid-mode"})
+	_, err := run(context.Background(), []string{"-m", "not-a-valid-mode"})
 	if err == nil {
 		t.Fatal("expected error")
 	}
 }
 
 func TestRun_invalidAddress(t *testing.T) {
-	err := run([]string{"-a", "no-port-here"})
+	_, err := run(context.Background(), []string{"-a", "no-port-here"})
 	if err == nil {
 		t.Fatal("expected error")
 	}

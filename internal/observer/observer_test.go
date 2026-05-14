@@ -90,7 +90,7 @@ func TestMetricsObserver_RegisterAndNotify_Table(t *testing.T) {
 			}
 
 			if tt.notifyWith != nil {
-				obs.Notify(tt.notifyWith)
+				obs.Notify(ctx, tt.notifyWith)
 			}
 		})
 	}
@@ -122,7 +122,7 @@ func TestMetricsObserver_Notify_WritesToFile(t *testing.T) {
 	}
 
 	ev := MetricsEvent{TS: 123, IP: "10.0.0.1", Metrics: []string{"A", "B"}}
-	obs.Notify(ev)
+	obs.Notify(ctx, ev)
 
 	deadline := time.Now().Add(750 * time.Millisecond)
 	for {
@@ -177,7 +177,7 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 	}
 
 	ev := MetricsEvent{TS: 555, IP: "1.2.3.4", Metrics: []string{"m"}}
-	obs.Notify(ev)
+	obs.Notify(ctx, ev)
 
 	select {
 	case gotBody := <-received:

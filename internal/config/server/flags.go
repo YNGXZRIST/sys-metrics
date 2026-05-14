@@ -20,19 +20,18 @@ type Options struct {
 	ServerAddress     *string `json:"address" env:"ADDRESS"`
 	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
 	HashKey           *string `env:"KEY"`
-	StoreIntervalJSON string  `json:"store_interval"`
+	Mode              string  `env:"MODE"`
 	Host              string
 	Port              string
-	Mode              string `env:"MODE"`
+	StoreIntervalJSON string `json:"store_interval"`
 	BackupStoragePath string `json:"store_file" env:"STORE_FILE" envDefault:"./backups"`
 	DNS               string `json:"database_dsn" env:"DATABASE_DSN"`
 	AuditFile         string `env:"AUDIT_FILE"`
 	AuditURL          string `env:"AUDIT_URL"`
-	StoreInterval     time.Duration
-	Restore           bool   `json:"restore" env:"RESTORE" envDefault:"true"`
 	CryptoKeyPath     string `json:"crypto_key" env:"CRYPTO_KEY"`
-
-	ConfigFilePath string
+	ConfigFilePath    string
+	StoreInterval     time.Duration
+	Restore           bool `json:"restore" env:"RESTORE" envDefault:"true"`
 }
 
 // NewOption parses argv, environment and config, validates mode, and returns Options.

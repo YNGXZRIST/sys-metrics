@@ -23,14 +23,13 @@ type Options struct {
 	Port           string
 	Mode           string `env:"MODE"`
 	HashKey        string `env:"KEY"`
+	CryptoKeyPath  string `json:"crypto_key" env:"CRYPTO_KEY"`
+	ConfigFilePath string
 	PollInterval   time.Duration
 	ReportInterval time.Duration
-	PollSec        int    `env:"POLL_INTERVAL"`
-	ReportSec      int    `env:"REPORT_INTERVAL"`
-	RateLimit      int    `env:"RATE_LIMIT"`
-	CryptoKeyPath  string `json:"crypto_key" env:"CRYPTO_KEY"`
-
-	ConfigFilePath string
+	PollSec        int `env:"POLL_INTERVAL"`
+	ReportSec      int `env:"REPORT_INTERVAL"`
+	RateLimit      int `env:"RATE_LIMIT"`
 }
 
 // NewOption parses the agent argv, environment and config. Validates logging mode.

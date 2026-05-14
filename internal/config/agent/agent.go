@@ -15,11 +15,11 @@ import (
 type Config struct {
 	Authenticator    authenticate.Authenticator
 	Logger           *zap.Logger
+	RequestEncryptor *secure.RequestEncryptor
 	ServerAddr       string
 	PollInterval     time.Duration
 	ReportInterval   time.Duration
 	RateLimit        int
-	RequestEncryptor *secure.RequestEncryptor
 }
 
 // NewConfig constructs an agent Config.
