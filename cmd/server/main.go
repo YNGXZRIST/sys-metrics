@@ -70,7 +70,6 @@ func initDB(o *server.Options) (*db.DB, error) {
 }
 
 func initBackupConfig(o *server.Options) (*file.Config, error) {
-	fmt.Printf("%+v\n", o)
 	return file.NewConfig(o.Mode, o.BackupStoragePath, o.StoreInterval, o.Restore)
 }
 
