@@ -1,11 +1,8 @@
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
@@ -13,7 +10,9 @@ import (
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/secure"
 	"sys-metrics/pkg/httpcompressor"
+	"time"
 
+	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 )
 
@@ -40,14 +39,18 @@ type Response struct {
 type Reporter struct {
 	authenticator    authenticate.Authenticator
 	requestEncryptor *secure.RequestEncryptor
-	httpClient       *http.Client
+	httpClient       *resty.Client
 	logger           *zap.Logger
 	serverAddr       string
 }
 
+const PathUpdate = "/update"
+const PathUpdates = "/updates"
+
 // NewReporter creates a client that posts to serverAddr (metrics server base URL).
 func NewReporter(addr string, l *zap.Logger, a authenticate.Authenticator, r *secure.RequestEncryptor) *Reporter {
-	c := &http.Client{}
+	c := resty.New()
+	c.SetTimeout(10 * time.Second)
 	return &Reporter{
 		authenticator:    a,
 		requestEncryptor: r,
@@ -116,26 +119,18 @@ func (r *Reporter) sendUpdateRequest(url string, reqData []byte) ([]byte, error)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling request: %w", err)
 	}
-	req, err := r.createRequest(url, plain)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
+	req := r.httpClient.R().SetBody(plain)
 	r.setHeaders(req, plain)
 	if r.authenticator != nil {
 		key := r.authenticator.GetHashHeaderKey()
 		req.Header.Set(key, r.authenticator.SignBody(plain))
 	}
-	response, err := r.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error do request: %w", err)
+	resp, errP := req.Post(url)
+	if errP != nil {
+		return nil, fmt.Errorf("error do request: %w", errP)
 	}
-	r.logger.Info("Response status", zap.Int("status", response.StatusCode), zap.String("encoding", response.Header.Get(httpcompressor.ContentEncodingHeader)))
-	defer response.Body.Close()
-	res, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error read response: %w", err)
-	}
-	return res, nil
+	r.logger.Info("Response status", zap.Int("status", resp.StatusCode()), zap.String("encoding", resp.Header().Get(httpcompressor.ContentEncodingHeader)))
+	return resp.Body(), nil
 }
 func (r *Reporter) checkAndEncodeRequest(reqData []byte) ([]byte, error) {
 	var err error
@@ -147,7 +142,7 @@ func (r *Reporter) checkAndEncodeRequest(reqData []byte) ([]byte, error) {
 	}
 	return reqData, nil
 }
-func (r *Reporter) setHeaders(req *http.Request, plaintext []byte) {
+func (r *Reporter) setHeaders(req *resty.Request, plaintext []byte) {
 	req.Header.Set(httpcompressor.AcceptEncodingHeader, httpcompressor.GzipEncoding)
 	if r.requestEncryptor != nil && r.requestEncryptor.IsEnabled {
 		req.Header.Set(common.EncryptHeader, common.RSA)
@@ -159,14 +154,6 @@ func (r *Reporter) setHeaders(req *http.Request, plaintext []byte) {
 		req.Header.Set(key, r.authenticator.SignBody(plaintext))
 	}
 
-}
-func (r *Reporter) createRequest(url string, plain []byte) (*http.Request, error) {
-	writer := bytes.NewReader(plain)
-	req, err := http.NewRequest(http.MethodPost, url, writer)
-	if err != nil {
-		return nil, fmt.Errorf("error create request: %w", err)
-	}
-	return req, nil
 }
 
 // ConvertMetricValue formats a number as an integer for counters or float for gauges.
@@ -182,10 +169,10 @@ func (r *Reporter) ConvertMetricValue(m string, v float64) string {
 
 // BuildUpdateURL returns the single-metric update endpoint URL.
 func (r *Reporter) BuildUpdateURL() string {
-	return r.serverAddr + "/update"
+	return r.serverAddr + PathUpdate
 }
 
 // BuildUpdatesURL returns the batch update URL for /updates.
 func (r *Reporter) BuildUpdatesURL() string {
-	return r.serverAddr + "/updates"
+	return r.serverAddr + PathUpdates
 }
