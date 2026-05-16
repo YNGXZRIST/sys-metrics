@@ -334,7 +334,10 @@ func parseConfigPath(args []string) (string, error) {
 	}
 
 	if configPath == "" {
-		configPath = os.Getenv("CONFIG")
+		path, ok := os.LookupEnv("CONFIG")
+		if ok {
+			configPath = path
+		}
 	}
 
 	return configPath, nil
