@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/observer"
@@ -30,6 +31,7 @@ type Handler struct {
 	Auth         authenticate.Authenticator
 	ReqDecryptor *secure.RequestDecryptor
 	Observers    map[ObserverKey]observer.Observer
+	mu           sync.Mutex
 }
 
 // NewHandler builds a Handler with optional DB connection (may be nil), authenticator, and observers map.
@@ -40,11 +42,14 @@ func NewHandler(c *db.DB, a authenticate.Authenticator, d *secure.RequestDecrypt
 		Auth:         a,
 		ReqDecryptor: d,
 		Observers:    observersMap,
+		mu:           sync.Mutex{},
 	}
 }
 
 // GetObserverByType returns the observer for key or an error if it is not registered.
 func (h *Handler) GetObserverByType(key ObserverKey) (observer.Observer, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	o, ok := h.Observers[key]
 	if !ok {
 		return nil, fmt.Errorf("observer '%s' not found", key)
