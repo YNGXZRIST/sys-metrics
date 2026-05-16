@@ -3,8 +3,6 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
 	"sync"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
@@ -55,9 +53,4 @@ func (h *Handler) GetObserverByType(key ObserverKey) (observer.Observer, error) 
 		return nil, fmt.Errorf("observer '%s' not found", key)
 	}
 	return o, nil
-}
-
-// GetIPFromRequest returns the client IP from RemoteAddr (the part before ':').
-func (h *Handler) GetIPFromRequest(r *http.Request) string {
-	return strings.Split(r.RemoteAddr, ":")[0]
 }

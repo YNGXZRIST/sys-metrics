@@ -20,15 +20,6 @@ func TestGetObserverByType_missing(t *testing.T) {
 	}
 }
 
-func TestGetIPFromRequest(t *testing.T) {
-	h := newTestHandler(t)
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.RemoteAddr = "192.0.2.1:12345"
-	if got := h.GetIPFromRequest(req); got != "192.0.2.1" {
-		t.Fatalf("GetIPFromRequest = %q", got)
-	}
-}
-
 func TestPingHandler_noDB(t *testing.T) {
 	h := newTestHandler(t)
 	rec := httptest.NewRecorder()

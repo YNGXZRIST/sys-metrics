@@ -7,6 +7,7 @@ import (
 	"strings"
 	collector "sys-metrics/internal/agent"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/middleware"
 	models "sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/observer"
 	serviceMetrics "sys-metrics/internal/service/metrics"
@@ -36,8 +37,10 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		event := observer.MetricsEvent{
 			TS:      time.Now().UTC().Unix(),
-			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{id},
+		}
+		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
+			event.IP = ip
 		}
 		obs.Notify(ctx, event)
 	}
@@ -93,8 +96,10 @@ func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 	} else {
 		event := observer.MetricsEvent{
 			TS:      time.Now().UTC().Unix(),
-			IP:      h.GetIPFromRequest(r),
 			Metrics: []string{req.ID},
+		}
+		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
+			event.IP = ip
 		}
 		obs.Notify(ctx, event)
 	}
@@ -135,8 +140,10 @@ func (h *Handler) UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Reque
 		}
 		event := observer.MetricsEvent{
 			TS:      time.Now().UTC().Unix(),
-			IP:      h.GetIPFromRequest(r),
 			Metrics: mNames,
+		}
+		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
+			event.IP = ip
 		}
 		obs.Notify(ctx, event)
 	}
