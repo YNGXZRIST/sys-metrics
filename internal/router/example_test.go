@@ -12,6 +12,7 @@ import (
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
 	"sys-metrics/internal/router"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 
 	"go.uber.org/zap"
 )
@@ -19,7 +20,7 @@ import (
 // newExampleRouter builds a chi router with an empty in-memory metrics store (no DB, no auth).
 func newExampleRouter() http.Handler {
 	svc.Init(memory.NewService())
-	h := handler.NewHandler(nil, nil, nil, zap.NewNop(), nil)
+	h := handler.NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
 	return router.GetRouter(h)
 }
 

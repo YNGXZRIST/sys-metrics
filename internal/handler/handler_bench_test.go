@@ -14,6 +14,7 @@ import (
 	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 
 	"go.uber.org/zap"
@@ -27,7 +28,7 @@ func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
 	return NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
 		ObserverAudit: noopObserver{},
-	})
+	}, serviceMetrics.NewService(noopObserver{}))
 }
 
 type gaugeDataset struct {

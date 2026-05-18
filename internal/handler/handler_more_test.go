@@ -7,6 +7,7 @@ import (
 	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 
 	"go.uber.org/zap"
@@ -34,7 +35,7 @@ func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 	svc.Init(memory.NewService())
 	h := NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
 		ObserverAudit: noopObserver{},
-	})
+	}, serviceMetrics.NewService(noopObserver{}))
 	body := []byte(`[{"id":"obs_g","type":"gauge","value":2}]`)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewReader(body))
@@ -45,7 +46,7 @@ func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 }
 
 func TestNewHandler_fields(t *testing.T) {
-	h := NewHandler(nil, nil, nil, zap.NewNop(), nil)
+	h := NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
 	if h.Conn != nil || h.Auth != nil || h.ReqDecryptor != nil || h.Logger == nil {
 		t.Fatalf("unexpected handler state %#v", h)
 	}

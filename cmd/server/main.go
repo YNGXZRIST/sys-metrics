@@ -24,6 +24,7 @@ import (
 	"sys-metrics/internal/repository/postgres"
 	"sys-metrics/internal/router"
 	"sys-metrics/internal/secure"
+	mServ "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/utils"
 	"sys-metrics/migrations"
 	"syscall"
@@ -168,7 +169,7 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 	if err != nil {
 		return err
 	}
-
+	metricService := mServ.NewService(metricsObserver)
 	observersMap := make(map[handler.ObserverKey]observer.Observer)
 	observersMap[handler.ObserverAudit] = metricsObserver
 
@@ -185,6 +186,7 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 		authenticator,
 		reqDecryptor,
 		observersMap,
+		metricService,
 	)
 	return a.startHTTPServer(o, h, backupConfigForHTTP)
 }
@@ -371,8 +373,8 @@ func initMetricsObserver(ctx context.Context, o *server.Options) (*observer.Metr
 	return obs, nil
 }
 
-func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, d *secure.RequestDecryptor, o map[handler.ObserverKey]observer.Observer) *handler.Handler {
-	newHandler := handler.NewHandler(c, a, d, l, o)
+func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, d *secure.RequestDecryptor, o map[handler.ObserverKey]observer.Observer, ms *mServ.MetricService) *handler.Handler {
+	newHandler := handler.NewHandler(c, a, d, l, o, ms)
 	return newHandler
 }
 

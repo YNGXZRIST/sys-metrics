@@ -72,9 +72,10 @@ func TestUpdate(t *testing.T) {
 		},
 	}
 	metrics.Init(memory.NewService())
+	ms := NewService(nil)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := Update(context.Background(), tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
+			if err := ms.Update(context.Background(), tt.args.metricType, tt.args.name, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -155,18 +156,20 @@ func Test_updateGauge(t *testing.T) {
 
 func TestBatchUpdateMetrics_empty(t *testing.T) {
 	metrics.Init(memory.NewService())
-	if err := BatchUpdateMetrics(context.Background(), nil); err != nil {
+	ms := NewService(nil)
+	if err := ms.BatchUpdateMetrics(context.Background(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := BatchUpdateMetrics(context.Background(), []models.Metrics{}); err != nil {
+	if err := ms.BatchUpdateMetrics(context.Background(), []models.Metrics{}); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestBatchUpdateMetrics_oneGauge(t *testing.T) {
 	metrics.Init(memory.NewService())
+	ms := NewService(nil)
 	v := 3.0
-	err := BatchUpdateMetrics(context.Background(), []models.Metrics{
+	err := ms.BatchUpdateMetrics(context.Background(), []models.Metrics{
 		{ID: "g1", MType: "gauge", Value: &v},
 	})
 	if err != nil {

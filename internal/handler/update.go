@@ -2,17 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	collector "sys-metrics/internal/agent"
-	"sys-metrics/internal/common"
-	"sys-metrics/internal/middleware"
 	models "sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/observer"
 	serviceMetrics "sys-metrics/internal/service/metrics"
 	"sys-metrics/internal/service/responsewriter"
-	"time"
 
 	"go.uber.org/zap"
 )
@@ -25,24 +21,11 @@ func (h *Handler) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	metricType = strings.ToLower(metricType)
 	id = collector.GetMetricType(id)
 	ctx := r.Context()
-	err := serviceMetrics.Update(ctx, metricType, id, value)
+	err := h.MetricService.Update(ctx, metricType, id, value)
 	if err != nil {
 		h.Logger.Warn("UpdateHandler got error", zap.Error(err))
 		responsewriter.WriteBadRequest(w)
 		return
-	}
-	obs, err := h.GetObserverByType(ObserverAudit)
-	if err != nil {
-		h.Logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
-	} else {
-		event := observer.MetricsEvent{
-			TS:      time.Now().UTC().Unix(),
-			Metrics: []string{id},
-		}
-		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
-			event.IP = ip
-		}
-		obs.Notify(ctx, event)
 	}
 	responsewriter.WriteSuccess(w)
 }
@@ -58,50 +41,14 @@ func (h *Handler) UpdateHandlerJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.Logger.Info("UpdateHandlerJSON", zap.Any("req", req))
-	var valueStr string
-	switch req.MType {
-	case common.Gauge:
-		var val float64
-		if req.Value == nil {
-			val = 0.0
-		} else {
-			val = *req.Value
+	metric, err := h.MetricService.UpdateMetric(ctx, req)
+	if err != nil {
+		if errors.Is(err, serviceMetrics.ErrMetricRead) {
+			responsewriter.WriteServerError(w)
+			return
 		}
-		valueStr = strconv.FormatFloat(val, 'f', -1, 64)
-	case common.Counter:
-		var delta int64
-		if req.Delta == nil {
-			delta = 0
-		} else {
-			delta = *req.Delta
-		}
-		valueStr = strconv.FormatInt(delta, 10)
-	default:
 		responsewriter.WriteBadRequest(w)
 		return
-	}
-	err := serviceMetrics.Update(ctx, req.MType, req.ID, valueStr)
-	if err != nil {
-		responsewriter.WriteBadRequest(w)
-		return
-	}
-	metric, err := getMetricFromStorage(ctx, req.MType, req.ID)
-	if err != nil {
-		responsewriter.WriteServerError(w)
-		return
-	}
-	obs, err := h.GetObserverByType(ObserverAudit)
-	if err != nil {
-		h.Logger.Warn("UpdateHandlerJSON got error", zap.Error(err))
-	} else {
-		event := observer.MetricsEvent{
-			TS:      time.Now().UTC().Unix(),
-			Metrics: []string{req.ID},
-		}
-		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
-			event.IP = ip
-		}
-		obs.Notify(ctx, event)
 	}
 
 	responsewriter.WriteSuccessStatus(w)
@@ -124,28 +71,11 @@ func (h *Handler) UpdatesMetricsHandlerJSON(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	h.Logger.Info("UpdatesMetricsHandlerJSON", zap.Any("req", req))
-	err := serviceMetrics.BatchUpdateMetrics(ctx, req)
+	err := h.MetricService.BatchUpdateMetrics(ctx, req)
 	if err != nil {
 		h.Logger.Warn("UpdatesMetricsHandlerJSON got error", zap.Error(err))
 		responsewriter.WriteServerError(w)
 		return
-	}
-	obs, err := h.GetObserverByType(ObserverAudit)
-	if err != nil {
-		h.Logger.Warn("UpdatesMetricsHandlerJSON got error", zap.Error(err))
-	} else {
-		mNames := make([]string, 0, len(req))
-		for _, m := range req {
-			mNames = append(mNames, m.ID)
-		}
-		event := observer.MetricsEvent{
-			TS:      time.Now().UTC().Unix(),
-			Metrics: mNames,
-		}
-		if ip, ok := ctx.Value(middleware.CtxClientIPKey).(string); ok {
-			event.IP = ip
-		}
-		obs.Notify(ctx, event)
 	}
 	responsewriter.WriteSuccessStatus(w)
 
