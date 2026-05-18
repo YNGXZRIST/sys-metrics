@@ -39,16 +39,14 @@ var (
 	buildCommit  string
 )
 
+type dbCloser interface {
+	Close() error
+}
 type App struct {
-	Server *http.Server
-	DB     *db.DB
-
-	Service metricsiface.ServiceInterface
-
-	Logger *zap.Logger
-
-	CancelBackup context.CancelFunc
-
+	Server       *http.Server
+	DB           dbCloser
+	Service      metricsiface.ServiceInterface
+	Logger       *zap.Logger
 	BackupConfig *file.Config
 }
 
@@ -99,10 +97,6 @@ func run(ctx context.Context, args []string) (*App, error) {
 }
 
 func (a *App) Close(ctx context.Context) error {
-	if a.CancelBackup != nil {
-		a.CancelBackup()
-	}
-
 	if a.Server != nil {
 		if err := a.Server.Shutdown(ctx); err != nil {
 			return err
@@ -162,8 +156,7 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 		}
 	}
 
-	cancel := startBackupRoutine(ctx, serviceInterface, logger)
-	a.CancelBackup = cancel
+	startBackupRoutine(ctx, serviceInterface, logger)
 
 	metricsObserver, err := initMetricsObserver(ctx, o)
 	if err != nil {
@@ -313,19 +306,15 @@ func startBackupRoutine(
 	ctx context.Context,
 	service metricsiface.ServiceInterface,
 	logger *zap.Logger,
-) context.CancelFunc {
-	routineCtx, cancel := context.WithCancel(ctx)
-
+) {
 	go func() {
-		if err := service.InitRoutine(routineCtx); err != nil {
+		if err := service.InitRoutine(ctx); err != nil {
 			logger.Error(
 				"backup routine error",
 				zap.Error(err),
 			)
 		}
 	}()
-
-	return cancel
 }
 
 func (a *App) startHTTPServer(o *server.Options, h *handler.Handler, backupConfig *file.Config) error {
