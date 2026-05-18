@@ -77,3 +77,34 @@ func TestService_ReadBackup_WriteBackup(t *testing.T) {
 		t.Errorf("WriteBackup() error = %v", err)
 	}
 }
+
+func TestService_WriteBatchMetrics(t *testing.T) {
+	svc := NewService()
+	gaugeValue := 7.5
+	counterValue := int64(3)
+
+	err := svc.WriteBatchMetrics(context.Background(), []metrics.Metrics{
+		{ID: "batch_gauge", MType: "gauge", Value: &gaugeValue},
+		{ID: "batch_counter", MType: "counter", Delta: &counterValue},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gauge, err := svc.Gauges().Get(context.Background(), "batch_gauge")
+	if err != nil || gauge.Value == nil || *gauge.Value != gaugeValue {
+		t.Fatalf("gauge = %+v, err = %v", gauge, err)
+	}
+
+	counter, err := svc.Counters().Get(context.Background(), "batch_counter")
+	if err != nil || counter.Delta == nil || *counter.Delta != counterValue {
+		t.Fatalf("counter = %+v, err = %v", counter, err)
+	}
+}
+
+func TestService_Close(t *testing.T) {
+	svc := NewService()
+	if err := svc.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}

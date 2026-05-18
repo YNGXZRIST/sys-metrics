@@ -171,26 +171,20 @@ func TestStartBackupRoutine_memory(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := memory.NewService()
-	cancel := startBackupRoutine(context.Background(), s, lg)
+	ctx, cancel := context.WithCancel(context.Background())
+	startBackupRoutine(ctx, s, lg)
 	cancel()
 	time.Sleep(20 * time.Millisecond)
 	_ = lg.Sync()
 }
 
 func TestAppClose(t *testing.T) {
-	canceled := false
 	app := &App{
 		Service: memory.NewService(),
-		CancelBackup: func() {
-			canceled = true
-		},
 	}
 
 	if err := app.Close(context.Background()); err != nil {
 		t.Fatalf("Close() error = %v", err)
-	}
-	if !canceled {
-		t.Fatal("Close() did not call CancelBackup")
 	}
 }
 
