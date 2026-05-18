@@ -147,3 +147,43 @@ func TestUpdateHandlerJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdatesMetricsHandlerJSON(t *testing.T) {
+	svc.Init(memory.NewService())
+	h := newTestHandler(t)
+
+	t.Run("invalid json", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewBufferString("not-json"))
+		rec := httptest.NewRecorder()
+		h.UpdatesMetricsHandlerJSON(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d", rec.Code)
+		}
+	})
+
+	t.Run("success batch", func(t *testing.T) {
+		v := 1.5
+		d := int64(2)
+		body := []byte(`[{"id":"bg1","type":"gauge","value":1.5},{"id":"bc1","type":"counter","delta":2}]`)
+		req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+		h.UpdatesMetricsHandlerJSON(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d", rec.Code)
+		}
+		g, err := svc.Gauges().Get(context.Background(), "bg1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if g.Value == nil || *g.Value != v {
+			t.Fatalf("gauge value = %v want %v", g.Value, v)
+		}
+		c, err := svc.Counters().Get(context.Background(), "bc1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Delta == nil || *c.Delta != d {
+			t.Fatalf("counter delta = %v want %v", c.Delta, d)
+		}
+	})
+}

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"os"
 	"reflect"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
@@ -9,25 +8,60 @@ import (
 	"time"
 )
 
-func Test_parseArgs(t *testing.T) {
-	type args struct {
-		args []string
+func clearEnv(t *testing.T) {
+	t.Helper()
+
+	for _, k := range []string{
+		"ADDRESS",
+		"MODE",
+		"KEY",
+		"POLL_INTERVAL",
+		"REPORT_INTERVAL",
+		"RATE_LIMIT",
+		"CRYPTO_KEY",
+		"CONFIG",
+	} {
+		t.Setenv(k, "")
 	}
+}
+
+func Test_parseArgs(t *testing.T) {
 	tests := []struct {
 		want    *Options
 		name    string
-		args    args
+		args    []string
 		wantErr bool
 	}{
 		{
 			name: "valid args",
-			args: args{
-				args: []string{
-					"-a=127.0.0.1:1234",
-					"-r=4",
-					"-p=5",
-					"-m=development",
-				},
+			args: []string{
+				"-a=127.0.0.1:1234",
+				"-r=4",
+				"-p=5",
+				"-m=development",
+				"-crypto-key=/tmp/none.pem",
+			},
+			want: &Options{
+				ServerAddress:  "127.0.0.1:1234",
+				Host:           "127.0.0.1",
+				Port:           "1234",
+				ReportInterval: 4 * time.Second,
+				PollInterval:   5 * time.Second,
+				ReportSec:      4,
+				PollSec:        5,
+				Mode:           common.TypeModeDevelopment,
+				HashKey:        "",
+				RateLimit:      1,
+				CryptoKeyPath:  "/tmp/none.pem",
+			},
+		},
+		{
+			name: "valid args without crypto",
+			args: []string{
+				"-a=127.0.0.1:1234",
+				"-r=4",
+				"-p=5",
+				"-m=development",
 			},
 			want: &Options{
 				ServerAddress:  "127.0.0.1:1234",
@@ -43,10 +77,8 @@ func Test_parseArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty args",
-			args: args{
-				args: []string{},
-			},
+			name: "empty args",
+			args: []string{},
 			want: &Options{
 				ServerAddress:  "localhost:8080",
 				Host:           "localhost",
@@ -61,15 +93,29 @@ func Test_parseArgs(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseArgs(tt.args.args)
+			clearEnv(t)
+
+			opt := new(Options)
+
+			err := opt.parseArgs(tt.args)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseArgs() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf(
+					"parseArgs() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseArgs() got = %v, want %v", got, tt.want)
+
+			err = applyDefaults(opt)
+			if err != nil {
+				t.Errorf("applyDefaults() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(opt, tt.want) {
+				t.Errorf("parseArgs() got = %+v, want %+v", opt, tt.want)
 			}
 		})
 	}
@@ -83,6 +129,7 @@ func TestOptions_ParseAndSetHostPort(t *testing.T) {
 		PollInterval   time.Duration
 		ReportInterval time.Duration
 	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -101,12 +148,11 @@ func TestOptions_ParseAndSetHostPort(t *testing.T) {
 			name: "invalid address",
 			fields: fields{
 				ServerAddress: "localhost",
-				Host:          "",
-				Port:          "",
 			},
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opt := &Options{
@@ -116,33 +162,37 @@ func TestOptions_ParseAndSetHostPort(t *testing.T) {
 				PollInterval:   tt.fields.PollInterval,
 				ReportInterval: tt.fields.ReportInterval,
 			}
-			if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); (err != nil) != tt.wantErr {
-				t.Errorf("ParseAndSetHostPort() error = %v, wantErr %v", err, tt.wantErr)
-			}
 
+			err := config.ParseAndSetHostPort(
+				opt.ServerAddress,
+				opt,
+			)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf(
+					"ParseAndSetHostPort() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
+			}
 		})
 	}
 }
 
 func Test_newOption(t *testing.T) {
-	type args struct {
-		args []string
-	}
 	tests := []struct {
 		want    *Options
 		name    string
-		args    args
+		args    []string
 		wantErr bool
 	}{
 		{
 			name: "valid args",
-			args: args{
-				args: []string{
-					"-a=localhost:9090",
-					"-r=15",
-					"-p=5",
-					"-m=development",
-				},
+			args: []string{
+				"-a=localhost:9090",
+				"-r=15",
+				"-p=5",
+				"-m=development",
 			},
 			want: &Options{
 				ServerAddress:  "localhost:9090",
@@ -159,23 +209,33 @@ func Test_newOption(t *testing.T) {
 		},
 		{
 			name: "invalid address",
-			args: args{
-				args: []string{
-					"-a=invalid_address",
-				},
+			args: []string{
+				"-a=invalid_address",
 			},
 			wantErr: true,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewOption(tt.args.args)
+			clearEnv(t)
+
+			got, err := NewOption(tt.args)
+
 			if (err != nil) != tt.wantErr {
-				t.Errorf("newOption() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf(
+					"NewOption() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("newOption() got = %v, want %v", got, tt.want)
+
+			if !tt.wantErr && !reflect.DeepEqual(got, tt.want) {
+				t.Errorf(
+					"NewOption() got = %+v, want %+v",
+					got,
+					tt.want,
+				)
 			}
 		})
 	}
@@ -204,7 +264,6 @@ func TestOptions_parseEnv(t *testing.T) {
 			wantPort:    "8080",
 			wantPoll:    5 * time.Second,
 			wantReport:  10 * time.Second,
-			wantErr:     false,
 		},
 		{
 			name: "valid env with custom address",
@@ -218,7 +277,6 @@ func TestOptions_parseEnv(t *testing.T) {
 			wantPort:    "9090",
 			wantPoll:    3 * time.Second,
 			wantReport:  15 * time.Second,
-			wantErr:     false,
 		},
 		{
 			name:        "empty env variables",
@@ -228,7 +286,6 @@ func TestOptions_parseEnv(t *testing.T) {
 			wantPort:    "",
 			wantPoll:    0,
 			wantReport:  0,
-			wantErr:     false,
 		},
 		{
 			name: "only intervals set",
@@ -236,53 +293,110 @@ func TestOptions_parseEnv(t *testing.T) {
 				"POLL_INTERVAL":   "7",
 				"REPORT_INTERVAL": "20",
 			},
-			wantAddress: "",
-			wantHost:    "",
-			wantPort:    "",
-			wantPoll:    7 * time.Second,
-			wantReport:  20 * time.Second,
-			wantErr:     false,
+			wantPoll:   7 * time.Second,
+			wantReport: 20 * time.Second,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			clearEnv(t)
+
 			for k, v := range tt.envVars {
-				if err := os.Setenv(k, v); err != nil {
-					t.Fatalf("failed to set env %s: %v", k, err)
-				}
+				t.Setenv(k, v)
 			}
-			defer func() {
-				for k := range tt.envVars {
-					if err := os.Unsetenv(k); err != nil {
-						t.Errorf("failed to unset env %s: %v", k, err)
-					}
-				}
-			}()
 
 			opt := &Options{}
+
 			err := opt.parseEnv()
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseEnv() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf(
+					"parseEnv() error = %v, wantErr %v",
+					err,
+					tt.wantErr,
+				)
 			}
 
-			if tt.wantAddress != "" && opt.ServerAddress != tt.wantAddress {
-				t.Errorf("ServerAddress = %v, want %v", opt.ServerAddress, tt.wantAddress)
+			if opt.ServerAddress != tt.wantAddress {
+				t.Errorf(
+					"ServerAddress = %v, want %v",
+					opt.ServerAddress,
+					tt.wantAddress,
+				)
 			}
-			if tt.wantHost != "" && opt.Host != tt.wantHost {
-				t.Errorf("Host = %v, want %v", opt.Host, tt.wantHost)
+
+			if opt.Host != tt.wantHost {
+				t.Errorf(
+					"Host = %v, want %v",
+					opt.Host,
+					tt.wantHost,
+				)
 			}
-			if tt.wantPort != "" && opt.Port != tt.wantPort {
-				t.Errorf("Port = %v, want %v", opt.Port, tt.wantPort)
+
+			if opt.Port != tt.wantPort {
+				t.Errorf(
+					"Port = %v, want %v",
+					opt.Port,
+					tt.wantPort,
+				)
 			}
-			if tt.wantPoll != 0 && opt.PollInterval != tt.wantPoll {
-				t.Errorf("PollInterval = %v, want %v", opt.PollInterval, tt.wantPoll)
+
+			if opt.PollInterval != tt.wantPoll {
+				t.Errorf(
+					"PollInterval = %v, want %v",
+					opt.PollInterval,
+					tt.wantPoll,
+				)
 			}
-			if tt.wantReport != 0 && opt.ReportInterval != tt.wantReport {
-				t.Errorf("ReportInterval = %v, want %v", opt.ReportInterval, tt.wantReport)
+
+			if opt.ReportInterval != tt.wantReport {
+				t.Errorf(
+					"ReportInterval = %v, want %v",
+					opt.ReportInterval,
+					tt.wantReport,
+				)
 			}
 		})
+	}
+}
+
+func TestNewOption_developmentDefaults(t *testing.T) {
+	clearEnv(t)
+
+	got, err := NewOption([]string{
+		"-m",
+		common.TypeModeDevelopment,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.Mode != common.TypeModeDevelopment {
+		t.Fatalf("mode %q", got.Mode)
+	}
+
+	if got.Host != "localhost" || got.Port != "8080" {
+		t.Fatalf("addr %s:%s", got.Host, got.Port)
+	}
+}
+
+func TestNewOption_withRateLimitEnv(t *testing.T) {
+	clearEnv(t)
+
+	t.Setenv("RATE_LIMIT", "4")
+
+	got, err := NewOption([]string{
+		"-m",
+		common.TypeModeDevelopment,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.RateLimit != 4 {
+		t.Fatalf("RateLimit = %d", got.RateLimit)
 	}
 }

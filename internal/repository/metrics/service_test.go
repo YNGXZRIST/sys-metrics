@@ -80,3 +80,41 @@ func TestGetAllMetrics(t *testing.T) {
 		t.Errorf("GetAllMetrics() returned %d metrics, expected 2", len(got))
 	}
 }
+
+func TestGetAllMetrics_empty(t *testing.T) {
+	Init(memory.NewService())
+	got := GetAllMetrics(context.Background())
+	if len(got) != 0 {
+		t.Fatalf("want empty, got %d", len(got))
+	}
+}
+
+func TestWriteBatchMetrics(t *testing.T) {
+	Init(memory.NewService())
+	value := 8.25
+
+	err := WriteBatchMetrics(context.Background(), []metrics.Metrics{
+		{ID: "facade_gauge", MType: "gauge", Value: &value},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Gauges().Get(context.Background(), "facade_gauge")
+	if err != nil || got.Value == nil || *got.Value != value {
+		t.Fatalf("gauge = %+v, err = %v", got, err)
+	}
+}
+
+func TestNewBackupStorage(t *testing.T) {
+	storage := NewBackupStorage(nil, nil)
+	if storage == nil {
+		t.Fatal("NewBackupStorage() returned nil")
+	}
+	if storage.Counters() == nil {
+		t.Fatal("Counters() returned nil")
+	}
+	if storage.Gauges() == nil {
+		t.Fatal("Gauges() returned nil")
+	}
+}

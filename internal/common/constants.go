@@ -57,6 +57,10 @@ const (
 	ApplicationJSON   = "application/json"
 	TextHTMLUTF8      = "text/html; charset=utf-8"
 )
+const (
+	EncryptHeader = "X-Encrypted"
+	RSA           = "RSA"
+)
 
 const (
 	SHA256     = "sha256"

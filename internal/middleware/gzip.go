@@ -1,4 +1,5 @@
-// Package middleware wires gzip, request logging, JSON validation, DB in context, and request signing.
+// Package middleware wires gzip, optional request-body decryption (see SecureMiddleware), request logging,
+// JSON validation, DB in context, and request signing.
 package middleware
 
 import (

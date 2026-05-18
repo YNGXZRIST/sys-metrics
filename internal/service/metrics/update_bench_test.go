@@ -15,6 +15,7 @@ import (
 func BenchmarkServiceMetrics_Update_Gauge(b *testing.B) {
 	storage.Init(memory.NewService())
 	ctx := context.Background()
+	ms := NewService(nil)
 
 	r := rand.New(rand.NewSource(1))
 	const k = 4096
@@ -30,7 +31,7 @@ func BenchmarkServiceMetrics_Update_Gauge(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		j := i % k
-		if err := Update(ctx, common.Gauge, names[j], vals[j]); err != nil {
+		if err := ms.Update(ctx, common.Gauge, names[j], vals[j]); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -41,6 +42,7 @@ const resetEveryNewName = 65536
 
 func BenchmarkServiceMetrics_Update_Gauge_NewNameEach(b *testing.B) {
 	ctx := context.Background()
+	ms := NewService(nil)
 	const val = "123.456"
 	seq := 0
 
@@ -53,7 +55,7 @@ func BenchmarkServiceMetrics_Update_Gauge_NewNameEach(b *testing.B) {
 		}
 		name := strconv.Itoa(seq)
 		seq++
-		if err := Update(ctx, common.Gauge, name, val); err != nil {
+		if err := ms.Update(ctx, common.Gauge, name, val); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -61,6 +63,7 @@ func BenchmarkServiceMetrics_Update_Gauge_NewNameEach(b *testing.B) {
 
 func BenchmarkServiceMetrics_Update_Counter_NewNameEach(b *testing.B) {
 	ctx := context.Background()
+	ms := NewService(nil)
 	const val = "7"
 	seq := 0
 
@@ -73,7 +76,7 @@ func BenchmarkServiceMetrics_Update_Counter_NewNameEach(b *testing.B) {
 		}
 		name := strconv.Itoa(seq)
 		seq++
-		if err := Update(ctx, common.Counter, name, val); err != nil {
+		if err := ms.Update(ctx, common.Counter, name, val); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -82,6 +85,7 @@ func BenchmarkServiceMetrics_Update_Counter_NewNameEach(b *testing.B) {
 func BenchmarkServiceMetrics_Update_Counter(b *testing.B) {
 	storage.Init(memory.NewService())
 	ctx := context.Background()
+	ms := NewService(nil)
 
 	r := rand.New(rand.NewSource(2))
 	const k = 4096
@@ -97,7 +101,7 @@ func BenchmarkServiceMetrics_Update_Counter(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		j := i % k
-		if err := Update(ctx, common.Counter, names[j], vals[j]); err != nil {
+		if err := ms.Update(ctx, common.Counter, names[j], vals[j]); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -106,6 +110,7 @@ func BenchmarkServiceMetrics_Update_Counter(b *testing.B) {
 func BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed(b *testing.B) {
 	storage.Init(memory.NewService())
 	ctx := context.Background()
+	ms := NewService(nil)
 
 	r := rand.New(rand.NewSource(3))
 	const batchSize = 256
@@ -126,7 +131,7 @@ func BenchmarkServiceMetrics_BatchUpdateMetrics_Mixed(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		if err := BatchUpdateMetrics(ctx, payload); err != nil {
+		if err := ms.BatchUpdateMetrics(ctx, payload); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -92,7 +92,76 @@ autotest: check-metricstest ## Запустить автотесты (все и�
 	@echo "$(GREEN)Running autotests...$(NC)"
 	$(METRICSTEST)
 	@echo "$(GREEN)✅ Autotests passed!$(NC)"
+fmt: ## Форматировать код
+	@echo "$(GREEN)Formatting code...$(NC)"
+	gofmt -w .
+	@echo "$(GREEN)✅ Code formatted!$(NC)"
 
+fmt-check: ## Проверить форматирование кода
+	@echo "$(GREEN)Checking code formatting...$(NC)"
+	@UNFORMATTED=$$(gofmt -l . 2>&1 | grep -v "^vendor/" | grep ".go$$" || true); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "$(RED)❌ The following files are not formatted:$(NC)"; \
+		echo "$$UNFORMATTED"; \
+		echo "$(YELLOW)Run: make fmt$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✅ Code formatting OK!$(NC)"
+
+vet: ## Запустить go vet
+	@echo "$(GREEN)Running go vet...$(NC)"
+	go vet ./...
+	@echo "$(GREEN)✅ go vet passed!$(NC)"
+
+statictest: ## Запустить statictest
+	@echo "$(GREEN)Running statictest...$(NC)"
+	@if [ ! -f "./bin/statictest" ]; then \
+		echo "$(YELLOW)Building statictest...$(NC)"; \
+		go build -o ./bin/statictest ./cmd/statictest; \
+	fi
+	go vet -vettool=./bin/statictest ./...
+	@echo "$(GREEN)✅ statictest passed!$(NC)"
+
+linter: ## Запустить собственный multichecker (cmd/linter)
+	@echo "$(GREEN)Running linter...$(NC)"
+	@if [ ! -f "./$(LINTER_BINARY)" ]; then \
+		echo "$(YELLOW)Building linter...$(NC)"; \
+		go build -o ./$(LINTER_BINARY) ./cmd/linter; \
+	fi
+	./$(LINTER_BINARY) ./...
+	@echo "$(GREEN)✅ linter passed!$(NC)"
+
+staticcheck: ## Запустить staticcheck (honnef.co/go/tools)
+	@echo "$(GREEN)Running staticcheck...$(NC)"
+	@if ! command -v staticcheck >/dev/null 2>&1; then \
+		echo "$(YELLOW)Installing staticcheck...$(NC)"; \
+		go install honnef.co/go/tools/cmd/staticcheck@latest; \
+	fi
+	staticcheck ./...
+	@echo "$(GREEN)✅ staticcheck passed!$(NC)"
+
+lint: fmt-check vet statictest ## Запустить все линтеры
+
+check: lint test-short ## Полная проверка перед коммитом (быстрая)
+
+pre-commit: lint test ## Полная проверка перед коммитом (с тестами)
+
+install-hooks: ## Установить git hooks
+	@echo "$(GREEN)Installing git hooks...$(NC)"
+	@chmod +x .git/hooks/pre-commit
+	@chmod +x .git/hooks/pre-commit.light
+	@echo "$(GREEN)✅ Git hooks installed!$(NC)"
+	@echo "$(YELLOW)Tip: To use light version, run:$(NC)"
+	@echo "  cp .git/hooks/pre-commit.light .git/hooks/pre-commit"
+
+clean: ## Очистить сгенерированные файлы
+	@echo "$(GREEN)Cleaning...$(NC)"
+	rm -f coverage.out
+	rm -f $(SERVER_BINARY)
+	rm -f $(AGENT_BINARY)
+	rm -f ./bin/statictest
+	rm -f ./$(LINTER_BINARY)
+	@echo "$(GREEN)✅ Cleaned!$(NC)"
 iter1: build check-metricstest ## Автотесты итерации 1
 	@echo "$(GREEN)Running iteration 1 tests...$(NC)"
 	$(METRICSTEST) -test.v -test.run='^TestIteration1$$' \
@@ -261,76 +330,5 @@ iter14: build check-metricstest ## Автотесты итерации 14
 		-source-path=.; \
 	rm -f $$TEMP_FILE
 	@echo "$(GREEN)✅ Iteration 14 passed!$(NC)"
-fmt: ## Форматировать код
-	@echo "$(GREEN)Formatting code...$(NC)"
-	gofmt -w .
-	@echo "$(GREEN)✅ Code formatted!$(NC)"
-
-fmt-check: ## Проверить форматирование кода
-	@echo "$(GREEN)Checking code formatting...$(NC)"
-	@UNFORMATTED=$$(gofmt -l . 2>&1 | grep -v "^vendor/" | grep ".go$$" || true); \
-	if [ -n "$$UNFORMATTED" ]; then \
-		echo "$(RED)❌ The following files are not formatted:$(NC)"; \
-		echo "$$UNFORMATTED"; \
-		echo "$(YELLOW)Run: make fmt$(NC)"; \
-		exit 1; \
-	fi
-	@echo "$(GREEN)✅ Code formatting OK!$(NC)"
-
-vet: ## Запустить go vet
-	@echo "$(GREEN)Running go vet...$(NC)"
-	go vet ./...
-	@echo "$(GREEN)✅ go vet passed!$(NC)"
-
-statictest: ## Запустить statictest
-	@echo "$(GREEN)Running statictest...$(NC)"
-	@if [ ! -f "./bin/statictest" ]; then \
-		echo "$(YELLOW)Building statictest...$(NC)"; \
-		go build -o ./bin/statictest ./cmd/statictest; \
-	fi
-	go vet -vettool=./bin/statictest ./...
-	@echo "$(GREEN)✅ statictest passed!$(NC)"
-
-linter: ## Запустить собственный multichecker (cmd/linter)
-	@echo "$(GREEN)Running linter...$(NC)"
-	@if [ ! -f "./$(LINTER_BINARY)" ]; then \
-		echo "$(YELLOW)Building linter...$(NC)"; \
-		go build -o ./$(LINTER_BINARY) ./cmd/linter; \
-	fi
-	./$(LINTER_BINARY) ./...
-	@echo "$(GREEN)✅ linter passed!$(NC)"
-
-staticcheck: ## Запустить staticcheck (honnef.co/go/tools)
-	@echo "$(GREEN)Running staticcheck...$(NC)"
-	@if ! command -v staticcheck >/dev/null 2>&1; then \
-		echo "$(YELLOW)Installing staticcheck...$(NC)"; \
-		go install honnef.co/go/tools/cmd/staticcheck@latest; \
-	fi
-	staticcheck ./...
-	@echo "$(GREEN)✅ staticcheck passed!$(NC)"
-
-lint: fmt-check vet statictest ## Запустить все линтеры
-
-check: lint test-short ## Полная проверка перед коммитом (быстрая)
-
-pre-commit: lint test ## Полная проверка перед коммитом (с тестами)
-
-install-hooks: ## Установить git hooks
-	@echo "$(GREEN)Installing git hooks...$(NC)"
-	@chmod +x .git/hooks/pre-commit
-	@chmod +x .git/hooks/pre-commit.light
-	@echo "$(GREEN)✅ Git hooks installed!$(NC)"
-	@echo "$(YELLOW)Tip: To use light version, run:$(NC)"
-	@echo "  cp .git/hooks/pre-commit.light .git/hooks/pre-commit"
-
-clean: ## Очистить сгенерированные файлы
-	@echo "$(GREEN)Cleaning...$(NC)"
-	rm -f coverage.out
-	rm -f $(SERVER_BINARY)
-	rm -f $(AGENT_BINARY)
-	rm -f ./bin/statictest
-	rm -f ./$(LINTER_BINARY)
-	@echo "$(GREEN)✅ Cleaned!$(NC)"
-
 .DEFAULT_GOAL := help
 

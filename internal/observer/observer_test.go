@@ -90,7 +90,7 @@ func TestMetricsObserver_RegisterAndNotify_Table(t *testing.T) {
 			}
 
 			if tt.notifyWith != nil {
-				obs.Notify(tt.notifyWith)
+				obs.Notify(ctx, tt.notifyWith)
 			}
 		})
 	}
@@ -122,7 +122,7 @@ func TestMetricsObserver_Notify_WritesToFile(t *testing.T) {
 	}
 
 	ev := MetricsEvent{TS: 123, IP: "10.0.0.1", Metrics: []string{"A", "B"}}
-	obs.Notify(ev)
+	obs.Notify(ctx, ev)
 
 	deadline := time.Now().Add(750 * time.Millisecond)
 	for {
@@ -177,7 +177,7 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 	}
 
 	ev := MetricsEvent{TS: 555, IP: "1.2.3.4", Metrics: []string{"m"}}
-	obs.Notify(ev)
+	obs.Notify(ctx, ev)
 
 	select {
 	case gotBody := <-received:
@@ -190,5 +190,22 @@ func TestMetricsObserver_Notify_SendsToServer(t *testing.T) {
 		}
 	case <-time.After(750 * time.Millisecond):
 		t.Fatal("timeout waiting observer to call server")
+	}
+}
+
+func TestSaveToFilePath_writesLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "audit.log")
+	obs, err := NewMetricsObserver(MetricObserverConfig{Mode: common.TypeModeTest, RateLimit: 1, FilePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obs.file != nil {
+		defer obs.file.Close()
+	}
+	ev := MetricsEvent{TS: 9, IP: "10.0.0.1", Metrics: []string{"a", "b"}}
+	obs.SaveToFilePath(ev)
+	data, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(data), `"metrics":["a","b"]`) {
+		t.Fatalf("file: %q err=%v", data, err)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"sys-metrics/internal/handler"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 
 	"go.uber.org/zap"
@@ -13,7 +14,7 @@ import (
 
 func TestGetRouter(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
-	h := handler.NewHandler(nil, nil, logger, nil)
+	h := handler.NewHandler(nil, nil, nil, logger, nil, serviceMetrics.NewService(nil))
 	r := GetRouter(h)
 	if r == nil {
 		t.Fatal("GetRouter() returned nil")
@@ -24,7 +25,7 @@ func TestRoutes(t *testing.T) {
 	svc.Init(memory.NewService())
 
 	logger, _ := zap.NewDevelopment()
-	h := handler.NewHandler(nil, nil, logger, nil)
+	h := handler.NewHandler(nil, nil, nil, logger, nil, serviceMetrics.NewService(nil))
 	router := GetRouter(h)
 
 	tests := []struct {

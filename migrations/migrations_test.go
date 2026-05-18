@@ -5,32 +5,9 @@ import (
 	"testing"
 )
 
-func TestMigrate(t *testing.T) {
-	tests := []struct {
-		name            string
-		dsn             string
-		wantErrContains string
-		wantErr         bool
-	}{
-		{
-			name:            "empty DSN returns error",
-			dsn:             "",
-			wantErr:         true,
-			wantErrContains: "database DSN is not set",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := Migrate(tt.dsn)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Migrate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.wantErr && err != nil && tt.wantErrContains != "" {
-				if !strings.Contains(err.Error(), tt.wantErrContains) {
-					t.Errorf("Migrate() error = %q, want containing %q", err.Error(), tt.wantErrContains)
-				}
-			}
-		})
+func TestMigrate_emptyDSN(t *testing.T) {
+	err := Migrate("")
+	if err == nil || !strings.Contains(err.Error(), "not set") {
+		t.Fatalf("Migrate: %v", err)
 	}
 }

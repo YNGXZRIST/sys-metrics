@@ -12,6 +12,7 @@ import (
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 )
 
@@ -190,7 +191,7 @@ func TestValueHandlerJSON(t *testing.T) {
 	}
 }
 
-func Test_getMetricFromStorage(t *testing.T) {
+func TestMetricService_GetMetric(t *testing.T) {
 	type args struct {
 		metricType string
 		name       string
@@ -268,13 +269,14 @@ func Test_getMetricFromStorage(t *testing.T) {
 					}
 				}
 			}
-			got, err := getMetricFromStorage(context.Background(), tt.args.metricType, tt.args.name)
+			ms := serviceMetrics.NewService(nil)
+			got, err := ms.GetMetric(context.Background(), tt.args.metricType, tt.args.name)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getMetricFromStorage() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("GetMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getMetricFromStorage() got = %v, want %v", got, tt.want)
+				t.Errorf("GetMetric() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

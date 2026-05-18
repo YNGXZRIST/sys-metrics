@@ -3,11 +3,12 @@ package handler
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
+	"sync"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
 	"sys-metrics/internal/observer"
+	"sys-metrics/internal/secure"
+	"sys-metrics/internal/service/metrics"
 
 	"go.uber.org/zap"
 )
@@ -24,32 +25,35 @@ const (
 
 // Handler holds dependencies for HTTP handlers: DB, auth, logging, and observers.
 type Handler struct {
-	Logger    *zap.Logger
-	Conn      *db.DB
-	Auth      authenticate.Authenticator
-	Observers map[ObserverKey]observer.Observer
+	Logger        *zap.Logger
+	Conn          *db.DB
+	Auth          authenticate.Authenticator
+	ReqDecryptor  *secure.RequestDecryptor
+	Observers     map[ObserverKey]observer.Observer
+	mu            sync.Mutex
+	MetricService *metrics.MetricService
 }
 
-// NewHandler builds a Handler with optional DB connection (may be nil), authenticator, and observers map.
-func NewHandler(c *db.DB, a authenticate.Authenticator, l *zap.Logger, observersMap map[ObserverKey]observer.Observer) *Handler {
+// NewHandler builds a Handler with optional DB connection (maybe nil), authenticator, observers map, and metrics service.
+func NewHandler(c *db.DB, a authenticate.Authenticator, d *secure.RequestDecryptor, l *zap.Logger, observersMap map[ObserverKey]observer.Observer, ms *metrics.MetricService) *Handler {
 	return &Handler{
-		Logger:    l,
-		Conn:      c,
-		Auth:      a,
-		Observers: observersMap,
+		Logger:        l,
+		Conn:          c,
+		Auth:          a,
+		ReqDecryptor:  d,
+		Observers:     observersMap,
+		MetricService: ms,
+		mu:            sync.Mutex{},
 	}
 }
 
 // GetObserverByType returns the observer for key or an error if it is not registered.
 func (h *Handler) GetObserverByType(key ObserverKey) (observer.Observer, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	o, ok := h.Observers[key]
 	if !ok {
 		return nil, fmt.Errorf("observer '%s' not found", key)
 	}
 	return o, nil
-}
-
-// GetIPFromRequest returns the client IP from RemoteAddr (the part before ':').
-func (h *Handler) GetIPFromRequest(r *http.Request) string {
-	return strings.Split(r.RemoteAddr, ":")[0]
 }

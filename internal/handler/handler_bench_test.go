@@ -14,6 +14,7 @@ import (
 	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
+	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 
 	"go.uber.org/zap"
@@ -21,14 +22,13 @@ import (
 
 type noopObserver struct{}
 
-func (noopObserver) Notify(any)         {}
-func (noopObserver) Register(any) error { return nil }
-
+func (noopObserver) Notify(ctx context.Context, data any) {}
+func (noopObserver) Register(any) error                   { return nil }
 func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
-	return NewHandler(nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
+	return NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
 		ObserverAudit: noopObserver{},
-	})
+	}, serviceMetrics.NewService(noopObserver{}))
 }
 
 type gaugeDataset struct {
@@ -92,11 +92,10 @@ func makeCounterDataset(k int) counterDataset {
 		val := int64(r.Intn(1_000_000))
 		valStr := strconv.FormatInt(val, 10)
 
-		v := val
 		body, _ := json.Marshal(metrics.Metrics{
 			ID:    name,
 			MType: common.Counter,
-			Delta: &v,
+			Delta: new(val),
 		})
 		valueReq, _ := json.Marshal(struct {
 			ID   string `json:"id"`

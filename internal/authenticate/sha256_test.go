@@ -49,3 +49,31 @@ func TestSha256_Validate(t *testing.T) {
 		t.Errorf("Validate() = true, want false")
 	}
 }
+
+func TestNewSha256_nilKey(t *testing.T) {
+	if NewSha256(nil) != nil {
+		t.Fatal("expected nil")
+	}
+}
+
+func TestSha256_SignBody_and_GetHashHeaderKey(t *testing.T) {
+	s := NewSha256(new(common.TypeModeTest))
+	if s.GetHashHeaderKey() != common.HashSHA256 {
+		t.Fatalf("header key = %q", s.GetHashHeaderKey())
+	}
+	sig := s.SignBody([]byte("data"))
+	if len(sig) != 64 {
+		t.Fatalf("hex sig len = %d", len(sig))
+	}
+}
+
+func TestSha256_Validate_badHex(t *testing.T) {
+	s := NewSha256(new(common.TypeModeTest))
+	ok, err := s.Validate("not-hex", []byte("x"))
+	if err == nil {
+		t.Fatal("expected decode error")
+	}
+	if ok {
+		t.Fatal("expected false")
+	}
+}

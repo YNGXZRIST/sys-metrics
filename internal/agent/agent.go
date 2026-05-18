@@ -32,7 +32,7 @@ func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	return &Agent{
 		Config:     cfg,
 		collector:  NewCollector(ctx, cfg.RateLimit),
-		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator),
+		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator, cfg.RequestEncryptor),
 		ReportPool: reportPool,
 		mu:         sync.Mutex{},
 	}
@@ -70,7 +70,7 @@ func (a *Agent) StartPoll(ctx context.Context) {
 			return
 		case <-ticker.C:
 			a.mu.Lock()
-			err := a.collector.Update()
+			err := a.collector.Update(ctx)
 			if err != nil {
 				a.Logger.Error("update collector error", zap.Error(err))
 			}
@@ -92,7 +92,7 @@ func (a *Agent) Report(ctx context.Context) error {
 		a.collector.ResetPollMetric()
 		return nil, nil
 	})
-	a.ReportPool.Add(task)
+	a.ReportPool.Add(ctx, task)
 	res := a.ReportPool.Get(ctx)
 	return res.Err
 }
