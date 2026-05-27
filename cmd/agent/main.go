@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -85,6 +86,10 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error initializing encryptor: %w", err)
 	}
+	localIpV4, err := getAgentLocalIpV4()
+	if err != nil {
+		return nil, fmt.Errorf("error initializing local address: %w", err)
+	}
 	initProp := config.InitProperties{
 		PollInterval:     opt.PollInterval,
 		ReportInterval:   opt.ReportInterval,
@@ -93,8 +98,23 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 		Authenticator:    validator,
 		RequestEncryptor: encryptor,
 		RateLimit:        opt.RateLimit,
+		LocalIpV4:        localIpV4,
 	}
 	agentCfg := config.NewConfig(initProp)
 	a := agent.NewAgent(agentCfg, ctx)
 	return a, nil
+}
+func getAgentLocalIpV4() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+	return "", labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("no local addresses found"))
 }

@@ -25,6 +25,7 @@ type InitProperties struct {
 	PollInterval     time.Duration
 	ReportInterval   time.Duration
 	RateLimit        int
+	LocalIpV4        string
 }
 
 // NewConfig constructs an agent Config.

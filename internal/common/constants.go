@@ -67,3 +67,6 @@ const (
 	HashSHA256 = "HashSHA256"
 )
 const NotApplicable = "N/A"
+const (
+	HeaderXRealIP = "X-Real-Ip"
+)

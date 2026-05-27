@@ -42,21 +42,31 @@ type Reporter struct {
 	httpClient       *resty.Client
 	logger           *zap.Logger
 	serverAddr       string
+	localIpV4        string
 }
 
 const PathUpdate = "/update"
 const PathUpdates = "/updates"
 
+type ReporterProperties struct {
+	Authenticator    authenticate.Authenticator
+	RequestEncryptor *secure.RequestEncryptor
+	Logger           *zap.Logger
+	ServerAddr       string
+	localIpV4        string
+}
+
 // NewReporter creates a client that posts to serverAddr (metrics server base URL).
-func NewReporter(addr string, l *zap.Logger, a authenticate.Authenticator, r *secure.RequestEncryptor) *Reporter {
+func NewReporter(prop ReporterProperties) *Reporter {
 	c := resty.New()
 	c.SetTimeout(10 * time.Second)
 	return &Reporter{
-		authenticator:    a,
-		requestEncryptor: r,
+		authenticator:    prop.Authenticator,
+		requestEncryptor: prop.RequestEncryptor,
 		httpClient:       c,
-		logger:           l,
-		serverAddr:       addr,
+		logger:           prop.Logger,
+		serverAddr:       prop.ServerAddr,
+		localIpV4:        prop.localIpV4,
 	}
 }
 
@@ -152,6 +162,9 @@ func (r *Reporter) setHeaders(req *resty.Request, plaintext []byte) {
 	if r.authenticator != nil {
 		key := r.authenticator.GetHashHeaderKey()
 		req.Header.Set(key, r.authenticator.SignBody(plaintext))
+	}
+	if r.localIpV4 != "" {
+		req.Header.Set(common.HeaderXRealIP, r.localIpV4)
 	}
 
 }

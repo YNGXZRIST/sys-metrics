@@ -30,9 +30,15 @@ func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
 	reportPool := workerpool.NewPool(cfg.RateLimit)
 	reportPool.StartBg(ctx)
 	return &Agent{
-		Config:     cfg,
-		collector:  NewCollector(ctx, cfg.RateLimit),
-		reporter:   NewReporter(cfg.ServerAddr, cfg.Logger, cfg.Authenticator, cfg.RequestEncryptor),
+		Config:    cfg,
+		collector: NewCollector(ctx, cfg.RateLimit),
+		reporter: NewReporter(ReporterProperties{
+			Authenticator:    cfg.Authenticator,
+			RequestEncryptor: cfg.RequestEncryptor,
+			ServerAddr:       cfg.ServerAddr,
+			Logger:           cfg.Logger,
+			localIpV4:        cfg.LocalIpV4,
+		}),
 		ReportPool: reportPool,
 		mu:         sync.Mutex{},
 	}
