@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -42,6 +43,9 @@ var (
 type dbCloser interface {
 	Close() error
 }
+
+var _ dbCloser = (*db.DB)(nil)
+
 type App struct {
 	Server       *http.Server
 	DB           dbCloser
@@ -146,7 +150,10 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 	a.Service = serviceInterface
 	a.DB = conn
 	a.BackupConfig = backupConfigForHTTP
-
+	ipNet, err := parseTrustedSubnet(o)
+	if err != nil {
+		return err
+	}
 	metrics.Init(serviceInterface)
 
 	if needRestore {
@@ -173,13 +180,16 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 		return fmt.Errorf("error initializing request decryptor: %w", err)
 	}
 
-	h := initHandler(
-		conn,
-		logger,
-		authenticator,
-		reqDecryptor,
-		observersMap,
-		metricService,
+	h := handler.NewHandler(
+		handler.InitProperties{
+			Logger:           logger,
+			Conn:             conn,
+			Authenticator:    authenticator,
+			RequestDecryptor: reqDecryptor,
+			Observers:        observersMap,
+			MetricService:    metricService,
+			IpNet:            ipNet,
+		},
 	)
 	return a.startHTTPServer(o, h, backupConfigForHTTP)
 }
@@ -362,11 +372,6 @@ func initMetricsObserver(ctx context.Context, o *server.Options) (*observer.Metr
 	return obs, nil
 }
 
-func initHandler(c *db.DB, l *zap.Logger, a authenticate.Authenticator, d *secure.RequestDecryptor, o map[handler.ObserverKey]observer.Observer, ms *mServ.MetricService) *handler.Handler {
-	newHandler := handler.NewHandler(c, a, d, l, o, ms)
-	return newHandler
-}
-
 func initAuthenticator(o *server.Options) authenticate.Authenticator {
 	sha := authenticate.NewSha256(o.HashKey)
 	var a authenticate.Authenticator
@@ -374,4 +379,11 @@ func initAuthenticator(o *server.Options) authenticate.Authenticator {
 		a = sha
 	}
 	return a
+}
+func parseTrustedSubnet(o *server.Options) (*net.IPNet, error) {
+	if o.TrustedSubnetMask == "" {
+		return nil, nil
+	}
+	_, ipNet, err := net.ParseCIDR(o.TrustedSubnetMask)
+	return ipNet, err
 }

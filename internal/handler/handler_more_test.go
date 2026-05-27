@@ -33,9 +33,13 @@ func TestPingHandler_noDB(t *testing.T) {
 
 func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 	svc.Init(memory.NewService())
-	h := NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
-		ObserverAudit: noopObserver{},
-	}, serviceMetrics.NewService(noopObserver{}))
+	h := NewHandler(InitProperties{
+		Logger: zap.NewNop(),
+		Observers: map[ObserverKey]observer.Observer{
+			ObserverAudit: noopObserver{},
+		},
+		MetricService: serviceMetrics.NewService(noopObserver{}),
+	})
 	body := []byte(`[{"id":"obs_g","type":"gauge","value":2}]`)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewReader(body))
@@ -46,8 +50,11 @@ func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 }
 
 func TestNewHandler_fields(t *testing.T) {
-	h := NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
-	if h.Conn != nil || h.Auth != nil || h.ReqDecryptor != nil || h.Logger == nil {
+	h := NewHandler(InitProperties{
+		Logger:        zap.NewNop(),
+		MetricService: serviceMetrics.NewService(nil),
+	})
+	if h.Conn != nil || h.Authenticator != nil || h.RequestDecryptor != nil || h.Logger == nil {
 		t.Fatalf("unexpected handler state %#v", h)
 	}
 }

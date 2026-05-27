@@ -14,12 +14,12 @@ func GetRouter(h *handler.Handler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(imw.GzipMiddleware)
 	r.Use(imw.WithClientIP)
-	r.Use(imw.SecureMiddleware(h.Logger, h.ReqDecryptor))
+	r.Use(imw.SecureMiddleware(h.Logger, h.RequestDecryptor))
 	r.Use(imw.WithRequestLogger(h.Logger))
 	r.Mount("/debug", chimw.Profiler())
 
 	r.Group(func(ar chi.Router) {
-		ar.Use(imw.WithAuthenticateMiddleware(h.Logger, h.Auth))
+		ar.Use(imw.WithAuthenticateMiddleware(h.Logger, h.Authenticator))
 
 		ar.Get("/", h.IndexHandler)
 		ar.Get("/ping", h.PingHandler)

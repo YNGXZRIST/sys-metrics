@@ -3,6 +3,7 @@ package handler
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/config/db"
@@ -25,25 +26,26 @@ const (
 
 // Handler holds dependencies for HTTP handlers: DB, auth, logging, and observers.
 type Handler struct {
-	Logger        *zap.Logger
-	Conn          *db.DB
-	Auth          authenticate.Authenticator
-	ReqDecryptor  *secure.RequestDecryptor
-	Observers     map[ObserverKey]observer.Observer
-	mu            sync.Mutex
-	MetricService *metrics.MetricService
+	InitProperties
+	mu sync.Mutex
+}
+
+// InitProperties public fields for setting Handler
+type InitProperties struct {
+	Conn             *db.DB
+	Authenticator    authenticate.Authenticator
+	RequestDecryptor *secure.RequestDecryptor
+	Logger           *zap.Logger
+	Observers        map[ObserverKey]observer.Observer
+	MetricService    *metrics.MetricService
+	IpNet            *net.IPNet
 }
 
 // NewHandler builds a Handler with optional DB connection (maybe nil), authenticator, observers map, and metrics service.
-func NewHandler(c *db.DB, a authenticate.Authenticator, d *secure.RequestDecryptor, l *zap.Logger, observersMap map[ObserverKey]observer.Observer, ms *metrics.MetricService) *Handler {
+func NewHandler(prop InitProperties) *Handler {
 	return &Handler{
-		Logger:        l,
-		Conn:          c,
-		Auth:          a,
-		ReqDecryptor:  d,
-		Observers:     observersMap,
-		MetricService: ms,
-		mu:            sync.Mutex{},
+		InitProperties: prop,
+		mu:             sync.Mutex{},
 	}
 }
 

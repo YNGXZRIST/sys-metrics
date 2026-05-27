@@ -13,6 +13,11 @@ import (
 
 // Config sets poll/report intervals, metrics ingest address, and parallelism limit.
 type Config struct {
+	InitProperties
+}
+
+// InitProperties configuration of agent config
+type InitProperties struct {
 	Authenticator    authenticate.Authenticator
 	Logger           *zap.Logger
 	RequestEncryptor *secure.RequestEncryptor
@@ -23,14 +28,8 @@ type Config struct {
 }
 
 // NewConfig constructs an agent Config.
-func NewConfig(pollInterval, reportInterval time.Duration, serverAddr string, logger *zap.Logger, authenticator authenticate.Authenticator, rEncryptor *secure.RequestEncryptor, rateLimit int) *Config {
+func NewConfig(prop InitProperties) *Config {
 	return &Config{
-		PollInterval:     pollInterval,
-		ReportInterval:   reportInterval,
-		ServerAddr:       serverAddr,
-		Logger:           logger,
-		Authenticator:    authenticator,
-		RequestEncryptor: rEncryptor,
-		RateLimit:        rateLimit,
+		InitProperties: prop,
 	}
 }

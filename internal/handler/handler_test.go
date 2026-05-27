@@ -10,5 +10,8 @@ import (
 // newTestHandler returns a Handler wired like the in-memory server path (no DB, no auth, no observers).
 func newTestHandler(tb testing.TB) *Handler {
 	tb.Helper()
-	return NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
+	return NewHandler(InitProperties{
+		Logger:        zap.NewNop(),
+		MetricService: serviceMetrics.NewService(nil),
+	})
 }

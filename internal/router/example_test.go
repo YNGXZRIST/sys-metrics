@@ -20,7 +20,10 @@ import (
 // newExampleRouter builds a chi router with an empty in-memory metrics store (no DB, no auth).
 func newExampleRouter() http.Handler {
 	svc.Init(memory.NewService())
-	h := handler.NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
+	h := handler.NewHandler(handler.InitProperties{
+		Logger:        zap.NewNop(),
+		MetricService: serviceMetrics.NewService(nil),
+	})
 	return router.GetRouter(h)
 }
 

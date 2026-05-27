@@ -85,7 +85,16 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error initializing encryptor: %w", err)
 	}
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, encryptor, opt.RateLimit)
+	initProp := config.InitProperties{
+		PollInterval:     opt.PollInterval,
+		ReportInterval:   opt.ReportInterval,
+		ServerAddr:       serverCfg.ServerAddr(),
+		Logger:           logger,
+		Authenticator:    validator,
+		RequestEncryptor: encryptor,
+		RateLimit:        opt.RateLimit,
+	}
+	agentCfg := config.NewConfig(initProp)
 	a := agent.NewAgent(agentCfg, ctx)
 	return a, nil
 }

@@ -26,9 +26,13 @@ func (noopObserver) Notify(ctx context.Context, data any) {}
 func (noopObserver) Register(any) error                   { return nil }
 func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
-	return NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
-		ObserverAudit: noopObserver{},
-	}, serviceMetrics.NewService(noopObserver{}))
+	return NewHandler(InitProperties{
+		Logger: zap.NewNop(),
+		Observers: map[ObserverKey]observer.Observer{
+			ObserverAudit: noopObserver{},
+		},
+		MetricService: serviceMetrics.NewService(noopObserver{}),
+	})
 }
 
 type gaugeDataset struct {

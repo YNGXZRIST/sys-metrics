@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
+	"sys-metrics/internal/handler"
 	"sys-metrics/internal/repository/memory"
 	"sys-metrics/internal/secure"
 	serviceMetrics "sys-metrics/internal/service/metrics"
@@ -197,7 +198,11 @@ func TestInitHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := initHandler(nil, lg, nil, dec, nil, serviceMetrics.NewService(nil))
+	h := handler.NewHandler(handler.InitProperties{
+		Logger:           lg,
+		RequestDecryptor: dec,
+		MetricService:    serviceMetrics.NewService(nil),
+	})
 	if h == nil {
 		t.Fatal("nil handler")
 	}
@@ -214,8 +219,13 @@ func TestInitHandler_withAuthenticator(t *testing.T) {
 		t.Fatal(err)
 	}
 	k := "secret"
-	h := initHandler(nil, lg, initAuthenticator(&server.Options{HashKey: &k}), dec, nil, serviceMetrics.NewService(nil))
-	if h == nil || h.Auth == nil {
+	h := handler.NewHandler(handler.InitProperties{
+		Logger:           lg,
+		Authenticator:    initAuthenticator(&server.Options{HashKey: &k}),
+		RequestDecryptor: dec,
+		MetricService:    serviceMetrics.NewService(nil),
+	})
+	if h == nil || h.Authenticator == nil {
 		t.Fatal("expected handler with auth")
 	}
 	_ = lg.Sync()

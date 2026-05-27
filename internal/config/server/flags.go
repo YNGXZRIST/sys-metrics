@@ -31,7 +31,8 @@ type Options struct {
 	CryptoKeyPath     string `json:"crypto_key" env:"CRYPTO_KEY"`
 	ConfigFilePath    string
 	StoreInterval     time.Duration
-	Restore           bool `json:"restore" env:"RESTORE" envDefault:"true"`
+	Restore           bool   `json:"restore" env:"RESTORE" envDefault:"true"`
+	TrustedSubnetMask string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 // NewOption parses argv, environment and config, validates mode, and returns Options.
@@ -129,16 +130,17 @@ func (opt *Options) parseArgs(args []string) error {
 	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 
 	var (
-		serverAddr string
-		mode       string
-		interval   int
-		hashKey    string
-		dns        string
-		backup     string
-		restore    bool
-		auditFile  string
-		auditURL   string
-		cryptoKey  string
+		serverAddr        string
+		mode              string
+		interval          int
+		hashKey           string
+		dns               string
+		backup            string
+		restore           bool
+		auditFile         string
+		auditURL          string
+		cryptoKey         string
+		trustedSubnetMask string
 	)
 
 	flags.StringVar(&serverAddr, "a", "", "Address of the server")
@@ -153,6 +155,7 @@ func (opt *Options) parseArgs(args []string) error {
 	flags.StringVar(&cryptoKey, "crypto-key", "", "crypto key for decoding request")
 	flags.StringVar(&opt.ConfigFilePath, "config", "", "config file path")
 	flags.StringVar(&opt.ConfigFilePath, "c", "", "config file path (shorthand)")
+	flags.StringVar(&trustedSubnetMask, "t", "", "Trusted subnet mask")
 
 	err := flags.Parse(args)
 	if err != nil {
@@ -199,6 +202,9 @@ func (opt *Options) parseArgs(args []string) error {
 
 	if visited["crypto-key"] {
 		opt.CryptoKeyPath = cryptoKey
+	}
+	if visited["t"] {
+		opt.TrustedSubnetMask = trustedSubnetMask
 	}
 
 	return nil
@@ -251,6 +257,9 @@ func mergeOptions(dst, src *Options) {
 
 	if dst.CryptoKeyPath == "" && src.CryptoKeyPath != "" {
 		dst.CryptoKeyPath = src.CryptoKeyPath
+	}
+	if dst.TrustedSubnetMask == "" && src.TrustedSubnetMask != "" {
+		dst.TrustedSubnetMask = src.TrustedSubnetMask
 	}
 }
 
