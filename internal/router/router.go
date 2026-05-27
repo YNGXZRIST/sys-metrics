@@ -16,6 +16,7 @@ func GetRouter(h *handler.Handler) *chi.Mux {
 	r.Use(imw.WithClientIP)
 	r.Use(imw.SecureMiddleware(h.Logger, h.RequestDecryptor))
 	r.Use(imw.WithRequestLogger(h.Logger))
+	r.Use(imw.TrustedSubnet(h.IpNet))
 	r.Mount("/debug", chimw.Profiler())
 
 	r.Group(func(ar chi.Router) {

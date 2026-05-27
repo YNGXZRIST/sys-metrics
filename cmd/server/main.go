@@ -91,7 +91,7 @@ func run(ctx context.Context, args []string) (*App, error) {
 	if err != nil {
 		return nil, labelerrors.NewLabelError("PARSE OPTIONS", fmt.Errorf("error parsing flags: %w", err))
 	}
-
+	fmt.Println("subnet", o.TrustedSubnetMask)
 	err = app.initServer(ctx, o)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("INIT SERVER", fmt.Errorf("error initializing server: %w", err))
@@ -103,31 +103,31 @@ func run(ctx context.Context, args []string) (*App, error) {
 func (a *App) Close(ctx context.Context) error {
 	if a.Server != nil {
 		if err := a.Server.Shutdown(ctx); err != nil {
-			return err
+			return fmt.Errorf("shutdown server: %w", err)
 		}
 	}
 
 	if a.Service != nil {
 		if err := a.Service.Close(ctx); err != nil {
-			return err
+			return fmt.Errorf("close service: %w", err)
 		}
 	}
 
 	if a.DB != nil {
 		if err := a.DB.Close(); err != nil {
-			return err
+			return fmt.Errorf("close database: %w", err)
 		}
 	}
 
 	if a.BackupConfig != nil {
 		if err := a.BackupConfig.Close(); err != nil {
-			return err
+			return fmt.Errorf("close backup config: %w", err)
 		}
 	}
 
 	if a.Logger != nil {
 		if err := a.Logger.Sync(); err != nil {
-			return err
+			return fmt.Errorf("sync logger: %w", err)
 		}
 	}
 
@@ -148,7 +148,9 @@ func (a *App) initServer(ctx context.Context, o *server.Options) error {
 	}
 
 	a.Service = serviceInterface
-	a.DB = conn
+	if conn != nil {
+		a.DB = conn
+	}
 	a.BackupConfig = backupConfigForHTTP
 	ipNet, err := parseTrustedSubnet(o)
 	if err != nil {
