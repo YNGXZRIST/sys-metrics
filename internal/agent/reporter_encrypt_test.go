@@ -44,7 +44,11 @@ func TestReporter_withEncryptor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rep := NewReporter(srv.URL, zap.NewNop(), nil, enc)
+	rep := NewReporter(ReporterProperties{
+		ServerAddr:       srv.URL,
+		Logger:           zap.NewNop(),
+		RequestEncryptor: enc,
+	})
 	col := NewCollector(context.Background(), 1)
 	g := models.NewGauge("e")
 	g.SetValue(1)

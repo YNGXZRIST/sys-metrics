@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
 	serviceMetrics "sys-metrics/internal/service/metrics"
@@ -27,10 +26,7 @@ func (noopObserver) Register(any) error                   { return nil }
 func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
 	return NewHandler(InitProperties{
-		Logger: zap.NewNop(),
-		Observers: map[ObserverKey]observer.Observer{
-			ObserverAudit: noopObserver{},
-		},
+		Logger:        zap.NewNop(),
 		MetricService: serviceMetrics.NewService(noopObserver{}),
 	})
 }

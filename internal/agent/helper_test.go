@@ -12,4 +12,7 @@ var testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,
 	w.Write([]byte(`OK`))
 }))
 
-var testReporter = NewReporter(testServer.URL, zap.NewNop(), nil, nil)
+var testReporter = NewReporter(ReporterProperties{
+	ServerAddr: testServer.URL,
+	Logger:     zap.NewNop(),
+})

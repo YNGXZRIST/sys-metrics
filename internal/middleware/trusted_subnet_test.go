@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sys-metrics/internal/common"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestTrustedSubnet_nilSubnet(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(XRealIP, "203.0.113.1")
+	req.Header.Set(common.HeaderXRealIP, "203.0.113.1")
 
 	h.ServeHTTP(rec, req)
 
@@ -46,7 +47,7 @@ func TestTrustedSubnet_ipInSubnet(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(XRealIP, "10.1.2.3")
+	req.Header.Set(common.HeaderXRealIP, "10.1.2.3")
 
 	h.ServeHTTP(rec, req)
 
@@ -67,7 +68,7 @@ func TestTrustedSubnet_ipOutsideSubnet(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(XRealIP, "203.0.113.10")
+	req.Header.Set(common.HeaderXRealIP, "203.0.113.10")
 
 	h.ServeHTTP(rec, req)
 
@@ -107,7 +108,7 @@ func TestTrustedSubnet_invalidIP(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set(XRealIP, "not-an-ip")
+	req.Header.Set(common.HeaderXRealIP, "not-an-ip")
 
 	h.ServeHTTP(rec, req)
 
@@ -122,7 +123,7 @@ func TestTrustedSubnet_invalidIP(t *testing.T) {
 func TestGetHeaderXRealIP(t *testing.T) {
 	t.Run("present", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
-		req.Header.Set(XRealIP, "10.0.0.1")
+		req.Header.Set(common.HeaderXRealIP, "10.0.0.1")
 
 		ip, ok := getHeaderXRealIP(req)
 		if !ok || ip != "10.0.0.1" {

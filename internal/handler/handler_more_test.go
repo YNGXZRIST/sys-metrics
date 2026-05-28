@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
 	serviceMetrics "sys-metrics/internal/service/metrics"
@@ -12,14 +11,6 @@ import (
 
 	"go.uber.org/zap"
 )
-
-func TestGetObserverByType_missing(t *testing.T) {
-	h := newTestHandler(t)
-	_, err := h.GetObserverByType(ObserverAudit)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
 
 func TestPingHandler_noDB(t *testing.T) {
 	h := newTestHandler(t)
@@ -34,10 +25,7 @@ func TestPingHandler_noDB(t *testing.T) {
 func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 	svc.Init(memory.NewService())
 	h := NewHandler(InitProperties{
-		Logger: zap.NewNop(),
-		Observers: map[ObserverKey]observer.Observer{
-			ObserverAudit: noopObserver{},
-		},
+		Logger:        zap.NewNop(),
 		MetricService: serviceMetrics.NewService(noopObserver{}),
 	})
 	body := []byte(`[{"id":"obs_g","type":"gauge","value":2}]`)
