@@ -84,7 +84,7 @@ func TestNewOption_development(t *testing.T) {
 		t.Setenv(k, "")
 	}
 
-	opt, err := NewOption([]string{
+	opt, err := NewOption(common.ServerHTTP, []string{
 		"-m",
 		common.TypeModeDevelopment,
 	})
@@ -155,7 +155,7 @@ func TestNewOption_withAddressEnv(t *testing.T) {
 
 	t.Setenv("ADDRESS", "192.168.0.2:6000")
 
-	opt, err := NewOption([]string{"-m", common.TypeModeDevelopment})
+	opt, err := NewOption(common.ServerGRPC, []string{"-m", common.TypeModeDevelopment})
 
 	if err != nil {
 		t.Fatal(err)

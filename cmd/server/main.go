@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"sys-metrics/internal/app"
 	"sys-metrics/internal/authenticate"
+	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/handler"
@@ -66,7 +67,7 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) (*AppHTTP, error) {
-	o, err := server.NewOption(args)
+	o, err := server.NewOption(common.ServerGRPC, args)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("PARSE OPTIONS", fmt.Errorf("error parsing flags: %w", err))
 	}

@@ -36,7 +36,7 @@ type Options struct {
 }
 
 // NewOption parses argv, environment and config, validates mode, and returns Options.
-func NewOption(args []string) (*Options, error) {
+func NewOption(mode common.ServerType, args []string) (*Options, error) {
 	configPath, err := parseConfigPath(args)
 	if err != nil {
 		return nil, fmt.Errorf("error getting config path: %w", err)

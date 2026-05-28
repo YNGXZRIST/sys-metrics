@@ -70,3 +70,10 @@ const NotApplicable = "N/A"
 const (
 	HeaderXRealIP = "X-Real-Ip"
 )
+
+type ServerType string
+
+const (
+	ServerGRPC ServerType = "grpc"
+	ServerHTTP ServerType = "http"
+)
