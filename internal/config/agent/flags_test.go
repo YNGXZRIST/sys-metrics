@@ -13,6 +13,7 @@ func clearEnv(t *testing.T) {
 
 	for _, k := range []string{
 		"ADDRESS",
+		"GRPC_ADDRESS",
 		"MODE",
 		"KEY",
 		"POLL_INTERVAL",
@@ -379,6 +380,28 @@ func TestNewOption_developmentDefaults(t *testing.T) {
 
 	if got.Host != "localhost" || got.Port != "8080" {
 		t.Fatalf("addr %s:%s", got.Host, got.Port)
+	}
+}
+
+func TestNewOption_grpcAddress(t *testing.T) {
+	clearEnv(t)
+
+	t.Setenv("ADDRESS", "localhost:8080")
+	t.Setenv("GRPC_ADDRESS", "127.0.0.1:9090")
+
+	got, err := NewOption([]string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.ReportEndpoint() != "127.0.0.1:9090" {
+		t.Fatalf("ReportEndpoint() = %q, want 127.0.0.1:9090", got.ReportEndpoint())
+	}
+	if got.Host != "localhost" || got.Port != "8080" {
+		t.Fatalf("http addr = %s:%s", got.Host, got.Port)
+	}
+	if got.GRPCHost != "127.0.0.1" || got.GRPCPort != "9090" {
+		t.Fatalf("grpc addr = %s:%s", got.GRPCHost, got.GRPCPort)
 	}
 }
 

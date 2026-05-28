@@ -18,6 +18,7 @@ import (
 // Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `json:"address" env:"ADDRESS"`
+	GRPCAddress       *string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
 	HashKey           *string `env:"KEY"`
 	Mode              string  `env:"MODE"`
@@ -61,7 +62,7 @@ func NewOption(mode common.ServerType, args []string) (*Options, error) {
 			fmt.Errorf("error parsing args: %w", err),
 		)
 	}
-	err = applyDefaults(opt)
+	err = applyDefaults(opt, mode)
 	if err != nil {
 		return nil, fmt.Errorf("error applying defaults: %w", err)
 	}
@@ -131,6 +132,7 @@ func (opt *Options) parseArgs(args []string) error {
 
 	var (
 		serverAddr        string
+		grpcAddr          string
 		mode              string
 		interval          int
 		hashKey           string
@@ -143,7 +145,8 @@ func (opt *Options) parseArgs(args []string) error {
 		trustedSubnetMask string
 	)
 
-	flags.StringVar(&serverAddr, "a", "", "Address of the server")
+	flags.StringVar(&serverAddr, "a", "", "HTTP server address (host:port)")
+	flags.StringVar(&grpcAddr, "grpc-address", "", "gRPC server address (host:port)")
 	flags.StringVar(&mode, "m", "", "Server mode. Possible values: production, development")
 	flags.IntVar(&interval, "i", 0, "Storage interval in seconds")
 	flags.StringVar(&dns, "d", "", "Database DSN for backup storage")
@@ -170,6 +173,10 @@ func (opt *Options) parseArgs(args []string) error {
 
 	if visited["a"] {
 		opt.ServerAddress = &serverAddr
+	}
+
+	if visited["grpc-address"] {
+		opt.GRPCAddress = &grpcAddr
 	}
 
 	if visited["m"] {
@@ -222,6 +229,10 @@ func mergeOptions(dst, src *Options) {
 		dst.ServerAddress = src.ServerAddress
 	}
 
+	if dst.GRPCAddress == nil && src.GRPCAddress != nil {
+		dst.GRPCAddress = src.GRPCAddress
+	}
+
 	if dst.StoreIntervalSec == nil && src.StoreIntervalSec != nil {
 		dst.StoreIntervalSec = src.StoreIntervalSec
 		dst.StoreInterval = src.StoreInterval
@@ -263,13 +274,39 @@ func mergeOptions(dst, src *Options) {
 	}
 }
 
-// applyDefaults set default fields if not exist
-func applyDefaults(opt *Options) error {
+// listenAddressForMode picks Host:Port source for the running server binary.
+func (opt *Options) listenAddressForMode(mode common.ServerType) string {
+	httpAddr := stringPtrValue(opt.ServerAddress)
+	grpcAddr := stringPtrValue(opt.GRPCAddress)
 
-	if opt.ServerAddress == nil {
-		opt.ServerAddress = new("localhost:8080")
+	switch mode {
+	case common.ServerGRPC:
+		if grpcAddr != "" {
+			return grpcAddr
+		}
+		return httpAddr
+	case common.ServerHTTP:
+		if httpAddr != "" {
+			return httpAddr
+		}
+		return grpcAddr
+	default:
+		if httpAddr != "" {
+			return httpAddr
+		}
+		return grpcAddr
 	}
+}
 
+func stringPtrValue(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+// applyDefaults set default fields if not exist and resolves Host/Port for mode.
+func applyDefaults(opt *Options, mode common.ServerType) error {
 	if opt.Mode == "" {
 		opt.Mode = common.TypeModeDefault
 	}
@@ -287,8 +324,12 @@ func applyDefaults(opt *Options) error {
 		opt.Restore = true
 	}
 
-	err := config.ParseAndSetHostPort(*opt.ServerAddress, opt)
-	if err != nil {
+	addr := opt.listenAddressForMode(mode)
+	if addr == "" {
+		addr = "localhost:8080"
+	}
+
+	if err := config.ParseAndSetHostPort(addr, opt); err != nil {
 		return fmt.Errorf("parsing server address: %w", err)
 	}
 	return nil

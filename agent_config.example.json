@@ -1,5 +1,6 @@
 {
-  "address": "localhost:8080", // аналог переменной окружения ADDRESS или флага -a
+  "address": "localhost:8080", // аналог переменной окружения ADDRESS или флага -a (HTTP)
+  "grpc_address": "localhost:9090", // аналог GRPC_ADDRESS или флага -grpc-address (gRPC)
   "report_interval": "1s", // аналог переменной окружения REPORT_INTERVAL или флага -r
   "poll_interval": "1s", // аналог переменной окружения POLL_INTERVAL или флага -p
   "crypto_key": "/path/to/key.pem" // аналог переменной окружения CRYPTO_KEY или флага -crypto-key

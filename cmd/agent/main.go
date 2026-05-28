@@ -53,7 +53,10 @@ func run() error {
 		return labelerrors.NewLabelError("INIT AGENT", err)
 	}
 	defer a.Logger.Sync()
-	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
+	a.Logger.Info("Agent initialized.",
+		zap.String("server url", a.ServerAddr),
+		zap.String("grpc addr", opt.ReportEndpoint()),
+	)
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -94,6 +97,7 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 		PollInterval:     opt.PollInterval,
 		ReportInterval:   opt.ReportInterval,
 		ServerAddr:       serverCfg.ServerAddr(),
+		GRPCAddr:         opt.ReportEndpoint(),
 		Logger:           logger,
 		Authenticator:    validator,
 		RequestEncryptor: encryptor,

@@ -67,7 +67,7 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) (*AppHTTP, error) {
-	o, err := server.NewOption(common.ServerGRPC, args)
+	o, err := server.NewOption(common.ServerHTTP, args)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("PARSE OPTIONS", fmt.Errorf("error parsing flags: %w", err))
 	}

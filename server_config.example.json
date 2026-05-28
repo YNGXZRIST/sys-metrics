@@ -1,5 +1,6 @@
 {
-  "address": "localhost:8080", // аналог переменной окружения ADDRESS или флага -a
+  "address": "localhost:8080", // аналог переменной окружения ADDRESS или флага -a (HTTP)
+  "grpc_address": "localhost:9090", // аналог GRPC_ADDRESS или флага -grpc-address (gRPC)
   "restore": true, // аналог переменной окружения RESTORE или флага -r
   "store_interval": "1s", // аналог переменной окружения STORE_INTERVAL или флага -i
   "store_file": "/path/to/file.db", // аналог переменной окружения STORE_FILE или -f

@@ -10,6 +10,8 @@ func (r *Options) Reset() {
 
 	r.ServerAddress = nil
 
+	r.GRPCAddress = nil
+
 	r.StoreIntervalSec = nil
 
 	r.HashKey = nil

@@ -14,7 +14,7 @@ func TestParseArgs_defaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = applyDefaults(opt)
+	err = applyDefaults(opt, common.ServerHTTP)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,6 +70,7 @@ func TestOptions_SetHostPort(t *testing.T) {
 func TestNewOption_development(t *testing.T) {
 	for _, k := range []string{
 		"ADDRESS",
+		"GRPC_ADDRESS",
 		"STORE_INTERVAL",
 		"KEY",
 		"MODE",
@@ -139,6 +140,7 @@ func TestOptions_parseEnv_storeInterval(t *testing.T) {
 func TestNewOption_withAddressEnv(t *testing.T) {
 	for _, k := range []string{
 		"ADDRESS",
+		"GRPC_ADDRESS",
 		"STORE_INTERVAL",
 		"KEY",
 		"MODE",
@@ -163,5 +165,59 @@ func TestNewOption_withAddressEnv(t *testing.T) {
 
 	if opt.Host != "192.168.0.2" || opt.Port != "6000" {
 		t.Fatalf("host:port = %s:%s", opt.Host, opt.Port)
+	}
+}
+
+func TestNewOption_grpcAddressWhenBothSet(t *testing.T) {
+	for _, k := range []string{
+		"ADDRESS",
+		"GRPC_ADDRESS",
+		"STORE_INTERVAL",
+		"KEY",
+		"MODE",
+		"STORE_FILE",
+		"DATABASE_DSN",
+		"AUDIT_FILE",
+		"AUDIT_URL",
+		"RESTORE",
+		"CRYPTO_KEY",
+		"CONFIG",
+	} {
+		t.Setenv(k, "")
+	}
+
+	t.Setenv("ADDRESS", "localhost:8080")
+	t.Setenv("GRPC_ADDRESS", "192.168.0.3:7000")
+
+	optGRPC, err := NewOption(common.ServerGRPC, []string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if optGRPC.Host != "192.168.0.3" || optGRPC.Port != "7000" {
+		t.Fatalf("grpc mode host:port = %s:%s", optGRPC.Host, optGRPC.Port)
+	}
+
+	optHTTP, err := NewOption(common.ServerHTTP, []string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if optHTTP.Host != "localhost" || optHTTP.Port != "8080" {
+		t.Fatalf("http mode host:port = %s:%s", optHTTP.Host, optHTTP.Port)
+	}
+}
+
+func TestListenAddressForMode(t *testing.T) {
+	httpAddr := "localhost:8080"
+	grpcAddr := "localhost:9090"
+	opt := &Options{
+		ServerAddress: &httpAddr,
+		GRPCAddress:   &grpcAddr,
+	}
+
+	if got := opt.listenAddressForMode(common.ServerGRPC); got != grpcAddr {
+		t.Fatalf("grpc mode = %q, want %q", got, grpcAddr)
+	}
+	if got := opt.listenAddressForMode(common.ServerHTTP); got != httpAddr {
+		t.Fatalf("http mode = %q, want %q", got, httpAddr)
 	}
 }

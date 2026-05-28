@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
@@ -19,8 +20,11 @@ import (
 // Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
 	ServerAddress  string `json:"address" env:"ADDRESS"`
+	GRPCAddress    string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	Host           string
 	Port           string
+	GRPCHost       string
+	GRPCPort       string
 	Mode           string `env:"MODE"`
 	HashKey        string `env:"KEY"`
 	CryptoKeyPath  string `json:"crypto_key" env:"CRYPTO_KEY"`
@@ -76,6 +80,7 @@ func (opt *Options) ParseConfig(path string) error {
 
 	var cfg struct {
 		ServerAddress  string `json:"address"`
+		GRPCAddress    string `json:"grpc_address"`
 		ReportInterval string `json:"report_interval"`
 		PollInterval   string `json:"poll_interval"`
 		CryptoKeyPath  string `json:"crypto_key"`
@@ -93,6 +98,13 @@ func (opt *Options) ParseConfig(path string) error {
 		err = config.ParseAndSetHostPort(opt.ServerAddress, opt)
 		if err != nil {
 			return fmt.Errorf("error parsing server address: %w", err)
+		}
+	}
+
+	if opt.GRPCAddress == "" && cfg.GRPCAddress != "" {
+		opt.GRPCAddress = cfg.GRPCAddress
+		if err = opt.parseGRPCAddress(); err != nil {
+			return fmt.Errorf("error parsing grpc address: %w", err)
 		}
 	}
 
@@ -154,6 +166,12 @@ func (opt *Options) parseEnv() error {
 		}
 	}
 
+	if cfg.GRPCAddress != "" {
+		if err = config.ParseAndSetHostPort(cfg.GRPCAddress, &grpcEndpoint{opt: cfg}); err != nil {
+			return fmt.Errorf("error parsing grpc address: %w", err)
+		}
+	}
+
 	mergeOptions(opt, cfg)
 
 	return nil
@@ -165,6 +183,7 @@ func (opt *Options) parseArgs(args []string) error {
 
 	var (
 		serverAddress string
+		grpcAddress   string
 		reportSec     int
 		pollSec       int
 		hashKey       string
@@ -174,7 +193,9 @@ func (opt *Options) parseArgs(args []string) error {
 	)
 
 	flags.StringVar(
-		&serverAddress, "a", "", "Address of agent server")
+		&serverAddress, "a", "", "HTTP metrics server address (host:port)")
+	flags.StringVar(
+		&grpcAddress, "grpc-address", "", "gRPC metrics server address (host:port)")
 
 	flags.IntVar(&reportSec, "r", 0, "Reporting interval in seconds")
 
@@ -210,6 +231,13 @@ func (opt *Options) parseArgs(args []string) error {
 			opt,
 		)
 		if err != nil {
+			return err
+		}
+	}
+
+	if visited["grpc-address"] {
+		opt.GRPCAddress = grpcAddress
+		if err = opt.parseGRPCAddress(); err != nil {
 			return err
 		}
 	}
@@ -251,6 +279,10 @@ func mergeOptions(dst, src *Options) {
 		dst.ServerAddress = src.ServerAddress
 	}
 
+	if dst.GRPCAddress == "" && src.GRPCAddress != "" {
+		dst.GRPCAddress = src.GRPCAddress
+	}
+
 	if dst.Host == "" && src.Host != "" {
 
 		dst.Host = src.Host
@@ -258,6 +290,14 @@ func mergeOptions(dst, src *Options) {
 
 	if dst.Port == "" && src.Port != "" {
 		dst.Port = src.Port
+	}
+
+	if dst.GRPCHost == "" && src.GRPCHost != "" {
+		dst.GRPCHost = src.GRPCHost
+	}
+
+	if dst.GRPCPort == "" && src.GRPCPort != "" {
+		dst.GRPCPort = src.GRPCPort
 	}
 
 	if dst.Mode == "" && src.Mode != "" {
@@ -311,11 +351,48 @@ func applyDefaults(opt *Options) error {
 		opt.RateLimit = 1
 	}
 
-	err := config.ParseAndSetHostPort(opt.ServerAddress, opt)
-	if err != nil {
+	if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); err != nil {
 		return fmt.Errorf("error parsing server address: %w", err)
 	}
+
+	if err := opt.parseGRPCAddress(); err != nil {
+		return fmt.Errorf("error parsing grpc address: %w", err)
+	}
+
 	return nil
+}
+
+type grpcEndpoint struct {
+	opt *Options
+}
+
+func (g *grpcEndpoint) SetHostPort(host, port string) {
+	g.opt.GRPCHost = host
+	g.opt.GRPCPort = port
+}
+
+func (opt *Options) parseGRPCAddress() error {
+	if opt.GRPCAddress == "" {
+		return nil
+	}
+	if opt.GRPCHost != "" && opt.GRPCPort != "" {
+		return nil
+	}
+	return config.ParseAndSetHostPort(opt.GRPCAddress, &grpcEndpoint{opt: opt})
+}
+
+// ReportEndpoint returns host:port for metrics upload (gRPC address preferred).
+func (opt *Options) ReportEndpoint() string {
+	if opt.GRPCHost != "" && opt.GRPCPort != "" {
+		return net.JoinHostPort(opt.GRPCHost, opt.GRPCPort)
+	}
+	if opt.GRPCAddress != "" {
+		return opt.GRPCAddress
+	}
+	if opt.Host != "" && opt.Port != "" {
+		return net.JoinHostPort(opt.Host, opt.Port)
+	}
+	return opt.ServerAddress
 }
 
 // parseConfigPath get config path from os.Args

@@ -23,9 +23,15 @@ func (r *Options) Reset() {
 
 	r.ServerAddress = ""
 
+	r.GRPCAddress = ""
+
 	r.Host = ""
 
 	r.Port = ""
+
+	r.GRPCHost = ""
+
+	r.GRPCPort = ""
 
 	r.Mode = ""
 
