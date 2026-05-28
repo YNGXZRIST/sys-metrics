@@ -1,3 +1,4 @@
+// Package app wires shared server startup and shutdown: storage, DB, backup, audit, and transport.
 package app
 
 import (
@@ -21,17 +22,54 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
+// Shutdowner stops the network transport gracefully using ctx as a deadline.
 type Shutdowner interface {
 	Shutdown(ctx context.Context) error
 }
+
+// ShutdownGRPCServer wraps grpc.Server for app.Shutdowner and GRPCServer.
+type ShutdownGRPCServer struct {
+	Server *grpc.Server
+}
+
+// GRPCServer is a gRPC transport: listen on a port and shut down gracefully.
+type GRPCServer interface {
+	Shutdowner
+	ListenAndServe(net.Listener) error
+}
+
+// Shutdown calls GracefulStop on the underlying gRPC server.
+func (s *ShutdownGRPCServer) Shutdown(_ context.Context) error {
+	s.Server.GracefulStop()
+	return nil
+}
+
+// ListenAndServe blocks serving gRPC on listen until the server stops.
+func (s *ShutdownGRPCServer) ListenAndServe(listen net.Listener) error {
+	return s.Server.Serve(listen)
+}
+
+var _ GRPCServer = (*ShutdownGRPCServer)(nil)
+
+// AsGRPCServer returns App.Server when it implements GRPCServer (for ListenAndServe).
+func (a *App) AsGRPCServer() (GRPCServer, bool) {
+	if a == nil || a.Server == nil {
+		return nil, false
+	}
+	s, ok := a.Server.(GRPCServer)
+	return s, ok
+}
+
 type dbCloser interface {
 	Close() error
 }
 
 var _ dbCloser = (*db.DB)(nil)
 
+// App holds runtime dependencies shared by HTTP and gRPC servers.
 type App struct {
 	Server         Shutdowner
 	DB             *db.DB
@@ -44,6 +82,7 @@ type App struct {
 	needRestore    bool
 }
 
+// Option holds bootstrap settings for app (mapped from server.Options).
 type Option struct {
 	AuditFilePath     string
 	AuditURL          string
@@ -55,6 +94,7 @@ type Option struct {
 	Restore           bool
 }
 
+// Bootstrap initializes logger, metrics storage, optional restore, backup routine, and MetricService.
 func Bootstrap(ctx context.Context, o *Option) (*App, error) {
 	if o == nil {
 		return nil, fmt.Errorf("bootstrap: nil option")
@@ -81,7 +121,7 @@ func Bootstrap(ctx context.Context, o *Option) (*App, error) {
 	metrics.Init(a.Service)
 
 	if a.needRestore {
-		if err = a.restoreFromBackup(ctx); err != nil {
+		if err := a.restoreFromBackup(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -97,6 +137,7 @@ func Bootstrap(ctx context.Context, o *Option) (*App, error) {
 	return a, nil
 }
 
+// Close shuts down transport, storage, DB, backup config, and syncs the logger.
 func (a *App) Close(ctx context.Context) error {
 	var errs []error
 	if a.Server != nil {
@@ -130,6 +171,20 @@ func (a *App) Close(ctx context.Context) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// OptionFromServer maps server CLI/env options to app.Option.
+func OptionFromServer(o *server.Options) *Option {
+	return &Option{
+		AuditFilePath:     o.AuditFile,
+		AuditURL:          o.AuditURL,
+		Mode:              o.Mode,
+		TrustedSubnetMask: o.TrustedSubnetMask,
+		DNS:               o.DNS,
+		BackupStoragePath: o.BackupStoragePath,
+		StoreInterval:     o.StoreInterval,
+		Restore:           o.Restore,
+	}
 }
 
 func (a *App) initMetricsObserver(ctx context.Context) (*observer.MetricsObserver, error) {
@@ -277,16 +332,4 @@ func (a *App) initBackupConfig() (*file.Config, error) {
 
 func isDatabaseConnected(conn *db.DB) bool {
 	return conn != nil && conn.Ping() == nil
-}
-func OptionFromServer(o *server.Options) *Option {
-	return &Option{
-		AuditFilePath:     o.AuditFile,
-		AuditURL:          o.AuditURL,
-		Mode:              o.Mode,
-		TrustedSubnetMask: o.TrustedSubnetMask,
-		DNS:               o.DNS,
-		BackupStoragePath: o.BackupStoragePath,
-		StoreInterval:     o.StoreInterval,
-		Restore:           o.Restore,
-	}
 }
