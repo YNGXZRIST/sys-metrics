@@ -18,7 +18,6 @@ import (
 // Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
 	ServerAddress     *string `json:"address" env:"ADDRESS"`
-	GRPCAddress       *string `json:"grpc_address" env:"GRPC_ADDRESS"`
 	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
 	HashKey           *string `env:"KEY"`
 	Mode              string  `env:"MODE"`
@@ -37,7 +36,7 @@ type Options struct {
 }
 
 // NewOption parses argv, environment and config, validates mode, and returns Options.
-func NewOption(mode common.ServerType, args []string) (*Options, error) {
+func NewOption(args []string) (*Options, error) {
 	configPath, err := parseConfigPath(args)
 	if err != nil {
 		return nil, fmt.Errorf("error getting config path: %w", err)
@@ -62,7 +61,7 @@ func NewOption(mode common.ServerType, args []string) (*Options, error) {
 			fmt.Errorf("error parsing args: %w", err),
 		)
 	}
-	err = applyDefaults(opt, mode)
+	err = applyDefaults(opt)
 	if err != nil {
 		return nil, fmt.Errorf("error applying defaults: %w", err)
 	}
@@ -132,7 +131,6 @@ func (opt *Options) parseArgs(args []string) error {
 
 	var (
 		serverAddr        string
-		grpcAddr          string
 		mode              string
 		interval          int
 		hashKey           string
@@ -145,8 +143,7 @@ func (opt *Options) parseArgs(args []string) error {
 		trustedSubnetMask string
 	)
 
-	flags.StringVar(&serverAddr, "a", "", "HTTP server address (host:port)")
-	flags.StringVar(&grpcAddr, "grpc-address", "", "gRPC server address (host:port)")
+	flags.StringVar(&serverAddr, "a", "", "server address (host:port)")
 	flags.StringVar(&mode, "m", "", "Server mode. Possible values: production, development")
 	flags.IntVar(&interval, "i", 0, "Storage interval in seconds")
 	flags.StringVar(&dns, "d", "", "Database DSN for backup storage")
@@ -173,10 +170,6 @@ func (opt *Options) parseArgs(args []string) error {
 
 	if visited["a"] {
 		opt.ServerAddress = &serverAddr
-	}
-
-	if visited["grpc-address"] {
-		opt.GRPCAddress = &grpcAddr
 	}
 
 	if visited["m"] {
@@ -229,10 +222,6 @@ func mergeOptions(dst, src *Options) {
 		dst.ServerAddress = src.ServerAddress
 	}
 
-	if dst.GRPCAddress == nil && src.GRPCAddress != nil {
-		dst.GRPCAddress = src.GRPCAddress
-	}
-
 	if dst.StoreIntervalSec == nil && src.StoreIntervalSec != nil {
 		dst.StoreIntervalSec = src.StoreIntervalSec
 		dst.StoreInterval = src.StoreInterval
@@ -274,30 +263,6 @@ func mergeOptions(dst, src *Options) {
 	}
 }
 
-// listenAddressForMode picks Host:Port source for the running server binary.
-func (opt *Options) listenAddressForMode(mode common.ServerType) string {
-	httpAddr := stringPtrValue(opt.ServerAddress)
-	grpcAddr := stringPtrValue(opt.GRPCAddress)
-
-	switch mode {
-	case common.ServerGRPC:
-		if grpcAddr != "" {
-			return grpcAddr
-		}
-		return httpAddr
-	case common.ServerHTTP:
-		if httpAddr != "" {
-			return httpAddr
-		}
-		return grpcAddr
-	default:
-		if httpAddr != "" {
-			return httpAddr
-		}
-		return grpcAddr
-	}
-}
-
 func stringPtrValue(p *string) string {
 	if p == nil {
 		return ""
@@ -305,8 +270,8 @@ func stringPtrValue(p *string) string {
 	return *p
 }
 
-// applyDefaults set default fields if not exist and resolves Host/Port for mode.
-func applyDefaults(opt *Options, mode common.ServerType) error {
+// applyDefaults set default fields if not exist and resolves Host/Port.
+func applyDefaults(opt *Options) error {
 	if opt.Mode == "" {
 		opt.Mode = common.TypeModeDefault
 	}
@@ -324,7 +289,7 @@ func applyDefaults(opt *Options, mode common.ServerType) error {
 		opt.Restore = true
 	}
 
-	addr := opt.listenAddressForMode(mode)
+	addr := stringPtrValue(opt.ServerAddress)
 	if addr == "" {
 		addr = "localhost:8080"
 	}

@@ -69,11 +69,10 @@ const (
 const NotApplicable = "N/A"
 const (
 	HeaderXRealIP = "X-Real-Ip"
+	MetaXRealIP   = "x-real-ip"
 )
 
-type ServerType string
-
 const (
-	ServerGRPC ServerType = "grpc"
-	ServerHTTP ServerType = "http"
+	ReportTransportHTTP = "http"
+	ReportTransportGRPC = "grpc"
 )

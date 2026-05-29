@@ -21,9 +21,12 @@ func newTestAgentConfig(serverURL string, poll, report time.Duration) *agent.Con
 
 func TestAgent_Report(t *testing.T) {
 	cfg := newTestAgentConfig(testServer.URL, 1, 1)
-	a := NewAgent(cfg, context.Background())
+	a, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err := a.Report(context.Background())
+	err = a.Report(context.Background())
 	if err != nil {
 		t.Fatalf("report failed %v", err)
 	}
@@ -31,7 +34,10 @@ func TestAgent_Report(t *testing.T) {
 
 func TestAgent_StartPoll(t *testing.T) {
 	cfg := newTestAgentConfig(testServer.URL, 1, 2)
-	newAgent := NewAgent(cfg, context.Background())
+	newAgent, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -59,7 +65,10 @@ func TestAgent_StartPoll(t *testing.T) {
 
 func TestAgent_StartReport(t *testing.T) {
 	cfg := newTestAgentConfig(testServer.URL, time.Second, time.Second)
-	newAgent := NewAgent(cfg, context.Background())
+	newAgent, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -81,7 +90,10 @@ func TestNewAgent(t *testing.T) {
 	cfg := newTestAgentConfig("localhost", 2, 2)
 
 	t.Run("creates agent with config", func(t *testing.T) {
-		got := NewAgent(cfg, context.Background())
+		got, err := NewAgent(cfg, context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if got == nil {
 			t.Fatal("NewAgent() returned nil")
@@ -93,4 +105,27 @@ func TestNewAgent(t *testing.T) {
 			t.Error("NewAgent().collector should not be nil")
 		}
 	})
+}
+
+func TestAgent_Close(t *testing.T) {
+	cfg := newTestAgentConfig(testServer.URL, 1, 1)
+	a, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := a.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCollector_CollectAll(t *testing.T) {
+	c := NewCollector(context.Background(), 1)
+	c.SetPollCounterMetric()
+	c.SetRandomValueMetric()
+	all := c.CollectAll()
+	if len(all) == 0 {
+		t.Fatal("expected metrics")
+	}
 }

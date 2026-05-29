@@ -33,3 +33,5 @@ vendor/
 /internal/logger/logs/
 /private.pem
 /public.pem
+/cmd/server/backups/backups.metrics
+/cmd/server_grpc/backups/backups.metrics

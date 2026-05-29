@@ -247,3 +247,15 @@ func GetMetricType(metric string) string {
 	}
 	return metricType
 }
+func (c *Collector) CollectAll() []*metrics.Metrics {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	result := make([]*metrics.Metrics, 0, len(c.Gauges)+len(c.Counters))
+	for _, m := range c.Gauges {
+		result = append(result, &m.Metrics)
+	}
+	for _, m := range c.Counters {
+		result = append(result, &m.Metrics)
+	}
+	return result
+}

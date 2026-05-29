@@ -3,11 +3,15 @@ package app
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 	"sys-metrics/internal/common"
+	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/repository/memory"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 func testApp(t *testing.T, opt *Option) *App {
@@ -192,4 +196,115 @@ func TestBootstrap_memory(t *testing.T) {
 		t.Fatal("nil Logger")
 	}
 	_ = a.Close(context.Background())
+}
+
+func TestOptionFromServer(t *testing.T) {
+	hash := "key"
+	addr := "localhost:8080"
+	o := &server.Options{
+		Mode:              common.TypeModeDevelopment,
+		ServerAddress:     &addr,
+		HashKey:           &hash,
+		BackupStoragePath: "/tmp/backups",
+		DNS:               "postgres://x",
+		AuditFile:         "/tmp/audit",
+		AuditURL:          "http://audit",
+		Restore:           false,
+		TrustedSubnetMask: "127.0.0.0/8",
+		StoreInterval:     time.Minute,
+	}
+	opt := OptionFromServer(o)
+	if opt.Mode != o.Mode || opt.DNS != o.DNS || opt.TrustedSubnetMask != o.TrustedSubnetMask {
+		t.Fatalf("opt = %+v", opt)
+	}
+}
+
+func TestBootstrap_trustedSubnet(t *testing.T) {
+	ctx := context.Background()
+	a, err := Bootstrap(ctx, &Option{
+		Mode:              common.TypeModeDevelopment,
+		BackupStoragePath: t.TempDir(),
+		StoreInterval:     time.Minute,
+		Restore:           false,
+		TrustedSubnetMask: "127.0.0.0/8",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.IpNet == nil {
+		t.Fatal("expected IpNet")
+	}
+	_ = a.Close(ctx)
+}
+
+func TestShutdownGRPCServer(t *testing.T) {
+	srv := grpc.NewServer()
+	w := &ShutdownGRPCServer{Server: srv}
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() { _ = w.ListenAndServe(lis) }()
+	if err := w.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAsGRPCServer(t *testing.T) {
+	srv := grpc.NewServer()
+	app := &App{Server: &ShutdownGRPCServer{Server: srv}}
+	got, ok := app.AsGRPCServer()
+	if !ok || got == nil {
+		t.Fatal("expected GRPCServer")
+	}
+}
+
+func TestBootstrap_withAuditFile(t *testing.T) {
+	ctx := context.Background()
+	a, err := Bootstrap(ctx, &Option{
+		Mode:              common.TypeModeDevelopment,
+		BackupStoragePath: t.TempDir(),
+		StoreInterval:     time.Minute,
+		Restore:           false,
+		AuditFilePath:     t.TempDir() + "/audit.json",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.MetricsService == nil {
+		t.Fatal("expected metrics service")
+	}
+	_ = a.Service.Close(ctx)
+}
+
+func TestInitStorage_invalidDSN(t *testing.T) {
+	a := testApp(t, &Option{
+		Mode:              common.TypeModeDevelopment,
+		DNS:               "postgres://127.0.0.1:1/nodb?sslmode=disable&connect_timeout=1",
+		BackupStoragePath: t.TempDir(),
+		StoreInterval:     time.Minute,
+	})
+	if err := a.initStorage(); err == nil {
+		t.Fatal("expected migrate/init error")
+	}
+}
+
+func TestBootstrap_invalidTrustedSubnet(t *testing.T) {
+	_, err := Bootstrap(context.Background(), &Option{
+		Mode:              common.TypeModeDevelopment,
+		BackupStoragePath: t.TempDir(),
+		StoreInterval:     time.Minute,
+		Restore:           false,
+		TrustedSubnetMask: "invalid",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestParseTrustedSubnet_invalid(t *testing.T) {
+	a := testApp(t, &Option{TrustedSubnetMask: "not-a-cidr"})
+	if _, err := a.parseTrustedSubnet(); err == nil {
+		t.Fatal("expected error")
+	}
 }

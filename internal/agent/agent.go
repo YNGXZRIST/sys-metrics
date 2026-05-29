@@ -3,11 +3,14 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
+	"sys-metrics/internal/agent/sender"
 	"sys-metrics/internal/config/agent"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/timeerrors"
+	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/workerpool"
 	"time"
 
@@ -20,28 +23,52 @@ import (
 type Agent struct {
 	*agent.Config
 	collector  *Collector
-	reporter   *Reporter
+	sender     sender.MetricsSender
 	ReportPool *workerpool.Pool
 	mu         sync.Mutex
 }
 
 // NewAgent creates an agent with a report pool and collectors sized by cfg.RateLimit.
-func NewAgent(cfg *agent.Config, ctx context.Context) *Agent {
+func NewAgent(cfg *agent.Config, ctx context.Context) (*Agent, error) {
 	reportPool := workerpool.NewPool(cfg.RateLimit)
 	reportPool.StartBg(ctx)
-	return &Agent{
-		Config:    cfg,
-		collector: NewCollector(ctx, cfg.RateLimit),
-		reporter: NewReporter(ReporterProperties{
-			Authenticator:    cfg.Authenticator,
-			RequestEncryptor: cfg.RequestEncryptor,
-			ServerAddr:       cfg.ServerAddr,
-			Logger:           cfg.Logger,
-			localIpV4:        cfg.LocalIpV4,
-		}),
-		ReportPool: reportPool,
-		mu:         sync.Mutex{},
+
+	metricsSender, err := sender.NewMetricsSender(senderConfigFrom(cfg))
+	if err != nil {
+		return nil, err
 	}
+
+	return &Agent{
+		Config:     cfg,
+		collector:  NewCollector(ctx, cfg.RateLimit),
+		ReportPool: reportPool,
+		sender:     metricsSender,
+		mu:         sync.Mutex{},
+	}, nil
+}
+
+func senderConfigFrom(cfg *agent.Config) sender.SenderConfig {
+	return sender.SenderConfig{
+		Transport:        cfg.ReportTransport,
+		ServerURL:        cfg.ServerAddr,
+		Endpoint:         cfg.ServerEndpoint,
+		Logger:           cfg.Logger,
+		LocalIPv4:        cfg.LocalIpV4,
+		Authenticator:    cfg.Authenticator,
+		RequestEncryptor: cfg.RequestEncryptor,
+	}
+}
+
+func metricsFromCollector(c *Collector) []*metrics.Metrics {
+
+	out := make([]*metrics.Metrics, 0, len(c.Gauges)+len(c.Counters))
+	for _, m := range c.Gauges {
+		out = append(out, &m.Metrics)
+	}
+	for _, m := range c.Counters {
+		out = append(out, &m.Metrics)
+	}
+	return out
 }
 
 // StartReport calls Report on every ReportInterval tick until the context is canceled.
@@ -90,8 +117,7 @@ func (a *Agent) StartPoll(ctx context.Context) {
 // Report asynchronously sends buffered metrics to the server and resets the poll counter.
 func (a *Agent) Report(ctx context.Context) error {
 	task := workerpool.NewTask(func(x any) (any, error) {
-
-		err := a.reporter.sendMetricsToServer(a.collector)
+		err := a.sender.SendBatch(ctx, metricsFromCollector(a.collector))
 		if err != nil {
 			return nil, timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
 		}
@@ -101,4 +127,15 @@ func (a *Agent) Report(ctx context.Context) error {
 	a.ReportPool.Add(ctx, task)
 	res := a.ReportPool.Get(ctx)
 	return res.Err
+}
+
+func (a *Agent) Close(ctx context.Context) error {
+	var errs []error
+	if err := a.ReportPool.Shutdown(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("report_pool error: %w", err))
+	}
+	if err := a.sender.Close(); err != nil {
+		errs = append(errs, fmt.Errorf("sender error: %w", err))
+	}
+	return errors.Join(errs...)
 }

@@ -37,6 +37,26 @@ func TestUpdatesMetricsHandlerJSON_withObserver(t *testing.T) {
 	}
 }
 
+func TestUpdateHandlerJSON_invalidBody(t *testing.T) {
+	h := newTestHandler(t)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/update", bytes.NewReader([]byte("not-json")))
+	h.UpdateHandlerJSON(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
+func TestUpdatesMetricsHandlerJSON_invalidBody(t *testing.T) {
+	h := newTestHandler(t)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/updates", bytes.NewReader([]byte("[")))
+	h.UpdatesMetricsHandlerJSON(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d", rec.Code)
+	}
+}
+
 func TestNewHandler_fields(t *testing.T) {
 	h := NewHandler(InitProperties{
 		Logger:        zap.NewNop(),

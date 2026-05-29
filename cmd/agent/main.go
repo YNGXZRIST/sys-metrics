@@ -36,7 +36,6 @@ func main() {
 	}
 }
 func run() error {
-	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,
@@ -44,7 +43,12 @@ func run() error {
 		syscall.SIGQUIT,
 	)
 	defer stop()
-	opt, err := config.NewOption(os.Args[1:])
+	return runWithContext(ctx, os.Args[1:])
+}
+
+func runWithContext(ctx context.Context, args []string) error {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
+	opt, err := config.NewOption(args)
 	if err != nil {
 		return fmt.Errorf("new option: %w", err)
 	}
@@ -55,7 +59,8 @@ func run() error {
 	defer a.Logger.Sync()
 	a.Logger.Info("Agent initialized.",
 		zap.String("server url", a.ServerAddr),
-		zap.String("grpc addr", opt.ReportEndpoint()),
+		zap.String("endpoint", opt.Endpoint()),
+		zap.String("report transport", opt.ReportTransport),
 	)
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -71,8 +76,8 @@ func run() error {
 	<-ctx.Done()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err = a.ReportPool.Shutdown(shutdownCtx); err != nil {
-		a.Logger.Error("report shutdown error", zap.Error(err))
+	if err := a.Close(shutdownCtx); err != nil {
+		a.Logger.Error("shutdown error", zap.Error(err))
 	}
 	wg.Wait()
 	a.Logger.Info("Shutting down agent...")
@@ -97,7 +102,8 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 		PollInterval:     opt.PollInterval,
 		ReportInterval:   opt.ReportInterval,
 		ServerAddr:       serverCfg.ServerAddr(),
-		GRPCAddr:         opt.ReportEndpoint(),
+		ServerEndpoint:   serverCfg.InternalAddr(),
+		ReportTransport:  opt.ReportTransport,
 		Logger:           logger,
 		Authenticator:    validator,
 		RequestEncryptor: encryptor,
@@ -105,7 +111,7 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 		LocalIpV4:        localIpV4,
 	}
 	agentCfg := config.NewConfig(initProp)
-	a := agent.NewAgent(agentCfg, ctx)
+	a, err := agent.NewAgent(agentCfg, ctx)
 	return a, nil
 }
 func getAgentLocalIpV4() (string, error) {

@@ -19,21 +19,19 @@ import (
 
 // Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
-	ServerAddress  string `json:"address" env:"ADDRESS"`
-	GRPCAddress    string `json:"grpc_address" env:"GRPC_ADDRESS"`
-	Host           string
-	Port           string
-	GRPCHost       string
-	GRPCPort       string
-	Mode           string `env:"MODE"`
-	HashKey        string `env:"KEY"`
-	CryptoKeyPath  string `json:"crypto_key" env:"CRYPTO_KEY"`
-	ConfigFilePath string
-	PollInterval   time.Duration
-	ReportInterval time.Duration
-	PollSec        int `env:"POLL_INTERVAL"`
-	ReportSec      int `env:"REPORT_INTERVAL"`
-	RateLimit      int `env:"RATE_LIMIT"`
+	ServerAddress   string `json:"address" env:"ADDRESS"`
+	Host            string
+	Port            string
+	Mode            string `env:"MODE"`
+	HashKey         string `env:"KEY"`
+	CryptoKeyPath   string `json:"crypto_key" env:"CRYPTO_KEY"`
+	ConfigFilePath  string
+	PollInterval    time.Duration
+	ReportInterval  time.Duration
+	ReportTransport string `json:"report_transport" env:"REPORT_TRANSPORT"`
+	PollSec         int    `env:"POLL_INTERVAL"`
+	ReportSec       int    `env:"REPORT_INTERVAL"`
+	RateLimit       int    `env:"RATE_LIMIT"`
 }
 
 // NewOption parses the agent argv, environment and config. Validates logging mode.
@@ -62,6 +60,10 @@ func NewOption(args []string) (*Options, error) {
 	if err != nil {
 		return nil, labelerrors.NewLabelError("APPLY DEFAULTS", err)
 	}
+	err = config.ValidateReportTransport(opt.ReportTransport)
+	if err != nil {
+		return nil, labelerrors.NewLabelError("REPORT TRANSPORT", err)
+	}
 	err = config.ValidateMode(opt.Mode)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("MODE", err)
@@ -79,11 +81,11 @@ func (opt *Options) ParseConfig(path string) error {
 	defer file.Close()
 
 	var cfg struct {
-		ServerAddress  string `json:"address"`
-		GRPCAddress    string `json:"grpc_address"`
-		ReportInterval string `json:"report_interval"`
-		PollInterval   string `json:"poll_interval"`
-		CryptoKeyPath  string `json:"crypto_key"`
+		ServerAddress   string `json:"address"`
+		ReportInterval  string `json:"report_interval"`
+		PollInterval    string `json:"poll_interval"`
+		CryptoKeyPath   string `json:"crypto_key"`
+		ReportTransport string `json:"report_transport"`
 	}
 
 	decoder := json.NewDecoder(file)
@@ -101,15 +103,12 @@ func (opt *Options) ParseConfig(path string) error {
 		}
 	}
 
-	if opt.GRPCAddress == "" && cfg.GRPCAddress != "" {
-		opt.GRPCAddress = cfg.GRPCAddress
-		if err = opt.parseGRPCAddress(); err != nil {
-			return fmt.Errorf("error parsing grpc address: %w", err)
-		}
-	}
-
 	if opt.CryptoKeyPath == "" && cfg.CryptoKeyPath != "" {
 		opt.CryptoKeyPath = cfg.CryptoKeyPath
+	}
+
+	if opt.ReportTransport == "" && cfg.ReportTransport != "" {
+		opt.ReportTransport = cfg.ReportTransport
 	}
 
 	if opt.ReportSec == 0 && cfg.ReportInterval != "" {
@@ -166,12 +165,6 @@ func (opt *Options) parseEnv() error {
 		}
 	}
 
-	if cfg.GRPCAddress != "" {
-		if err = config.ParseAndSetHostPort(cfg.GRPCAddress, &grpcEndpoint{opt: cfg}); err != nil {
-			return fmt.Errorf("error parsing grpc address: %w", err)
-		}
-	}
-
 	mergeOptions(opt, cfg)
 
 	return nil
@@ -182,20 +175,18 @@ func (opt *Options) parseArgs(args []string) error {
 	flags := flag.NewFlagSet("agent", flag.ContinueOnError)
 
 	var (
-		serverAddress string
-		grpcAddress   string
-		reportSec     int
-		pollSec       int
-		hashKey       string
-		mode          string
-		rateLimit     int
-		cryptoKey     string
+		serverAddress   string
+		reportSec       int
+		pollSec         int
+		hashKey         string
+		mode            string
+		rateLimit       int
+		cryptoKey       string
+		reportTransport string
 	)
 
 	flags.StringVar(
-		&serverAddress, "a", "", "HTTP metrics server address (host:port)")
-	flags.StringVar(
-		&grpcAddress, "grpc-address", "", "gRPC metrics server address (host:port)")
+		&serverAddress, "a", "", "metrics server address (host:port)")
 
 	flags.IntVar(&reportSec, "r", 0, "Reporting interval in seconds")
 
@@ -208,6 +199,12 @@ func (opt *Options) parseArgs(args []string) error {
 	flags.IntVar(&rateLimit, "l", 0, "agent rate limit")
 
 	flags.StringVar(&cryptoKey, "crypto-key", "", "crypto key for encoding request")
+	flags.StringVar(
+		&reportTransport,
+		"report-transport",
+		"",
+		"metrics transport: http or grpc",
+	)
 	flags.StringVar(&opt.ConfigFilePath, "config", "", "config file path")
 
 	flags.StringVar(&opt.ConfigFilePath, "c", "", "config file path (shorthand)")
@@ -231,13 +228,6 @@ func (opt *Options) parseArgs(args []string) error {
 			opt,
 		)
 		if err != nil {
-			return err
-		}
-	}
-
-	if visited["grpc-address"] {
-		opt.GRPCAddress = grpcAddress
-		if err = opt.parseGRPCAddress(); err != nil {
 			return err
 		}
 	}
@@ -270,6 +260,10 @@ func (opt *Options) parseArgs(args []string) error {
 		opt.CryptoKeyPath = cryptoKey
 	}
 
+	if visited["report-transport"] {
+		opt.ReportTransport = reportTransport
+	}
+
 	return nil
 }
 
@@ -279,10 +273,6 @@ func mergeOptions(dst, src *Options) {
 		dst.ServerAddress = src.ServerAddress
 	}
 
-	if dst.GRPCAddress == "" && src.GRPCAddress != "" {
-		dst.GRPCAddress = src.GRPCAddress
-	}
-
 	if dst.Host == "" && src.Host != "" {
 
 		dst.Host = src.Host
@@ -290,14 +280,6 @@ func mergeOptions(dst, src *Options) {
 
 	if dst.Port == "" && src.Port != "" {
 		dst.Port = src.Port
-	}
-
-	if dst.GRPCHost == "" && src.GRPCHost != "" {
-		dst.GRPCHost = src.GRPCHost
-	}
-
-	if dst.GRPCPort == "" && src.GRPCPort != "" {
-		dst.GRPCPort = src.GRPCPort
 	}
 
 	if dst.Mode == "" && src.Mode != "" {
@@ -325,6 +307,10 @@ func mergeOptions(dst, src *Options) {
 	if dst.CryptoKeyPath == "" && src.CryptoKeyPath != "" {
 		dst.CryptoKeyPath = src.CryptoKeyPath
 	}
+
+	if dst.ReportTransport == "" && src.ReportTransport != "" {
+		dst.ReportTransport = src.ReportTransport
+	}
 }
 
 // applyDefaults set default fields if not exist
@@ -351,44 +337,19 @@ func applyDefaults(opt *Options) error {
 		opt.RateLimit = 1
 	}
 
-	if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); err != nil {
-		return fmt.Errorf("error parsing server address: %w", err)
+	if opt.ReportTransport == "" {
+		opt.ReportTransport = common.ReportTransportHTTP
 	}
 
-	if err := opt.parseGRPCAddress(); err != nil {
-		return fmt.Errorf("error parsing grpc address: %w", err)
+	if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); err != nil {
+		return fmt.Errorf("error parsing server address: %w", err)
 	}
 
 	return nil
 }
 
-type grpcEndpoint struct {
-	opt *Options
-}
-
-func (g *grpcEndpoint) SetHostPort(host, port string) {
-	g.opt.GRPCHost = host
-	g.opt.GRPCPort = port
-}
-
-func (opt *Options) parseGRPCAddress() error {
-	if opt.GRPCAddress == "" {
-		return nil
-	}
-	if opt.GRPCHost != "" && opt.GRPCPort != "" {
-		return nil
-	}
-	return config.ParseAndSetHostPort(opt.GRPCAddress, &grpcEndpoint{opt: opt})
-}
-
-// ReportEndpoint returns host:port for metrics upload (gRPC address preferred).
-func (opt *Options) ReportEndpoint() string {
-	if opt.GRPCHost != "" && opt.GRPCPort != "" {
-		return net.JoinHostPort(opt.GRPCHost, opt.GRPCPort)
-	}
-	if opt.GRPCAddress != "" {
-		return opt.GRPCAddress
-	}
+// Endpoint returns host:port for server connections.
+func (opt *Options) Endpoint() string {
 	if opt.Host != "" && opt.Port != "" {
 		return net.JoinHostPort(opt.Host, opt.Port)
 	}

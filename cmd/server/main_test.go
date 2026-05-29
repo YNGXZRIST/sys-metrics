@@ -90,3 +90,20 @@ func TestInitHandler_withAuthenticator(t *testing.T) {
 	}
 	_ = base.Logger.Sync()
 }
+
+func TestRun_development(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a, err := run(ctx, []string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a == nil || a.App == nil || a.h == nil {
+		t.Fatal("expected initialized HTTP app")
+	}
+	if srv, ok := a.App.Server.(interface{ Shutdown(context.Context) error }); ok {
+		_ = srv.Shutdown(context.Background())
+	}
+	_ = a.App.Service.Close(context.Background())
+}

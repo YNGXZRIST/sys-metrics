@@ -22,7 +22,8 @@ type InitProperties struct {
 	Logger           *zap.Logger
 	RequestEncryptor *secure.RequestEncryptor
 	ServerAddr       string
-	GRPCAddr         string
+	ServerEndpoint   string
+	ReportTransport  string
 	PollInterval     time.Duration
 	ReportInterval   time.Duration
 	RateLimit        int

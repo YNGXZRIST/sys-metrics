@@ -12,7 +12,7 @@ func (r *Agent) Reset() {
 
 	r.collector = nil
 
-	r.reporter = nil
+	r.sender = nil
 
 	r.ReportPool = nil
 
@@ -34,42 +34,5 @@ func (r *Collector) Reset() {
 	r.updaterPool = nil
 
 	r.mu = sync.Mutex{}
-
-}
-
-func (r *Request) Reset() {
-	if r == nil {
-		return
-	}
-
-	r.ID = ""
-
-	r.MType = ""
-
-	r.Value = ""
-
-}
-
-func (r *Response) Reset() {
-	if r == nil {
-		return
-	}
-
-	r.Result = ""
-
-	r.Code = 0
-
-}
-
-func (r *Reporter) Reset() {
-	if r == nil {
-		return
-	}
-
-	r.httpClient = nil
-
-	r.logger = nil
-
-	r.serverAddr = ""
 
 }

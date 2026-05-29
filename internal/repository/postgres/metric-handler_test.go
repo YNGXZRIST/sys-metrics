@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
-	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/model/metrics"
 	"sys-metrics/migrations"
 	"testing"
@@ -65,7 +64,7 @@ func TestMain(m *testing.M) {
 	}
 
 	testDSN = dsn
-	testDB, err = db.NewConn(db.NewCfg(&server.Options{DNS: dsn}))
+	testDB, err = db.NewConn(db.NewCfg(&db.Config{DNS: dsn}))
 	if err != nil {
 		_ = pool.Purge(resource)
 		os.Exit(1)

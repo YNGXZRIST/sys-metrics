@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"sys-metrics/internal/common"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ func TestParseArgs_defaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = applyDefaults(opt, common.ServerHTTP)
+	err = applyDefaults(opt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +71,6 @@ func TestOptions_SetHostPort(t *testing.T) {
 func TestNewOption_development(t *testing.T) {
 	for _, k := range []string{
 		"ADDRESS",
-		"GRPC_ADDRESS",
 		"STORE_INTERVAL",
 		"KEY",
 		"MODE",
@@ -85,7 +85,7 @@ func TestNewOption_development(t *testing.T) {
 		t.Setenv(k, "")
 	}
 
-	opt, err := NewOption(common.ServerHTTP, []string{
+	opt, err := NewOption([]string{
 		"-m",
 		common.TypeModeDevelopment,
 	})
@@ -140,7 +140,6 @@ func TestOptions_parseEnv_storeInterval(t *testing.T) {
 func TestNewOption_withAddressEnv(t *testing.T) {
 	for _, k := range []string{
 		"ADDRESS",
-		"GRPC_ADDRESS",
 		"STORE_INTERVAL",
 		"KEY",
 		"MODE",
@@ -157,7 +156,7 @@ func TestNewOption_withAddressEnv(t *testing.T) {
 
 	t.Setenv("ADDRESS", "192.168.0.2:6000")
 
-	opt, err := NewOption(common.ServerGRPC, []string{"-m", common.TypeModeDevelopment})
+	opt, err := NewOption([]string{"-m", common.TypeModeDevelopment})
 
 	if err != nil {
 		t.Fatal(err)
@@ -168,56 +167,147 @@ func TestNewOption_withAddressEnv(t *testing.T) {
 	}
 }
 
-func TestNewOption_grpcAddressWhenBothSet(t *testing.T) {
+func TestParseConfig(t *testing.T) {
+	path := t.TempDir() + "/server.json"
+	content := `{
+		"address": "127.0.0.1:9090",
+		"store_interval": "42s",
+		"store_file": "/tmp/backups",
+		"database_dsn": "postgres://localhost/db",
+		"restore": false,
+		"trusted_subnet": "127.0.0.0/8"
+	}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	opt := &Options{}
+	if err := opt.ParseConfig(path); err != nil {
+		t.Fatal(err)
+	}
+	if opt.ServerAddress == nil || *opt.ServerAddress != "127.0.0.1:9090" {
+		t.Fatalf("address = %v", opt.ServerAddress)
+	}
+	if opt.BackupStoragePath != "/tmp/backups" {
+		t.Fatalf("backup path %q", opt.BackupStoragePath)
+	}
+	if opt.DNS != "postgres://localhost/db" {
+		t.Fatalf("dsn %q", opt.DNS)
+	}
+	if opt.Restore {
+		t.Fatal("expected restore=false from config")
+	}
+	if opt.TrustedSubnetMask != "127.0.0.0/8" {
+		t.Fatalf("trusted subnet %q", opt.TrustedSubnetMask)
+	}
+}
+
+func TestNewOption_trustedSubnetFlag(t *testing.T) {
+	for _, k := range []string{"ADDRESS", "MODE", "CONFIG", "TRUSTED_SUBNET"} {
+		t.Setenv(k, "")
+	}
+
+	opt, err := NewOption([]string{
+		"-m", common.TypeModeDevelopment,
+		"-t", "10.0.0.0/8",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opt.TrustedSubnetMask != "10.0.0.0/8" {
+		t.Fatalf("trusted subnet %q", opt.TrustedSubnetMask)
+	}
+}
+
+func TestNewOption_allFlags(t *testing.T) {
 	for _, k := range []string{
-		"ADDRESS",
-		"GRPC_ADDRESS",
-		"STORE_INTERVAL",
-		"KEY",
-		"MODE",
-		"STORE_FILE",
-		"DATABASE_DSN",
-		"AUDIT_FILE",
-		"AUDIT_URL",
-		"RESTORE",
-		"CRYPTO_KEY",
-		"CONFIG",
+		"ADDRESS", "STORE_INTERVAL", "KEY", "MODE", "STORE_FILE",
+		"DATABASE_DSN", "AUDIT_FILE", "AUDIT_URL", "RESTORE", "CRYPTO_KEY", "CONFIG",
 	} {
 		t.Setenv(k, "")
 	}
 
-	t.Setenv("ADDRESS", "localhost:8080")
-	t.Setenv("GRPC_ADDRESS", "192.168.0.3:7000")
-
-	optGRPC, err := NewOption(common.ServerGRPC, []string{"-m", common.TypeModeDevelopment})
+	opt, err := NewOption([]string{
+		"-m", common.TypeModeDevelopment,
+		"-a", "127.0.0.1:9090",
+		"-i", "60",
+		"-d", "postgres://localhost/db",
+		"-k", "secret",
+		"-f", "/tmp/backup",
+		"-audit-file", "/tmp/audit",
+		"-audit-url", "http://audit.local",
+		"-crypto-key", "/tmp/key.pem",
+		"-t", "192.168.0.0/16",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if optGRPC.Host != "192.168.0.3" || optGRPC.Port != "7000" {
-		t.Fatalf("grpc mode host:port = %s:%s", optGRPC.Host, optGRPC.Port)
+	if opt.Host != "127.0.0.1" || opt.Port != "9090" {
+		t.Fatalf("addr %s:%s", opt.Host, opt.Port)
 	}
-
-	optHTTP, err := NewOption(common.ServerHTTP, []string{"-m", common.TypeModeDevelopment})
-	if err != nil {
-		t.Fatal(err)
+	if opt.StoreInterval != 60*time.Second {
+		t.Fatalf("interval %v", opt.StoreInterval)
 	}
-	if optHTTP.Host != "localhost" || optHTTP.Port != "8080" {
-		t.Fatalf("http mode host:port = %s:%s", optHTTP.Host, optHTTP.Port)
+	if opt.DNS != "postgres://localhost/db" {
+		t.Fatalf("dsn %q", opt.DNS)
+	}
+	if opt.HashKey == nil || *opt.HashKey != "secret" {
+		t.Fatalf("hash key %v", opt.HashKey)
+	}
+	if opt.BackupStoragePath != "/tmp/backup" {
+		t.Fatalf("backup %q", opt.BackupStoragePath)
+	}
+	if !opt.Restore {
+		t.Fatal("restore should default to true")
+	}
+	if opt.AuditFile != "/tmp/audit" || opt.AuditURL != "http://audit.local" {
+		t.Fatalf("audit cfg")
+	}
+	if opt.CryptoKeyPath != "/tmp/key.pem" {
+		t.Fatalf("crypto %q", opt.CryptoKeyPath)
+	}
+	if opt.TrustedSubnetMask != "192.168.0.0/16" {
+		t.Fatalf("subnet %q", opt.TrustedSubnetMask)
 	}
 }
 
-func TestListenAddressForMode(t *testing.T) {
-	httpAddr := "localhost:8080"
-	grpcAddr := "localhost:9090"
-	opt := &Options{
-		ServerAddress: &httpAddr,
-		GRPCAddress:   &grpcAddr,
+func TestNewConfig_addresses(t *testing.T) {
+	cfg := NewConfig(SchemeHTTP, "localhost", "8080", nil, nil)
+	if cfg.ServerAddr() != "http://localhost:8080" {
+		t.Fatalf("ServerAddr = %q", cfg.ServerAddr())
 	}
+	if cfg.InternalAddr() != "localhost:8080" {
+		t.Fatalf("InternalAddr = %q", cfg.InternalAddr())
+	}
+}
 
-	if got := opt.listenAddressForMode(common.ServerGRPC); got != grpcAddr {
-		t.Fatalf("grpc mode = %q, want %q", got, grpcAddr)
+func TestStringPtrValue(t *testing.T) {
+	if stringPtrValue(nil) != "" {
+		t.Fatal("nil ptr")
 	}
-	if got := opt.listenAddressForMode(common.ServerHTTP); got != httpAddr {
-		t.Fatalf("http mode = %q, want %q", got, httpAddr)
+	s := "value"
+	if stringPtrValue(&s) != "value" {
+		t.Fatal("value mismatch")
+	}
+}
+
+func TestParseConfigPath_fromEnv(t *testing.T) {
+	t.Setenv("CONFIG", "/etc/metrics.json")
+	path, err := parseConfigPath(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != "/etc/metrics.json" {
+		t.Fatalf("path = %q", path)
+	}
+}
+
+func TestNewOption_invalidMode(t *testing.T) {
+	for _, k := range []string{"ADDRESS", "MODE", "CONFIG"} {
+		t.Setenv(k, "")
+	}
+	_, err := NewOption([]string{"-m", "staging"})
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }

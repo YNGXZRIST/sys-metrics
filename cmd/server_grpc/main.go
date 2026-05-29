@@ -8,8 +8,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sys-metrics/internal/Interceptors"
 	"sys-metrics/internal/app"
-	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/grpchandler"
@@ -56,7 +56,7 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) (*AppGRPC, error) {
-	o, err := server.NewOption(common.ServerGRPC, args)
+	o, err := server.NewOption(args)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("PARSE", fmt.Errorf("error parsing flags: %w", err))
 	}
@@ -88,8 +88,10 @@ func initGRPCApp(ctx context.Context, o *server.Options) (*AppGRPC, error) {
 		return nil, labelerrors.NewLabelError("BOOTSTRAP", fmt.Errorf("error bootstrapping: %w", err))
 	}
 
-	srv := grpc.NewServer()
-	metricServer := &grpchandler.MetricServer{}
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(Interceptors.UnaryServerXRealIPInterceptor(baseApp.IpNet)),
+	)
+	metricServer := grpchandler.NewMetricServer(baseApp.MetricsService, baseApp.Logger)
 	pb.RegisterMetricsServer(srv, metricServer)
 
 	shutdownGRPC := &app.ShutdownGRPCServer{Server: srv}
