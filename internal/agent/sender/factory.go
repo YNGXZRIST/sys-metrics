@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type SenderConfig struct {
+type Config struct {
 	Transport        string
 	ServerURL        string
 	Endpoint         string
@@ -18,7 +18,7 @@ type SenderConfig struct {
 	RequestEncryptor *secure.RequestEncryptor
 }
 
-func NewMetricsSender(cfg SenderConfig) (MetricsSender, error) {
+func NewMetricsSender(cfg Config) (MetricsSender, error) {
 
 	switch cfg.Transport {
 	case common.ReportTransportGRPC:
@@ -38,7 +38,7 @@ func NewMetricsSender(cfg SenderConfig) (MetricsSender, error) {
 	}
 }
 
-func depsFrom(cfg SenderConfig) senderDeps {
+func depsFrom(cfg Config) senderDeps {
 	return senderDeps{
 		logger:    cfg.Logger,
 		localIPv4: cfg.LocalIPv4,

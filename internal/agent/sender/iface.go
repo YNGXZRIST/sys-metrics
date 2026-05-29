@@ -1,3 +1,4 @@
+// Package sender implements HTTP and gRPC delivery of metric batches from the agent to the server.
 package sender
 
 import (

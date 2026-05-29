@@ -1,3 +1,4 @@
+// Package Interceptors provides gRPC unary interceptors for client and server metadata (x-real-ip, trusted subnet).
 package Interceptors
 
 import (

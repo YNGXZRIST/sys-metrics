@@ -50,7 +50,7 @@ func testLogger() *zap.Logger {
 }
 
 func TestNewMetricsSender_http(t *testing.T) {
-	s, err := NewMetricsSender(SenderConfig{
+	s, err := NewMetricsSender(Config{
 		Transport: common.ReportTransportHTTP,
 		ServerURL: "http://127.0.0.1:8080",
 		Logger:    testLogger(),
@@ -67,7 +67,7 @@ func TestNewMetricsSender_grpc(t *testing.T) {
 	addr, stop := startTestGRPCServer(t)
 	defer stop()
 
-	s, err := NewMetricsSender(SenderConfig{
+	s, err := NewMetricsSender(Config{
 		Transport: common.ReportTransportGRPC,
 		Endpoint:  addr,
 		Logger:    testLogger(),

@@ -1,3 +1,4 @@
+// Package grpchandler implements the gRPC Metrics service (UpdateMetrics) on top of MetricService.
 package grpchandler
 
 import (

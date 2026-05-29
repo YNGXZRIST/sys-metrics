@@ -47,8 +47,8 @@ func NewAgent(cfg *agent.Config, ctx context.Context) (*Agent, error) {
 	}, nil
 }
 
-func senderConfigFrom(cfg *agent.Config) sender.SenderConfig {
-	return sender.SenderConfig{
+func senderConfigFrom(cfg *agent.Config) sender.Config {
+	return sender.Config{
 		Transport:        cfg.ReportTransport,
 		ServerURL:        cfg.ServerAddr,
 		Endpoint:         cfg.ServerEndpoint,

@@ -112,6 +112,9 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	}
 	agentCfg := config.NewConfig(initProp)
 	a, err := agent.NewAgent(agentCfg, ctx)
+	if err != nil {
+		return nil, err
+	}
 	return a, nil
 }
 func getAgentLocalIpV4() (string, error) {

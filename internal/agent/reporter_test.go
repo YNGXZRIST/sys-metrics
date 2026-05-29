@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewMetricsSender(t *testing.T) {
-	s, err := sender.NewMetricsSender(sender.SenderConfig{
+	s, err := sender.NewMetricsSender(sender.Config{
 		Transport: common.ReportTransportHTTP,
 		ServerURL: testServer.URL,
 		Logger:    zap.NewExample(),

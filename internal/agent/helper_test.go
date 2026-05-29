@@ -14,13 +14,13 @@ var testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,
 	w.Write([]byte(`OK`))
 }))
 
-var testSender = mustNewSender(sender.SenderConfig{
+var testSender = mustNewSender(sender.Config{
 	Transport: common.ReportTransportHTTP,
 	ServerURL: testServer.URL,
 	Logger:    zap.NewNop(),
 })
 
-func mustNewSender(cfg sender.SenderConfig) sender.MetricsSender {
+func mustNewSender(cfg sender.Config) sender.MetricsSender {
 	s, err := sender.NewMetricsSender(cfg)
 	if err != nil {
 		panic(err)
