@@ -21,8 +21,7 @@
 ```
 
 - **Агент** — фоновый процесс на машине-источнике. Раз в несколько секунд собирает метрики и раз в N секунд отправляет пачку на сервер.
-- **HTTP-сервер** (`cmd/server`) — REST API: обновление одной метрики, батч, получение значений, HTML-страница со списком.
-- **gRPC-сервер** (`cmd/server_grpc`) — тот же функционал сохранения, но через protobuf. Адрес тот же формат `host:port`, что и у HTTP-сервера.
+- **Сервер** (`cmd/server`) — один процесс: HTTP (REST API) и gRPC (protobuf) на разных портах.
 - **Хранилище** — по умолчанию в памяти; опционально файл-бэкап или PostgreSQL (через `DATABASE_DSN`).
 
 ## Быстрый старт
@@ -33,43 +32,29 @@
 make build
 ```
 
-Собираются `cmd/server/server` и `cmd/agent/agent`. gRPC-сервер отдельно:
-
-```bash
-go build -o cmd/server_grpc/server_grpc ./cmd/server_grpc
-```
+Собираются `cmd/server/server` и `cmd/agent/agent`.
 
 ### Запуск (самый простой сценарий)
 
-Терминал 1 — HTTP-сервер:
+Терминал 1 — сервер (HTTP + gRPC):
 
 ```bash
-./cmd/server/server -a localhost:8080 -m development
+./cmd/server/server -a localhost:8080 -a-grpc localhost:9090 -m development
 ```
 
-Терминал 2 — агент (отправка по HTTP):
+Терминал 2 — агент (HTTP):
 
 ```bash
 ./cmd/agent/agent -a localhost:8080 -m development
 ```
 
-Сервер слушает `http://localhost:8080`, агент шлёт метрики на `/updates`.
-
-### gRPC
-
-Терминал 1:
-
-```bash
-./cmd/server_grpc/server_grpc -a localhost:9090 -m development
-```
-
-Терминал 2:
+Или агент с gRPC (указываешь адрес gRPC-порта):
 
 ```bash
 ./cmd/agent/agent -a localhost:9090 -report-transport grpc -m development
 ```
 
-Один и тот же флаг `-a` / переменная `ADDRESS` задаёт адрес сервера — и для HTTP, и для gRPC.
+По умолчанию, если `-a-grpc` не задан: gRPC слушает тот же host, порт `9090`.
 
 ## Настройка
 
@@ -79,7 +64,8 @@ go build -o cmd/server_grpc/server_grpc ./cmd/server_grpc
 
 | Флаг | Переменная | По умолчанию | Зачем |
 |------|------------|--------------|-------|
-| `-a` | `ADDRESS` | `localhost:8080` | Адрес `host:port` |
+| `-a` | `ADDRESS` | `localhost:8080` | HTTP: `host:port` |
+| `-a-grpc` | `ADDRESS_GRPC` | `localhost:9090` | gRPC: `host:port` (host как у HTTP, если не задан) |
 | `-m` | `MODE` | `production` | `development` — подробные логи |
 | `-i` | `STORE_INTERVAL` | `300` | Интервал сброса на диск (сек) |
 | `-f` | `STORE_FILE` | `./backups` | Путь к файлу бэкапа |
@@ -119,8 +105,8 @@ go build -o cmd/server_grpc/server_grpc ./cmd/server_grpc
 sys-metrics/
 ├── cmd/                    # Точки входа — исполняемые программы
 │   ├── agent/              # Агент сбора метрик
-│   ├── server/             # HTTP-сервер
-│   ├── server_grpc/        # gRPC-сервер
+│   ├── server/             # HTTP + gRPC в одном процессе
+│   ├── server_grpc/        # устарело, используй cmd/server
 │   ├── keygenerator/       # Утилита генерации RSA-ключей
 │   └── ...
 │

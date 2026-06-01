@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"sys-metrics/internal/app"
+	"sys-metrics/internal/authenticate"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/handler"
@@ -26,28 +27,17 @@ func TestRun_invalidAddress(t *testing.T) {
 	}
 }
 
-func TestInitAuthenticator_nilKey(t *testing.T) {
-	a := initAuthenticator(&server.Options{})
-	if a != nil {
-		t.Fatalf("want nil authenticator, got %T", a)
-	}
-}
-
-func TestInitAuthenticator_withKey(t *testing.T) {
-	k := "secret"
-	a := initAuthenticator(&server.Options{HashKey: &k})
-	if a == nil {
-		t.Fatal("expected authenticator")
-	}
-}
-
 func bootstrapForHandlerTest(t *testing.T) *app.App {
 	t.Helper()
-	a, err := app.Bootstrap(context.Background(), &app.Option{
+	a, err := app.Bootstrap(context.Background(), &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
 		Restore:           false,
+		Host:              "localhost",
+		Port:              "8080",
+		HostGRPC:          "localhost",
+		PortGRPC:          "9090",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -62,14 +52,14 @@ func TestInitHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := handler.NewHandler(handler.InitProperties{
-		Logger:           base.Logger,
+		Logger:           base.Logger(),
 		RequestDecryptor: dec,
 		MetricService:    serviceMetrics.NewService(nil),
 	})
 	if h == nil {
 		t.Fatal("nil handler")
 	}
-	_ = base.Logger.Sync()
+	_ = base.Logger().Sync()
 }
 
 func TestInitHandler_withAuthenticator(t *testing.T) {
@@ -80,15 +70,23 @@ func TestInitHandler_withAuthenticator(t *testing.T) {
 	}
 	k := "secret"
 	h := handler.NewHandler(handler.InitProperties{
-		Logger:           base.Logger,
-		Authenticator:    initAuthenticator(&server.Options{HashKey: &k}),
+		Logger:           base.Logger(),
+		Authenticator:    testAuthenticator(&server.Options{HashKey: &k}),
 		RequestDecryptor: dec,
 		MetricService:    serviceMetrics.NewService(nil),
 	})
 	if h == nil || h.Authenticator == nil {
 		t.Fatal("expected handler with auth")
 	}
-	_ = base.Logger.Sync()
+	_ = base.Logger().Sync()
+}
+
+func testAuthenticator(o *server.Options) authenticate.Authenticator {
+	sha := authenticate.NewSha256(o.HashKey)
+	if sha != nil {
+		return sha
+	}
+	return nil
 }
 
 func TestRun_development(t *testing.T) {
@@ -99,11 +97,8 @@ func TestRun_development(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a == nil || a.App == nil || a.h == nil {
-		t.Fatal("expected initialized HTTP app")
+	if a == nil {
+		t.Fatal("expected initialized app")
 	}
-	if srv, ok := a.App.Server.(interface{ Shutdown(context.Context) error }); ok {
-		_ = srv.Shutdown(context.Background())
-	}
-	_ = a.App.Service.Close(context.Background())
+	_ = a.Close(context.Background())
 }

@@ -14,13 +14,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-func testApp(t *testing.T, opt *Option) *App {
+func testApp(t *testing.T, opts *server.Options) *App {
 	t.Helper()
-	return &App{option: opt}
+	return &App{opts: opts}
 }
 
 func TestInitDB_emptyDSN(t *testing.T) {
-	a := testApp(t, &Option{DNS: ""})
+	a := testApp(t, &server.Options{DNS: ""})
 	_, err := a.initDB()
 	if err == nil || !strings.Contains(err.Error(), "not set") {
 		t.Fatalf("initDB: %v", err)
@@ -28,16 +28,16 @@ func TestInitDB_emptyDSN(t *testing.T) {
 }
 
 func TestIsDSNSet(t *testing.T) {
-	if testApp(t, &Option{DNS: "postgres://x"}).isDSNSet() != true {
+	if testApp(t, &server.Options{DNS: "postgres://x"}).isDSNSet() != true {
 		t.Fatal()
 	}
-	if testApp(t, &Option{}).isDSNSet() {
+	if testApp(t, &server.Options{}).isDSNSet() {
 		t.Fatal()
 	}
 }
 
 func TestInitLogger(t *testing.T) {
-	a := testApp(t, &Option{Mode: common.TypeModeDevelopment})
+	a := testApp(t, &server.Options{Mode: common.TypeModeDevelopment})
 	lg, err := a.initLogger()
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ func TestInitLogger(t *testing.T) {
 }
 
 func TestInitBackupConfig(t *testing.T) {
-	a := testApp(t, &Option{
+	a := testApp(t, &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
@@ -62,7 +62,7 @@ func TestInitBackupConfig(t *testing.T) {
 }
 
 func TestInitStorage_memory(t *testing.T) {
-	a := testApp(t, &Option{
+	a := testApp(t, &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		DNS:               "",
 		Restore:           false,
@@ -72,20 +72,20 @@ func TestInitStorage_memory(t *testing.T) {
 	if err := a.initStorage(); err != nil {
 		t.Fatal(err)
 	}
-	if a.DB != nil {
+	if a.db != nil {
 		t.Fatal("expected no DB conn")
 	}
 	if a.needRestore {
 		t.Fatal("expected no restore flag")
 	}
-	if a.Service == nil {
+	if a.service == nil {
 		t.Fatal("nil service")
 	}
-	_ = a.Service.Close(context.Background())
+	_ = a.service.Close(context.Background())
 }
 
 func TestInitStorage_fileBackup(t *testing.T) {
-	a := testApp(t, &Option{
+	a := testApp(t, &server.Options{
 		Mode:              common.TypeModeTest,
 		DNS:               "",
 		Restore:           true,
@@ -95,13 +95,13 @@ func TestInitStorage_fileBackup(t *testing.T) {
 	if err := a.initStorage(); err != nil {
 		t.Fatal(err)
 	}
-	defer a.BackupConfig.Cleanup()
-	defer a.Service.Close(context.Background())
+	defer a.backupConfig.Cleanup()
+	defer a.service.Close(context.Background())
 
-	if a.DB != nil {
+	if a.db != nil {
 		t.Fatal("expected no DB conn")
 	}
-	if a.BackupConfig == nil {
+	if a.backupConfig == nil {
 		t.Fatal("expected backup config")
 	}
 	if !a.needRestore {
@@ -118,8 +118,8 @@ func (readBackupFailSvc) ReadBackup(context.Context) error {
 }
 
 func TestRestoreFromBackup_error(t *testing.T) {
-	a := testApp(t, &Option{})
-	a.Service = &readBackupFailSvc{Service: memory.NewService()}
+	a := testApp(t, &server.Options{})
+	a.service = &readBackupFailSvc{Service: memory.NewService()}
 	err := a.restoreFromBackup(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "read backup") {
 		t.Fatalf("err = %v", err)
@@ -133,15 +133,15 @@ func TestIsDatabaseConnected_nil(t *testing.T) {
 }
 
 func TestRestoreFromBackup_memory(t *testing.T) {
-	a := testApp(t, &Option{})
-	a.Service = memory.NewService()
+	a := testApp(t, &server.Options{})
+	a.service = memory.NewService()
 	if err := a.restoreFromBackup(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestStartBackupRoutine_memory(t *testing.T) {
-	a := testApp(t, &Option{Mode: common.TypeModeDevelopment})
+	a := testApp(t, &server.Options{Mode: common.TypeModeDevelopment})
 	lg, err := a.initLogger()
 	if err != nil {
 		t.Fatal(err)
@@ -156,7 +156,7 @@ func TestStartBackupRoutine_memory(t *testing.T) {
 
 func TestAppClose(t *testing.T) {
 	app := &App{
-		Service: memory.NewService(),
+		service: memory.NewService(),
 	}
 
 	if err := app.Close(context.Background()); err != nil {
@@ -165,7 +165,7 @@ func TestAppClose(t *testing.T) {
 }
 
 func TestInitMetricsObserver(t *testing.T) {
-	a := testApp(t, &Option{Mode: common.TypeModeDevelopment})
+	a := testApp(t, &server.Options{Mode: common.TypeModeDevelopment})
 	obs, err := a.initMetricsObserver(context.Background())
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +179,7 @@ func TestBootstrap_memory(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	o := &Option{
+	o := &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
@@ -189,39 +189,18 @@ func TestBootstrap_memory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a.MetricsService == nil {
+	if a.metricsService == nil {
 		t.Fatal("nil MetricsService")
 	}
-	if a.Logger == nil {
+	if a.logger == nil {
 		t.Fatal("nil Logger")
 	}
 	_ = a.Close(context.Background())
 }
 
-func TestOptionFromServer(t *testing.T) {
-	hash := "key"
-	addr := "localhost:8080"
-	o := &server.Options{
-		Mode:              common.TypeModeDevelopment,
-		ServerAddress:     &addr,
-		HashKey:           &hash,
-		BackupStoragePath: "/tmp/backups",
-		DNS:               "postgres://x",
-		AuditFile:         "/tmp/audit",
-		AuditURL:          "http://audit",
-		Restore:           false,
-		TrustedSubnetMask: "127.0.0.0/8",
-		StoreInterval:     time.Minute,
-	}
-	opt := OptionFromServer(o)
-	if opt.Mode != o.Mode || opt.DNS != o.DNS || opt.TrustedSubnetMask != o.TrustedSubnetMask {
-		t.Fatalf("opt = %+v", opt)
-	}
-}
-
 func TestBootstrap_trustedSubnet(t *testing.T) {
 	ctx := context.Background()
-	a, err := Bootstrap(ctx, &Option{
+	a, err := Bootstrap(ctx, &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
@@ -231,7 +210,7 @@ func TestBootstrap_trustedSubnet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a.IpNet == nil {
+	if a.ipNet == nil {
 		t.Fatal("expected IpNet")
 	}
 	_ = a.Close(ctx)
@@ -239,46 +218,37 @@ func TestBootstrap_trustedSubnet(t *testing.T) {
 
 func TestShutdownGRPCServer(t *testing.T) {
 	srv := grpc.NewServer()
-	w := &ShutdownGRPCServer{Server: srv}
+	w := &shutdownGRPCServer{server: srv}
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() { _ = w.ListenAndServe(lis) }()
-	if err := w.Shutdown(context.Background()); err != nil {
+	go func() { _ = srv.Serve(lis) }()
+	if err := w.shutdown(context.Background()); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestAsGRPCServer(t *testing.T) {
-	srv := grpc.NewServer()
-	app := &App{Server: &ShutdownGRPCServer{Server: srv}}
-	got, ok := app.AsGRPCServer()
-	if !ok || got == nil {
-		t.Fatal("expected GRPCServer")
 	}
 }
 
 func TestBootstrap_withAuditFile(t *testing.T) {
 	ctx := context.Background()
-	a, err := Bootstrap(ctx, &Option{
+	a, err := Bootstrap(ctx, &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
 		Restore:           false,
-		AuditFilePath:     t.TempDir() + "/audit.json",
+		AuditFile:         t.TempDir() + "/audit.json",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if a.MetricsService == nil {
+	if a.metricsService == nil {
 		t.Fatal("expected metrics service")
 	}
-	_ = a.Service.Close(ctx)
+	_ = a.service.Close(ctx)
 }
 
 func TestInitStorage_invalidDSN(t *testing.T) {
-	a := testApp(t, &Option{
+	a := testApp(t, &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		DNS:               "postgres://127.0.0.1:1/nodb?sslmode=disable&connect_timeout=1",
 		BackupStoragePath: t.TempDir(),
@@ -290,7 +260,7 @@ func TestInitStorage_invalidDSN(t *testing.T) {
 }
 
 func TestBootstrap_invalidTrustedSubnet(t *testing.T) {
-	_, err := Bootstrap(context.Background(), &Option{
+	_, err := Bootstrap(context.Background(), &server.Options{
 		Mode:              common.TypeModeDevelopment,
 		BackupStoragePath: t.TempDir(),
 		StoreInterval:     time.Minute,
@@ -302,8 +272,21 @@ func TestBootstrap_invalidTrustedSubnet(t *testing.T) {
 	}
 }
 
+func TestInitAuthenticator_nilKey(t *testing.T) {
+	if initAuthenticator(&server.Options{}) != nil {
+		t.Fatal("expected nil authenticator")
+	}
+}
+
+func TestInitAuthenticator_withKey(t *testing.T) {
+	k := "secret"
+	if initAuthenticator(&server.Options{HashKey: &k}) == nil {
+		t.Fatal("expected authenticator")
+	}
+}
+
 func TestParseTrustedSubnet_invalid(t *testing.T) {
-	a := testApp(t, &Option{TrustedSubnetMask: "not-a-cidr"})
+	a := testApp(t, &server.Options{TrustedSubnetMask: "not-a-cidr"})
 	if _, err := a.parseTrustedSubnet(); err == nil {
 		t.Fatal("expected error")
 	}

@@ -21,6 +21,9 @@ type Config struct {
 // DefaultPort is the default HTTP listen port.
 const DefaultPort = "8080"
 
+// DefaultGRPCPort is the default gRPC listen port.
+const DefaultGRPCPort = "9090"
+
 // DefaultHost is the default listen host.
 const DefaultHost = "localhost"
 

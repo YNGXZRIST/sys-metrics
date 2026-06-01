@@ -185,8 +185,8 @@ func TestParseConfig(t *testing.T) {
 	if err := opt.ParseConfig(path); err != nil {
 		t.Fatal(err)
 	}
-	if opt.ServerAddress == nil || *opt.ServerAddress != "127.0.0.1:9090" {
-		t.Fatalf("address = %v", opt.ServerAddress)
+	if opt.ServerAddressHTTP == nil || *opt.ServerAddressHTTP != "127.0.0.1:9090" {
+		t.Fatalf("address = %v", opt.ServerAddressHTTP)
 	}
 	if opt.BackupStoragePath != "/tmp/backups" {
 		t.Fatalf("backup path %q", opt.BackupStoragePath)
@@ -229,7 +229,8 @@ func TestNewOption_allFlags(t *testing.T) {
 
 	opt, err := NewOption([]string{
 		"-m", common.TypeModeDevelopment,
-		"-a", "127.0.0.1:9090",
+		"-a", "127.0.0.1:8080",
+		"-a-grpc", "127.0.0.1:9090",
 		"-i", "60",
 		"-d", "postgres://localhost/db",
 		"-k", "secret",
@@ -242,8 +243,11 @@ func TestNewOption_allFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if opt.Host != "127.0.0.1" || opt.Port != "9090" {
-		t.Fatalf("addr %s:%s", opt.Host, opt.Port)
+	if opt.Host != "127.0.0.1" || opt.Port != "8080" {
+		t.Fatalf("http addr %s:%s", opt.Host, opt.Port)
+	}
+	if opt.HostGRPC != "127.0.0.1" || opt.PortGRPC != "9090" {
+		t.Fatalf("grpc addr %s:%s", opt.HostGRPC, opt.PortGRPC)
 	}
 	if opt.StoreInterval != 60*time.Second {
 		t.Fatalf("interval %v", opt.StoreInterval)

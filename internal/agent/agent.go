@@ -10,7 +10,6 @@ import (
 	"sys-metrics/internal/config/agent"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/timeerrors"
-	"sys-metrics/internal/model/metrics"
 	"sys-metrics/pkg/workerpool"
 	"time"
 
@@ -59,18 +58,6 @@ func senderConfigFrom(cfg *agent.Config) sender.Config {
 	}
 }
 
-func metricsFromCollector(c *Collector) []*metrics.Metrics {
-
-	out := make([]*metrics.Metrics, 0, len(c.Gauges)+len(c.Counters))
-	for _, m := range c.Gauges {
-		out = append(out, &m.Metrics)
-	}
-	for _, m := range c.Counters {
-		out = append(out, &m.Metrics)
-	}
-	return out
-}
-
 // StartReport calls Report on every ReportInterval tick until the context is canceled.
 func (a *Agent) StartReport(ctx context.Context) {
 	err := a.Report(ctx)
@@ -117,7 +104,7 @@ func (a *Agent) StartPoll(ctx context.Context) {
 // Report asynchronously sends buffered metrics to the server and resets the poll counter.
 func (a *Agent) Report(ctx context.Context) error {
 	task := workerpool.NewTask(func(x any) (any, error) {
-		err := a.sender.SendBatch(ctx, metricsFromCollector(a.collector))
+		err := a.sender.SendBatch(ctx, a.collector.CollectAll())
 		if err != nil {
 			return nil, timeerrors.NewTimeError(labelerrors.NewLabelError("REPORTER", fmt.Errorf("reporter send error: %w", err)))
 		}

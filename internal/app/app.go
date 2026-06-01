@@ -19,48 +19,13 @@ import (
 	"sys-metrics/internal/repository/postgres"
 	mServ "sys-metrics/internal/service/metrics"
 	"sys-metrics/migrations"
-	"time"
 
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 // Shutdowner stops the network transport gracefully using ctx as a deadline.
-type Shutdowner interface {
-	Shutdown(ctx context.Context) error
-}
-
-// ShutdownGRPCServer wraps grpc.Server for app.Shutdowner and GRPCServer.
-type ShutdownGRPCServer struct {
-	Server *grpc.Server
-}
-
-// GRPCServer is a gRPC transport: listen on a port and shut down gracefully.
-type GRPCServer interface {
-	Shutdowner
-	ListenAndServe(net.Listener) error
-}
-
-// Shutdown calls GracefulStop on the underlying gRPC server.
-func (s *ShutdownGRPCServer) Shutdown(_ context.Context) error {
-	s.Server.GracefulStop()
-	return nil
-}
-
-// ListenAndServe blocks serving gRPC on listen until the server stops.
-func (s *ShutdownGRPCServer) ListenAndServe(listen net.Listener) error {
-	return s.Server.Serve(listen)
-}
-
-var _ GRPCServer = (*ShutdownGRPCServer)(nil)
-
-// AsGRPCServer returns App.Server when it implements GRPCServer (for ListenAndServe).
-func (a *App) AsGRPCServer() (GRPCServer, bool) {
-	if a == nil || a.Server == nil {
-		return nil, false
-	}
-	s, ok := a.Server.(GRPCServer)
-	return s, ok
+type shutdowner interface {
+	shutdown(ctx context.Context) error
 }
 
 type dbCloser interface {
@@ -71,42 +36,36 @@ var _ dbCloser = (*db.DB)(nil)
 
 // App holds runtime dependencies shared by HTTP and gRPC servers.
 type App struct {
-	Server         Shutdowner
-	DB             *db.DB
-	Service        metricsiface.ServiceInterface
-	Logger         *zap.Logger
-	BackupConfig   *file.Config
-	MetricsService *mServ.MetricService
-	IpNet          *net.IPNet
-	option         *Option
+	serverHTTP
+	serverGRPC     shutdownGRPCServer
+	db             *db.DB
+	service        metricsiface.ServiceInterface
+	logger         *zap.Logger
+	backupConfig   *file.Config
+	metricsService *mServ.MetricService
+	ipNet          *net.IPNet
+	opts           *server.Options
 	needRestore    bool
 }
 
-// Option holds bootstrap settings for app (mapped from server.Options).
-type Option struct {
-	AuditFilePath     string
-	AuditURL          string
-	Mode              string
-	TrustedSubnetMask string
-	DNS               string
-	BackupStoragePath string
-	StoreInterval     time.Duration
-	Restore           bool
+// Logger returns the application logger (for tests and diagnostics).
+func (a *App) Logger() *zap.Logger {
+	return a.logger
 }
 
 // Bootstrap initializes logger, metrics storage, optional restore, backup routine, and MetricService.
-func Bootstrap(ctx context.Context, o *Option) (*App, error) {
-	if o == nil {
-		return nil, fmt.Errorf("bootstrap: nil option")
+func Bootstrap(ctx context.Context, opts *server.Options) (*App, error) {
+	if opts == nil {
+		return nil, fmt.Errorf("bootstrap: nil options")
 	}
 
-	a := &App{option: o}
+	a := &App{opts: opts}
 
 	logger, err := a.initLogger()
 	if err != nil {
 		return nil, err
 	}
-	a.Logger = logger
+	a.logger = logger
 
 	if errStorage := a.initStorage(); errStorage != nil {
 		return nil, errStorage
@@ -116,9 +75,9 @@ func Bootstrap(ctx context.Context, o *Option) (*App, error) {
 	if errNet != nil {
 		return nil, errNet
 	}
-	a.IpNet = ipNet
+	a.ipNet = ipNet
 
-	metrics.Init(a.Service)
+	metrics.Init(a.service)
 
 	if a.needRestore {
 		if err := a.restoreFromBackup(ctx); err != nil {
@@ -126,46 +85,64 @@ func Bootstrap(ctx context.Context, o *Option) (*App, error) {
 		}
 	}
 
-	startBackupRoutine(ctx, a.Service, logger)
+	startBackupRoutine(ctx, a.service, logger)
 
 	metricsObserver, err := a.initMetricsObserver(ctx)
 	if err != nil {
 		return nil, err
 	}
-	a.MetricsService = mServ.NewService(metricsObserver)
+	a.metricsService = mServ.NewService(metricsObserver)
 
 	return a, nil
+}
+
+// StartServers starts HTTP and gRPC listeners.
+func (a *App) StartServers() error {
+	if err := a.startHTTP(); err != nil {
+		return err
+	}
+	if err := a.startGRPC(); err != nil {
+		return err
+	}
+
+	a.logger.Info("servers started",
+		zap.String(common.ReportTransportHTTP, net.JoinHostPort(a.opts.Host, a.opts.Port)),
+		zap.String(common.ReportTransportGRPC, a.opts.GRPCInternalAddr()),
+	)
+
+	return nil
 }
 
 // Close shuts down transport, storage, DB, backup config, and syncs the logger.
 func (a *App) Close(ctx context.Context) error {
 	var errs []error
-	if a.Server != nil {
-		if err := a.Server.Shutdown(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown server: %w", err))
-		}
+	if err := a.serverHTTP.shutdown(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("shutdown http server: %w", err))
+	}
+	if err := a.serverGRPC.shutdown(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("shutdown grpc server: %w", err))
 	}
 
-	if a.Service != nil {
-		if err := a.Service.Close(ctx); err != nil {
+	if a.service != nil {
+		if err := a.service.Close(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("close service: %w", err))
 		}
 	}
 
-	if a.DB != nil {
-		if err := a.DB.Close(); err != nil {
+	if a.db != nil {
+		if err := a.db.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("close database: %w", err))
 		}
 	}
 
-	if a.BackupConfig != nil {
-		if err := a.BackupConfig.Close(); err != nil {
+	if a.backupConfig != nil {
+		if err := a.backupConfig.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("close backup config: %w", err))
 		}
 	}
 
-	if a.Logger != nil {
-		if err := a.Logger.Sync(); err != nil {
+	if a.logger != nil {
+		if err := a.logger.Sync(); err != nil {
 			errs = append(errs, fmt.Errorf("sync logger: %w", err))
 		}
 	}
@@ -173,25 +150,11 @@ func (a *App) Close(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// OptionFromServer maps server CLI/env options to app.Option.
-func OptionFromServer(o *server.Options) *Option {
-	return &Option{
-		AuditFilePath:     o.AuditFile,
-		AuditURL:          o.AuditURL,
-		Mode:              o.Mode,
-		TrustedSubnetMask: o.TrustedSubnetMask,
-		DNS:               o.DNS,
-		BackupStoragePath: o.BackupStoragePath,
-		StoreInterval:     o.StoreInterval,
-		Restore:           o.Restore,
-	}
-}
-
 func (a *App) initMetricsObserver(ctx context.Context) (*observer.MetricsObserver, error) {
 	cfg := observer.MetricObserverConfig{
-		FilePath:  a.option.AuditFilePath,
-		URL:       a.option.AuditURL,
-		Mode:      a.option.Mode,
+		FilePath:  a.opts.AuditFile,
+		URL:       a.opts.AuditURL,
+		Mode:      a.opts.Mode,
 		RateLimit: 1,
 	}
 
@@ -208,10 +171,10 @@ func (a *App) initMetricsObserver(ctx context.Context) (*observer.MetricsObserve
 }
 
 func (a *App) parseTrustedSubnet() (*net.IPNet, error) {
-	if a.option.TrustedSubnetMask == "" {
+	if a.opts.TrustedSubnetMask == "" {
 		return nil, nil
 	}
-	_, ipNet, err := net.ParseCIDR(a.option.TrustedSubnetMask)
+	_, ipNet, err := net.ParseCIDR(a.opts.TrustedSubnetMask)
 	return ipNet, err
 }
 
@@ -231,10 +194,10 @@ func startBackupRoutine(
 }
 
 func (a *App) restoreFromBackup(ctx context.Context) error {
-	if a.Service == nil {
+	if a.service == nil {
 		return nil
 	}
-	if err := a.Service.ReadBackup(ctx); err != nil {
+	if err := a.service.ReadBackup(ctx); err != nil {
 		return labelerrors.NewLabelError(
 			"INIT BACKUP",
 			fmt.Errorf("error reading backup: %w", err),
@@ -245,13 +208,13 @@ func (a *App) restoreFromBackup(ctx context.Context) error {
 }
 
 func (a *App) initStorage() error {
-	a.Service = nil
-	a.DB = nil
-	a.BackupConfig = nil
+	a.service = nil
+	a.db = nil
+	a.backupConfig = nil
 	a.needRestore = false
 
 	if a.isDSNSet() {
-		if err := migrations.Migrate(a.option.DNS); err != nil {
+		if err := migrations.Migrate(a.opts.DNS); err != nil {
 			return labelerrors.NewLabelError(
 				"MIGRATE",
 				fmt.Errorf("error initializing database connection: %w", err),
@@ -267,8 +230,8 @@ func (a *App) initStorage() error {
 		}
 
 		if isDatabaseConnected(conn) {
-			a.Service = postgres.NewMetricStorage(conn)
-			a.DB = conn
+			a.service = postgres.NewMetricStorage(conn)
+			a.db = conn
 			a.needRestore = true
 			return nil
 		}
@@ -292,18 +255,18 @@ func (a *App) initStorage() error {
 			)
 		}
 
-		a.Service = file.NewBackupService(backupStorage)
-		a.BackupConfig = backupConfig
+		a.service = file.NewBackupService(backupStorage)
+		a.backupConfig = backupConfig
 		a.needRestore = true
 		return nil
 	}
 
-	a.Service = memory.NewService()
+	a.service = memory.NewService()
 	return nil
 }
 
 func (a *App) initLogger() (*zap.Logger, error) {
-	logger, err := lgr.Initialize(a.option.Mode, common.TypeServer)
+	logger, err := lgr.Initialize(a.opts.Mode, common.TypeServer)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("LOGGER", fmt.Errorf("error initializing logger: %w", err))
 	}
@@ -312,21 +275,21 @@ func (a *App) initLogger() (*zap.Logger, error) {
 }
 
 func (a *App) isDSNSet() bool {
-	return a.option.DNS != ""
+	return a.opts.DNS != ""
 }
 
 func (a *App) initDB() (*db.DB, error) {
-	cfg := db.NewCfg(&db.Config{DNS: a.option.DNS})
+	cfg := db.NewCfg(&db.Config{DNS: a.opts.DNS})
 
 	return db.NewConn(cfg)
 }
 
 func (a *App) initBackupConfig() (*file.Config, error) {
 	return file.NewConfig(
-		a.option.Mode,
-		a.option.BackupStoragePath,
-		a.option.StoreInterval,
-		a.option.Restore,
+		a.opts.Mode,
+		a.opts.BackupStoragePath,
+		a.opts.StoreInterval,
+		a.opts.Restore,
 	)
 }
 

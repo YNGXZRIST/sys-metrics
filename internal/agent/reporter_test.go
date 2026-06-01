@@ -58,7 +58,7 @@ func TestSender_SendBatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			collector := tt.setup()
-			err := testSender.SendBatch(context.Background(), metricsFromCollector(collector))
+			err := testSender.SendBatch(context.Background(), collector.CollectAll())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SendBatch() error = %v, wantErr %v", err, tt.wantErr)
 			}
