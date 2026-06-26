@@ -8,40 +8,45 @@ import (
 )
 
 func TestNewConfig(t *testing.T) {
-	type args struct {
-		logger         *zap.Logger
-		serverAddr     string
-		pollInterval   time.Duration
-		reportInterval time.Duration
-	}
+	logger := zap.NewExample()
 	tests := []struct {
 		name string
-		args args
+		in   InitProperties
 	}{
 		{
-			name: "default",
-			args: args{
-				pollInterval:   10 * time.Millisecond,
-				reportInterval: 10 * time.Millisecond,
-				serverAddr:     "localhost",
-				logger:         zap.NewExample(),
+			name: "embeds_init_properties",
+			in: InitProperties{
+				PollInterval:   10 * time.Millisecond,
+				ReportInterval: 20 * time.Millisecond,
+				ServerAddr:     "localhost",
+				Logger:         logger,
+				RateLimit:      3,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewConfig(tt.args.pollInterval, tt.args.reportInterval, tt.args.serverAddr, tt.args.logger, nil, nil, 1)
-			if got.PollInterval != tt.args.pollInterval {
-				t.Errorf("NewConfig().PollInterval = %v, want %v", got.PollInterval, tt.args.pollInterval)
+			got := NewConfig(tt.in)
+			if got == nil {
+				t.Fatal("NewConfig() returned nil")
 			}
-			if got.ReportInterval != tt.args.reportInterval {
-				t.Errorf("NewConfig().ReportInterval = %v, want %v", got.ReportInterval, tt.args.reportInterval)
+			if got.PollInterval != tt.in.PollInterval {
+				t.Errorf("PollInterval = %v, want %v", got.PollInterval, tt.in.PollInterval)
 			}
-			if got.ServerAddr != tt.args.serverAddr {
-				t.Errorf("NewConfig().ServerAddr = %v, want %v", got.ServerAddr, tt.args.serverAddr)
+			if got.ReportInterval != tt.in.ReportInterval {
+				t.Errorf("ReportInterval = %v, want %v", got.ReportInterval, tt.in.ReportInterval)
 			}
-			if got.Logger == nil {
-				t.Errorf("NewConfig().Logger is nil, want non-nil logger")
+			if got.ServerAddr != tt.in.ServerAddr {
+				t.Errorf("ServerAddr = %v, want %v", got.ServerAddr, tt.in.ServerAddr)
+			}
+			if got.RateLimit != tt.in.RateLimit {
+				t.Errorf("RateLimit = %v, want %v", got.RateLimit, tt.in.RateLimit)
+			}
+			if got.Logger != tt.in.Logger {
+				t.Errorf("Logger = %p, want %p", got.Logger, tt.in.Logger)
+			}
+			if got.InitProperties != tt.in {
+				t.Errorf("InitProperties mismatch: got %+v, want %+v", got.InitProperties, tt.in)
 			}
 		})
 	}

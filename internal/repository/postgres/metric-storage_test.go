@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config/db"
-	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/model/metrics"
 	"testing"
 )
@@ -49,7 +48,7 @@ func TestMetricStorage_Close(t *testing.T) {
 	if testDSN == "" {
 		t.Skip("Test DB not available")
 	}
-	conn, err := db.NewConn(db.NewCfg(&server.Options{DNS: testDSN}))
+	conn, err := db.NewConn(db.NewCfg(&db.Config{DNS: testDSN}))
 	if err != nil {
 		t.Fatalf("create conn for Close test: %v", err)
 	}

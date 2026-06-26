@@ -3,30 +3,29 @@ package db
 import (
 	"strings"
 	internal "sys-metrics/internal/config/db/internal"
-	"sys-metrics/internal/config/server"
 	"testing"
 )
 
 func TestNewCfg(t *testing.T) {
 	tests := []struct {
 		name string
-		opt  *server.Options
+		cfg  *Config
 		want string
 	}{
 		{
 			name: "DSN from options",
-			opt:  &server.Options{DNS: "postgres://localhost/db"},
+			cfg:  &Config{DNS: "postgres://localhost/db"},
 			want: "postgres://localhost/db",
 		},
 		{
 			name: "empty DSN",
-			opt:  &server.Options{DNS: ""},
+			cfg:  &Config{DNS: ""},
 			want: "",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewCfg(tt.opt)
+			got := NewCfg(tt.cfg)
 			if got == nil {
 				t.Fatal("NewCfg() returned nil")
 			}

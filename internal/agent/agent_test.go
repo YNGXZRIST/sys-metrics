@@ -9,19 +9,35 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestAgent_Report(t *testing.T) {
-	cfg := agent.NewConfig(1, 1, testServer.URL, zap.NewExample(), nil, nil, 1)
-	a := NewAgent(cfg, context.Background())
+func newTestAgentConfig(serverURL string, poll, report time.Duration) *agent.Config {
+	return agent.NewConfig(agent.InitProperties{
+		PollInterval:   poll,
+		ReportInterval: report,
+		ServerAddr:     serverURL,
+		Logger:         zap.NewExample(),
+		RateLimit:      1,
+	})
+}
 
-	err := a.Report(context.Background())
+func TestAgent_Report(t *testing.T) {
+	cfg := newTestAgentConfig(testServer.URL, 1, 1)
+	a, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.Report(context.Background())
 	if err != nil {
 		t.Fatalf("report failed %v", err)
 	}
 }
 
 func TestAgent_StartPoll(t *testing.T) {
-	cfg := agent.NewConfig(1, 2, testServer.URL, zap.NewExample(), nil, nil, 1)
-	newAgent := NewAgent(cfg, context.Background())
+	cfg := newTestAgentConfig(testServer.URL, 1, 2)
+	newAgent, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -48,8 +64,11 @@ func TestAgent_StartPoll(t *testing.T) {
 }
 
 func TestAgent_StartReport(t *testing.T) {
-	cfg := agent.NewConfig(1*time.Second, 1*time.Second, testServer.URL, zap.NewExample(), nil, nil, 1)
-	newAgent := NewAgent(cfg, context.Background())
+	cfg := newTestAgentConfig(testServer.URL, time.Second, time.Second)
+	newAgent, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -68,10 +87,13 @@ func TestAgent_StartReport(t *testing.T) {
 }
 
 func TestNewAgent(t *testing.T) {
-	cfg := agent.NewConfig(2, 2, "localhost", zap.NewExample(), nil, nil, 1)
+	cfg := newTestAgentConfig("localhost", 2, 2)
 
 	t.Run("creates agent with config", func(t *testing.T) {
-		got := NewAgent(cfg, context.Background())
+		got, err := NewAgent(cfg, context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if got == nil {
 			t.Fatal("NewAgent() returned nil")
@@ -83,4 +105,27 @@ func TestNewAgent(t *testing.T) {
 			t.Error("NewAgent().collector should not be nil")
 		}
 	})
+}
+
+func TestAgent_Close(t *testing.T) {
+	cfg := newTestAgentConfig(testServer.URL, 1, 1)
+	a, err := NewAgent(cfg, context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := a.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCollector_CollectAll(t *testing.T) {
+	c := NewCollector(context.Background(), 1)
+	c.SetPollCounterMetric()
+	c.SetRandomValueMetric()
+	all := c.CollectAll()
+	if len(all) == 0 {
+		t.Fatal("expected metrics")
+	}
 }

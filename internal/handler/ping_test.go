@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sys-metrics/internal/config/db"
-	"sys-metrics/internal/config/server"
 	serviceMetrics "sys-metrics/internal/service/metrics"
 	"testing"
 
@@ -54,7 +53,7 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	t.Logf("Postgres is available on port: %s", hostPort)
 	dsn := "postgres://postgres:postgres@localhost:" + hostPort + "/postgres?sslmode=disable"
 	err = pool.Retry(func() error {
-		cfg := db.NewCfg(&server.Options{DNS: dsn})
+		cfg := db.NewCfg(&db.Config{DNS: dsn})
 		conn, err := db.NewConn(cfg)
 		if err != nil {
 			return err
@@ -71,10 +70,7 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 		t.Fatalf("Could not connect to database: %s", err)
 	}
 
-	opt := &server.Options{
-		DNS: dsn,
-	}
-	cfg := db.NewCfg(opt)
+	cfg := db.NewCfg(&db.Config{DNS: dsn})
 	conn, err := db.NewConn(cfg)
 	if err != nil {
 		t.Fatalf("failed to create db connection: %v", err)
@@ -89,7 +85,11 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(conn, nil, nil, logger, nil, serviceMetrics.NewService(nil))
+	h := NewHandler(InitProperties{
+		Conn:          conn,
+		Logger:        logger,
+		MetricService: serviceMetrics.NewService(nil),
+	})
 	h.PingHandler(w, r)
 
 	resp := w.Result()
@@ -101,16 +101,17 @@ func TestPingHandler_DBSuccess(t *testing.T) {
 
 func TestPingHandler_DBError(t *testing.T) {
 	logger := zap.NewNop()
-	opt := &server.Options{
-		DNS: "postgres://wrong:wrong@localhost:5432/wrong?sslmode=disable",
-	}
-	cfg := db.NewCfg(opt)
+	cfg := db.NewCfg(&db.Config{DNS: "postgres://wrong:wrong@localhost:5432/wrong?sslmode=disable"})
 	conn, _ := db.NewConn(cfg)
 
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(conn, nil, nil, logger, nil, serviceMetrics.NewService(nil))
+	h := NewHandler(InitProperties{
+		Conn:          conn,
+		Logger:        logger,
+		MetricService: serviceMetrics.NewService(nil),
+	})
 	h.PingHandler(w, r)
 
 	resp := w.Result()
@@ -123,7 +124,10 @@ func TestPingHandler_EmptyContext(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
 
-	h := NewHandler(nil, nil, nil, zap.NewNop(), nil, serviceMetrics.NewService(nil))
+	h := NewHandler(InitProperties{
+		Logger:        zap.NewNop(),
+		MetricService: serviceMetrics.NewService(nil),
+	})
 	h.PingHandler(w, r)
 
 	resp := w.Result()

@@ -8,7 +8,9 @@ func (r *Options) Reset() {
 		return
 	}
 
-	r.ServerAddress = nil
+	r.ServerAddressHTTP = nil
+
+	r.ServerAddressGRPC = nil
 
 	r.StoreIntervalSec = nil
 
@@ -17,6 +19,10 @@ func (r *Options) Reset() {
 	r.Host = ""
 
 	r.Port = ""
+
+	r.HostGRPC = ""
+
+	r.PortGRPC = ""
 
 	r.Mode = ""
 

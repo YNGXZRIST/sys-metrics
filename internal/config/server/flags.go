@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
@@ -17,12 +18,15 @@ import (
 
 // Options holds server CLI flags and env vars: address, mode, DSN, backup, hash key, audit.
 type Options struct {
-	ServerAddress     *string `json:"address" env:"ADDRESS"`
+	ServerAddressHTTP *string `json:"address" env:"ADDRESS"`
+	ServerAddressGRPC *string `json:"address_grpc" env:"ADDRESS_GRPC"`
 	StoreIntervalSec  *int    `env:"STORE_INTERVAL" default:"300"`
 	HashKey           *string `env:"KEY"`
 	Mode              string  `env:"MODE"`
 	Host              string
 	Port              string
+	HostGRPC          string
+	PortGRPC          string
 	StoreIntervalJSON string `json:"store_interval"`
 	BackupStoragePath string `json:"store_file" env:"STORE_FILE" envDefault:"./backups"`
 	DNS               string `json:"database_dsn" env:"DATABASE_DSN"`
@@ -31,7 +35,8 @@ type Options struct {
 	CryptoKeyPath     string `json:"crypto_key" env:"CRYPTO_KEY"`
 	ConfigFilePath    string
 	StoreInterval     time.Duration
-	Restore           bool `json:"restore" env:"RESTORE" envDefault:"true"`
+	Restore           bool   `json:"restore" env:"RESTORE" envDefault:"true"`
+	TrustedSubnetMask string `json:"trusted_subnet" env:"TRUSTED_SUBNET"`
 }
 
 // NewOption parses argv, environment and config, validates mode, and returns Options.
@@ -129,19 +134,22 @@ func (opt *Options) parseArgs(args []string) error {
 	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 
 	var (
-		serverAddr string
-		mode       string
-		interval   int
-		hashKey    string
-		dns        string
-		backup     string
-		restore    bool
-		auditFile  string
-		auditURL   string
-		cryptoKey  string
+		serverHttpAddr    string
+		serverGRPCAddr    string
+		mode              string
+		interval          int
+		hashKey           string
+		dns               string
+		backup            string
+		restore           bool
+		auditFile         string
+		auditURL          string
+		cryptoKey         string
+		trustedSubnetMask string
 	)
 
-	flags.StringVar(&serverAddr, "a", "", "Address of the server")
+	flags.StringVar(&serverHttpAddr, "a", "", "http server address (host:port)")
+	flags.StringVar(&serverGRPCAddr, "a-grpc", "", "grpc server address (:port)")
 	flags.StringVar(&mode, "m", "", "Server mode. Possible values: production, development")
 	flags.IntVar(&interval, "i", 0, "Storage interval in seconds")
 	flags.StringVar(&dns, "d", "", "Database DSN for backup storage")
@@ -153,6 +161,7 @@ func (opt *Options) parseArgs(args []string) error {
 	flags.StringVar(&cryptoKey, "crypto-key", "", "crypto key for decoding request")
 	flags.StringVar(&opt.ConfigFilePath, "config", "", "config file path")
 	flags.StringVar(&opt.ConfigFilePath, "c", "", "config file path (shorthand)")
+	flags.StringVar(&trustedSubnetMask, "t", "", "Trusted subnet mask")
 
 	err := flags.Parse(args)
 	if err != nil {
@@ -166,7 +175,10 @@ func (opt *Options) parseArgs(args []string) error {
 	})
 
 	if visited["a"] {
-		opt.ServerAddress = &serverAddr
+		opt.ServerAddressHTTP = &serverHttpAddr
+	}
+	if visited["a-grpc"] {
+		opt.ServerAddressGRPC = &serverGRPCAddr
 	}
 
 	if visited["m"] {
@@ -200,20 +212,43 @@ func (opt *Options) parseArgs(args []string) error {
 	if visited["crypto-key"] {
 		opt.CryptoKeyPath = cryptoKey
 	}
+	if visited["t"] {
+		opt.TrustedSubnetMask = trustedSubnetMask
+	}
 
 	return nil
 }
 
-// SetHostPort implements config.HostPortSetter.
+// SetHostPort implements config.HostPortSetter for the HTTP listen address.
 func (opt *Options) SetHostPort(host, port string) {
 	opt.Host = host
 	opt.Port = port
 }
 
+type grpcHostPort struct {
+	opt *Options
+}
+
+func (g grpcHostPort) SetHostPort(host, port string) {
+	g.opt.HostGRPC = host
+	g.opt.PortGRPC = port
+}
+
+// GRPCInternalAddr returns host:port for the gRPC listener.
+func (opt *Options) GRPCInternalAddr() string {
+	if opt.HostGRPC != "" && opt.PortGRPC != "" {
+		return net.JoinHostPort(opt.HostGRPC, opt.PortGRPC)
+	}
+	return ""
+}
+
 // mergeOptions merge new and source options. Not overriding existed options
 func mergeOptions(dst, src *Options) {
-	if dst.ServerAddress == nil && src.ServerAddress != nil {
-		dst.ServerAddress = src.ServerAddress
+	if dst.ServerAddressHTTP == nil && src.ServerAddressHTTP != nil {
+		dst.ServerAddressHTTP = src.ServerAddressHTTP
+	}
+	if dst.ServerAddressGRPC == nil && src.ServerAddressGRPC != nil {
+		dst.ServerAddressGRPC = src.ServerAddressGRPC
 	}
 
 	if dst.StoreIntervalSec == nil && src.StoreIntervalSec != nil {
@@ -252,15 +287,20 @@ func mergeOptions(dst, src *Options) {
 	if dst.CryptoKeyPath == "" && src.CryptoKeyPath != "" {
 		dst.CryptoKeyPath = src.CryptoKeyPath
 	}
+	if dst.TrustedSubnetMask == "" && src.TrustedSubnetMask != "" {
+		dst.TrustedSubnetMask = src.TrustedSubnetMask
+	}
 }
 
-// applyDefaults set default fields if not exist
-func applyDefaults(opt *Options) error {
-
-	if opt.ServerAddress == nil {
-		opt.ServerAddress = new("localhost:8080")
+func stringPtrValue(p *string) string {
+	if p == nil {
+		return ""
 	}
+	return *p
+}
 
+// applyDefaults set default fields if not exist and resolves Host/Port.
+func applyDefaults(opt *Options) error {
 	if opt.Mode == "" {
 		opt.Mode = common.TypeModeDefault
 	}
@@ -278,9 +318,20 @@ func applyDefaults(opt *Options) error {
 		opt.Restore = true
 	}
 
-	err := config.ParseAndSetHostPort(*opt.ServerAddress, opt)
-	if err != nil {
-		return fmt.Errorf("parsing server address: %w", err)
+	httpAddr := stringPtrValue(opt.ServerAddressHTTP)
+	if httpAddr == "" {
+		httpAddr = net.JoinHostPort(DefaultHost, DefaultPort)
+	}
+	if err := config.ParseAndSetHostPort(httpAddr, opt); err != nil {
+		return fmt.Errorf("parsing http address: %w", err)
+	}
+
+	grpcAddr := stringPtrValue(opt.ServerAddressGRPC)
+	if grpcAddr == "" {
+		grpcAddr = net.JoinHostPort(opt.Host, DefaultGRPCPort)
+	}
+	if err := config.ParseAndSetHostPort(grpcAddr, grpcHostPort{opt}); err != nil {
+		return fmt.Errorf("parsing grpc address: %w", err)
 	}
 	return nil
 }

@@ -2,15 +2,11 @@ package postgres
 
 import (
 	"sys-metrics/internal/config/db"
-	"sys-metrics/internal/config/server"
 	"testing"
 )
 
 func TestConfig_NeedSync(t *testing.T) {
-	opt := &server.Options{
-		DNS: "test",
-	}
-	conn, err := db.NewConn(db.NewCfg(opt))
+	conn, err := db.NewConn(db.NewCfg(&db.Config{DNS: "postgres://user:pass@localhost:5432/testdb?sslmode=disable"}))
 	if err != nil {
 		t.Fatal("Failed to create new connection")
 	}
@@ -45,7 +41,7 @@ func TestNewConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.name == "non-nil dbConn" {
-				conn, err := db.NewConn(db.NewCfg(&server.Options{DNS: "test"}))
+				conn, err := db.NewConn(db.NewCfg(&db.Config{DNS: "postgres://user:pass@localhost:5432/testdb?sslmode=disable"}))
 				if err != nil {
 					t.Skipf("skip: no db: %v", err)
 				}

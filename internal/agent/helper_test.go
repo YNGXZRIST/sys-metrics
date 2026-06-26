@@ -3,6 +3,8 @@ package agent
 import (
 	"net/http"
 	"net/http/httptest"
+	"sys-metrics/internal/agent/sender"
+	"sys-metrics/internal/common"
 
 	"go.uber.org/zap"
 )
@@ -12,4 +14,16 @@ var testServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,
 	w.Write([]byte(`OK`))
 }))
 
-var testReporter = NewReporter(testServer.URL, zap.NewNop(), nil, nil)
+var testSender = mustNewSender(sender.Config{
+	Transport: common.ReportTransportHTTP,
+	ServerURL: testServer.URL,
+	Logger:    zap.NewNop(),
+})
+
+func mustNewSender(cfg sender.Config) sender.MetricsSender {
+	s, err := sender.NewMetricsSender(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}

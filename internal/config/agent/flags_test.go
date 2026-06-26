@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"os"
 	"reflect"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
@@ -13,6 +14,7 @@ func clearEnv(t *testing.T) {
 
 	for _, k := range []string{
 		"ADDRESS",
+		"REPORT_TRANSPORT",
 		"MODE",
 		"KEY",
 		"POLL_INTERVAL",
@@ -42,17 +44,18 @@ func Test_parseArgs(t *testing.T) {
 				"-crypto-key=/tmp/none.pem",
 			},
 			want: &Options{
-				ServerAddress:  "127.0.0.1:1234",
-				Host:           "127.0.0.1",
-				Port:           "1234",
-				ReportInterval: 4 * time.Second,
-				PollInterval:   5 * time.Second,
-				ReportSec:      4,
-				PollSec:        5,
-				Mode:           common.TypeModeDevelopment,
-				HashKey:        "",
-				RateLimit:      1,
-				CryptoKeyPath:  "/tmp/none.pem",
+				ServerAddress:   "127.0.0.1:1234",
+				Host:            "127.0.0.1",
+				Port:            "1234",
+				ReportInterval:  4 * time.Second,
+				PollInterval:    5 * time.Second,
+				ReportSec:       4,
+				PollSec:         5,
+				Mode:            common.TypeModeDevelopment,
+				HashKey:         "",
+				RateLimit:       1,
+				CryptoKeyPath:   "/tmp/none.pem",
+				ReportTransport: common.ReportTransportHTTP,
 			},
 		},
 		{
@@ -64,32 +67,34 @@ func Test_parseArgs(t *testing.T) {
 				"-m=development",
 			},
 			want: &Options{
-				ServerAddress:  "127.0.0.1:1234",
-				Host:           "127.0.0.1",
-				Port:           "1234",
-				ReportInterval: 4 * time.Second,
-				PollInterval:   5 * time.Second,
-				ReportSec:      4,
-				PollSec:        5,
-				Mode:           common.TypeModeDevelopment,
-				HashKey:        "",
-				RateLimit:      1,
+				ServerAddress:   "127.0.0.1:1234",
+				Host:            "127.0.0.1",
+				Port:            "1234",
+				ReportInterval:  4 * time.Second,
+				PollInterval:    5 * time.Second,
+				ReportSec:       4,
+				PollSec:         5,
+				Mode:            common.TypeModeDevelopment,
+				HashKey:         "",
+				RateLimit:       1,
+				ReportTransport: common.ReportTransportHTTP,
 			},
 		},
 		{
 			name: "empty args",
 			args: []string{},
 			want: &Options{
-				ServerAddress:  "localhost:8080",
-				Host:           "localhost",
-				Port:           "8080",
-				ReportInterval: 10 * time.Second,
-				PollInterval:   2 * time.Second,
-				ReportSec:      10,
-				PollSec:        2,
-				Mode:           common.TypeModeDefault,
-				HashKey:        "",
-				RateLimit:      1,
+				ServerAddress:   "localhost:8080",
+				Host:            "localhost",
+				Port:            "8080",
+				ReportInterval:  10 * time.Second,
+				PollInterval:    2 * time.Second,
+				ReportSec:       10,
+				PollSec:         2,
+				Mode:            common.TypeModeDefault,
+				HashKey:         "",
+				RateLimit:       1,
+				ReportTransport: common.ReportTransportHTTP,
 			},
 		},
 	}
@@ -195,16 +200,17 @@ func Test_newOption(t *testing.T) {
 				"-m=development",
 			},
 			want: &Options{
-				ServerAddress:  "localhost:9090",
-				Host:           "localhost",
-				Port:           "9090",
-				ReportInterval: 15 * time.Second,
-				PollInterval:   5 * time.Second,
-				ReportSec:      15,
-				PollSec:        5,
-				Mode:           common.TypeModeDevelopment,
-				HashKey:        "",
-				RateLimit:      1,
+				ServerAddress:   "localhost:9090",
+				Host:            "localhost",
+				Port:            "9090",
+				ReportInterval:  15 * time.Second,
+				PollInterval:    5 * time.Second,
+				ReportSec:       15,
+				PollSec:         5,
+				Mode:            common.TypeModeDevelopment,
+				HashKey:         "",
+				RateLimit:       1,
+				ReportTransport: common.ReportTransportHTTP,
 			},
 		},
 		{
@@ -382,6 +388,30 @@ func TestNewOption_developmentDefaults(t *testing.T) {
 	}
 }
 
+func TestNewOption_reportTransport(t *testing.T) {
+	clearEnv(t)
+
+	got, err := NewOption([]string{
+		"-m", common.TypeModeDevelopment,
+		"-report-transport", "grpc",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ReportTransport != common.ReportTransportGRPC {
+		t.Fatalf("ReportTransport = %q, want grpc", got.ReportTransport)
+	}
+
+	clearEnv(t)
+	got, err = NewOption([]string{"-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ReportTransport != common.ReportTransportHTTP {
+		t.Fatalf("default ReportTransport = %q, want http", got.ReportTransport)
+	}
+}
+
 func TestNewOption_withRateLimitEnv(t *testing.T) {
 	clearEnv(t)
 
@@ -398,5 +428,106 @@ func TestNewOption_withRateLimitEnv(t *testing.T) {
 
 	if got.RateLimit != 4 {
 		t.Fatalf("RateLimit = %d", got.RateLimit)
+	}
+}
+
+func TestParseConfig(t *testing.T) {
+	clearEnv(t)
+
+	path := t.TempDir() + "/agent.json"
+	content := `{
+		"address": "localhost:9090",
+		"report_interval": "15s",
+		"poll_interval": "3s",
+		"report_transport": "grpc",
+		"crypto_key": "/tmp/key.pem"
+	}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := NewOption([]string{"-c", path, "-m", common.TypeModeDevelopment})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Host != "localhost" || got.Port != "9090" {
+		t.Fatalf("addr %s:%s", got.Host, got.Port)
+	}
+	if got.ReportTransport != common.ReportTransportGRPC {
+		t.Fatalf("transport %q", got.ReportTransport)
+	}
+	if got.ReportInterval != 15*time.Second || got.PollInterval != 3*time.Second {
+		t.Fatalf("intervals report=%v poll=%v", got.ReportInterval, got.PollInterval)
+	}
+	if got.CryptoKeyPath != "/tmp/key.pem" {
+		t.Fatalf("crypto key %q", got.CryptoKeyPath)
+	}
+}
+
+func TestNewOption_invalidReportTransport(t *testing.T) {
+	clearEnv(t)
+	_, err := NewOption([]string{"-m", common.TypeModeDevelopment, "-report-transport", "kafka"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestOptions_parseEnv_reportTransport(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("REPORT_TRANSPORT", "grpc")
+
+	opt := &Options{}
+	if err := opt.parseEnv(); err != nil {
+		t.Fatal(err)
+	}
+	if opt.ReportTransport != "grpc" {
+		t.Fatalf("transport %q", opt.ReportTransport)
+	}
+}
+
+func TestParseConfig_invalidJSON(t *testing.T) {
+	clearEnv(t)
+	path := t.TempDir() + "/bad.json"
+	if err := os.WriteFile(path, []byte("{"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	opt := &Options{}
+	if err := opt.ParseConfig(path); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestParseConfig_invalidReportInterval(t *testing.T) {
+	clearEnv(t)
+	path := t.TempDir() + "/agent.json"
+	if err := os.WriteFile(path, []byte(`{"report_interval":"not-a-duration"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	opt := &Options{}
+	if err := opt.ParseConfig(path); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestParseConfigPath_fromEnv(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("CONFIG", "/etc/agent.json")
+	path, err := parseConfigPath(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != "/etc/agent.json" {
+		t.Fatalf("path = %q", path)
+	}
+}
+
+func TestOptions_Endpoint(t *testing.T) {
+	opt := &Options{Host: "localhost", Port: "8080"}
+	if opt.Endpoint() != "localhost:8080" {
+		t.Fatalf("endpoint %q", opt.Endpoint())
+	}
+	opt = &Options{ServerAddress: "127.0.0.1:9090"}
+	if opt.Endpoint() != "127.0.0.1:9090" {
+		t.Fatalf("endpoint %q", opt.Endpoint())
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/model/metrics"
-	"sys-metrics/internal/observer"
 	"sys-metrics/internal/repository/memory"
 	svc "sys-metrics/internal/repository/metrics"
 	serviceMetrics "sys-metrics/internal/service/metrics"
@@ -26,9 +25,10 @@ func (noopObserver) Notify(ctx context.Context, data any) {}
 func (noopObserver) Register(any) error                   { return nil }
 func newBenchmarkHandler(tb testing.TB) *Handler {
 	tb.Helper()
-	return NewHandler(nil, nil, nil, zap.NewNop(), map[ObserverKey]observer.Observer{
-		ObserverAudit: noopObserver{},
-	}, serviceMetrics.NewService(noopObserver{}))
+	return NewHandler(InitProperties{
+		Logger:        zap.NewNop(),
+		MetricService: serviceMetrics.NewService(noopObserver{}),
+	})
 }
 
 type gaugeDataset struct {

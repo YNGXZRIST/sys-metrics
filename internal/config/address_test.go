@@ -91,3 +91,15 @@ func TestValidateMode(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestValidateReportTransport(t *testing.T) {
+	if err := ValidateReportTransport(common.ReportTransportHTTP); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReportTransport(common.ReportTransportGRPC); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReportTransport("kafka"); err == nil {
+		t.Fatal("expected error")
+	}
+}

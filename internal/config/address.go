@@ -45,6 +45,15 @@ func ParseAndSetHostPort(address string, setter HostPortSetter) error {
 	return nil
 }
 
+// ValidateReportTransport ensures transport is http or grpc.
+func ValidateReportTransport(transport string) error {
+	valid := []string{common.ReportTransportHTTP, common.ReportTransportGRPC}
+	if !slices.Contains(valid, transport) {
+		return fmt.Errorf("invalid report transport: %s, valid types: %v", transport, valid)
+	}
+	return nil
+}
+
 // ValidateMode ensures mode is development or production.
 func ValidateMode(mode string) error {
 	validModes := []string{common.TypeModeDevelopment, common.TypeModeProduction}

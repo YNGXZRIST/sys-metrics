@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"os"
-	"sys-metrics/internal/config/server"
 	"sys-metrics/migrations"
 	"testing"
 
@@ -60,7 +59,7 @@ func TestMain(m *testing.M) {
 	}
 
 	var connErr error
-	testDB, connErr = NewConn(NewCfg(&server.Options{DNS: dsn}))
+	testDB, connErr = NewConn(NewCfg(&Config{DNS: dsn}))
 	if connErr != nil {
 		_ = pool.Purge(resource)
 		panic(connErr)

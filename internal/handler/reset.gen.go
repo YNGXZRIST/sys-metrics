@@ -12,6 +12,4 @@ func (r *Handler) Reset() {
 
 	r.Conn = nil
 
-	clear(r.Observers)
-
 }

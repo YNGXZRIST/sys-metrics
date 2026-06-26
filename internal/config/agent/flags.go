@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"sys-metrics/internal/common"
 	"sys-metrics/internal/config"
@@ -18,18 +19,19 @@ import (
 
 // Options holds agent CLI flags and env: server address, intervals, mode, key, rate limit.
 type Options struct {
-	ServerAddress  string `json:"address" env:"ADDRESS"`
-	Host           string
-	Port           string
-	Mode           string `env:"MODE"`
-	HashKey        string `env:"KEY"`
-	CryptoKeyPath  string `json:"crypto_key" env:"CRYPTO_KEY"`
-	ConfigFilePath string
-	PollInterval   time.Duration
-	ReportInterval time.Duration
-	PollSec        int `env:"POLL_INTERVAL"`
-	ReportSec      int `env:"REPORT_INTERVAL"`
-	RateLimit      int `env:"RATE_LIMIT"`
+	ServerAddress   string `json:"address" env:"ADDRESS"`
+	Host            string
+	Port            string
+	Mode            string `env:"MODE"`
+	HashKey         string `env:"KEY"`
+	CryptoKeyPath   string `json:"crypto_key" env:"CRYPTO_KEY"`
+	ConfigFilePath  string
+	PollInterval    time.Duration
+	ReportInterval  time.Duration
+	ReportTransport string `json:"report_transport" env:"REPORT_TRANSPORT"`
+	PollSec         int    `env:"POLL_INTERVAL"`
+	ReportSec       int    `env:"REPORT_INTERVAL"`
+	RateLimit       int    `env:"RATE_LIMIT"`
 }
 
 // NewOption parses the agent argv, environment and config. Validates logging mode.
@@ -58,6 +60,10 @@ func NewOption(args []string) (*Options, error) {
 	if err != nil {
 		return nil, labelerrors.NewLabelError("APPLY DEFAULTS", err)
 	}
+	err = config.ValidateReportTransport(opt.ReportTransport)
+	if err != nil {
+		return nil, labelerrors.NewLabelError("REPORT TRANSPORT", err)
+	}
 	err = config.ValidateMode(opt.Mode)
 	if err != nil {
 		return nil, labelerrors.NewLabelError("MODE", err)
@@ -75,10 +81,11 @@ func (opt *Options) ParseConfig(path string) error {
 	defer file.Close()
 
 	var cfg struct {
-		ServerAddress  string `json:"address"`
-		ReportInterval string `json:"report_interval"`
-		PollInterval   string `json:"poll_interval"`
-		CryptoKeyPath  string `json:"crypto_key"`
+		ServerAddress   string `json:"address"`
+		ReportInterval  string `json:"report_interval"`
+		PollInterval    string `json:"poll_interval"`
+		CryptoKeyPath   string `json:"crypto_key"`
+		ReportTransport string `json:"report_transport"`
 	}
 
 	decoder := json.NewDecoder(file)
@@ -98,6 +105,10 @@ func (opt *Options) ParseConfig(path string) error {
 
 	if opt.CryptoKeyPath == "" && cfg.CryptoKeyPath != "" {
 		opt.CryptoKeyPath = cfg.CryptoKeyPath
+	}
+
+	if opt.ReportTransport == "" && cfg.ReportTransport != "" {
+		opt.ReportTransport = cfg.ReportTransport
 	}
 
 	if opt.ReportSec == 0 && cfg.ReportInterval != "" {
@@ -164,17 +175,18 @@ func (opt *Options) parseArgs(args []string) error {
 	flags := flag.NewFlagSet("agent", flag.ContinueOnError)
 
 	var (
-		serverAddress string
-		reportSec     int
-		pollSec       int
-		hashKey       string
-		mode          string
-		rateLimit     int
-		cryptoKey     string
+		serverAddress   string
+		reportSec       int
+		pollSec         int
+		hashKey         string
+		mode            string
+		rateLimit       int
+		cryptoKey       string
+		reportTransport string
 	)
 
 	flags.StringVar(
-		&serverAddress, "a", "", "Address of agent server")
+		&serverAddress, "a", "", "metrics server address (host:port)")
 
 	flags.IntVar(&reportSec, "r", 0, "Reporting interval in seconds")
 
@@ -187,6 +199,12 @@ func (opt *Options) parseArgs(args []string) error {
 	flags.IntVar(&rateLimit, "l", 0, "agent rate limit")
 
 	flags.StringVar(&cryptoKey, "crypto-key", "", "crypto key for encoding request")
+	flags.StringVar(
+		&reportTransport,
+		"report-transport",
+		"",
+		"metrics transport: http or grpc",
+	)
 	flags.StringVar(&opt.ConfigFilePath, "config", "", "config file path")
 
 	flags.StringVar(&opt.ConfigFilePath, "c", "", "config file path (shorthand)")
@@ -242,6 +260,10 @@ func (opt *Options) parseArgs(args []string) error {
 		opt.CryptoKeyPath = cryptoKey
 	}
 
+	if visited["report-transport"] {
+		opt.ReportTransport = reportTransport
+	}
+
 	return nil
 }
 
@@ -285,6 +307,10 @@ func mergeOptions(dst, src *Options) {
 	if dst.CryptoKeyPath == "" && src.CryptoKeyPath != "" {
 		dst.CryptoKeyPath = src.CryptoKeyPath
 	}
+
+	if dst.ReportTransport == "" && src.ReportTransport != "" {
+		dst.ReportTransport = src.ReportTransport
+	}
 }
 
 // applyDefaults set default fields if not exist
@@ -311,11 +337,23 @@ func applyDefaults(opt *Options) error {
 		opt.RateLimit = 1
 	}
 
-	err := config.ParseAndSetHostPort(opt.ServerAddress, opt)
-	if err != nil {
+	if opt.ReportTransport == "" {
+		opt.ReportTransport = common.ReportTransportHTTP
+	}
+
+	if err := config.ParseAndSetHostPort(opt.ServerAddress, opt); err != nil {
 		return fmt.Errorf("error parsing server address: %w", err)
 	}
+
 	return nil
+}
+
+// Endpoint returns host:port for server connections.
+func (opt *Options) Endpoint() string {
+	if opt.Host != "" && opt.Port != "" {
+		return net.JoinHostPort(opt.Host, opt.Port)
+	}
+	return opt.ServerAddress
 }
 
 // parseConfigPath get config path from os.Args

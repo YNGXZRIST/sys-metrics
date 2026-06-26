@@ -14,6 +14,8 @@ func (r *Config) Reset() {
 
 	r.RateLimit = 0
 
+	r.ReportTransport = ""
+
 }
 
 func (r *Options) Reset() {
@@ -36,5 +38,7 @@ func (r *Options) Reset() {
 	r.ReportSec = 0
 
 	r.RateLimit = 0
+
+	r.ReportTransport = ""
 
 }

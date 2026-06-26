@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"fmt"
 	db "sys-metrics/internal/config/db/internal"
-	"sys-metrics/internal/config/server"
 	"sys-metrics/internal/errors/labelerrors"
 	"sys-metrics/internal/errors/pgerrors"
 	"time"
@@ -30,9 +29,12 @@ type DB struct {
 	*sql.DB
 	*db.Config
 }
+type Config struct {
+	DNS string
+}
 
 // NewCfg builds a connection config from server options (DSN).
-func NewCfg(opt *server.Options) *db.Config {
+func NewCfg(opt *Config) *db.Config {
 	dns := opt.DNS
 	return &db.Config{
 		DNS: dns,

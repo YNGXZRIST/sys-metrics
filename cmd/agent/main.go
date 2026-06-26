@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -35,7 +36,6 @@ func main() {
 	}
 }
 func run() error {
-	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,
@@ -43,7 +43,12 @@ func run() error {
 		syscall.SIGQUIT,
 	)
 	defer stop()
-	opt, err := config.NewOption(os.Args[1:])
+	return runWithContext(ctx, os.Args[1:])
+}
+
+func runWithContext(ctx context.Context, args []string) error {
+	utils.PrintBuildInfo(buildVersion, buildDate, buildCommit)
+	opt, err := config.NewOption(args)
 	if err != nil {
 		return fmt.Errorf("new option: %w", err)
 	}
@@ -52,7 +57,11 @@ func run() error {
 		return labelerrors.NewLabelError("INIT AGENT", err)
 	}
 	defer a.Logger.Sync()
-	a.Logger.Info("Agent initialized.", zap.String("server url", a.ServerAddr))
+	a.Logger.Info("Agent initialized.",
+		zap.String("server url", a.ServerAddr),
+		zap.String("endpoint", opt.Endpoint()),
+		zap.String("report transport", opt.ReportTransport),
+	)
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -67,8 +76,8 @@ func run() error {
 	<-ctx.Done()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err = a.ReportPool.Shutdown(shutdownCtx); err != nil {
-		a.Logger.Error("report shutdown error", zap.Error(err))
+	if err := a.Close(shutdownCtx); err != nil {
+		a.Logger.Error("shutdown error", zap.Error(err))
 	}
 	wg.Wait()
 	a.Logger.Info("Shutting down agent...")
@@ -85,7 +94,40 @@ func initAgent(opt *config.Options, ctx context.Context) (*agent.Agent, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error initializing encryptor: %w", err)
 	}
-	agentCfg := config.NewConfig(opt.PollInterval, opt.ReportInterval, serverCfg.ServerAddr(), logger, validator, encryptor, opt.RateLimit)
-	a := agent.NewAgent(agentCfg, ctx)
+	localIpV4, err := getAgentLocalIpV4()
+	if err != nil {
+		return nil, fmt.Errorf("error initializing local address: %w", err)
+	}
+	initProp := config.InitProperties{
+		PollInterval:     opt.PollInterval,
+		ReportInterval:   opt.ReportInterval,
+		ServerAddr:       serverCfg.ServerAddr(),
+		ServerEndpoint:   serverCfg.InternalAddr(),
+		ReportTransport:  opt.ReportTransport,
+		Logger:           logger,
+		Authenticator:    validator,
+		RequestEncryptor: encryptor,
+		RateLimit:        opt.RateLimit,
+		LocalIpV4:        localIpV4,
+	}
+	agentCfg := config.NewConfig(initProp)
+	a, err := agent.NewAgent(agentCfg, ctx)
+	if err != nil {
+		return nil, err
+	}
 	return a, nil
+}
+func getAgentLocalIpV4() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String(), nil
+			}
+		}
+	}
+	return "", labelerrors.NewLabelError("INIT AGENT", fmt.Errorf("no local addresses found"))
 }
